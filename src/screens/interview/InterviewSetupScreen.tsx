@@ -59,20 +59,25 @@ export default function InterviewSetupScreen({ navigation, route }:any) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <LinearGradient colors={['#0F2040',C.bg]} style={s.headerBg}>
-        <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={()=>navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color={C.muted}/>
-          </TouchableOpacity>
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>Interview Setup</Text>
-            <Text style={s.headerSub}>{role}</Text>
-          </View>
-          <View style={{width:42}}/>
-        </View>
-      </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        style={[{opacity:fade}, Platform.OS==='web' && ({height:'100vh',overflowY:'auto'} as any)]}
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header inside scroll so web height works */}
+        <LinearGradient colors={['#0F2040',C.bg]} style={s.headerBg}>
+          <View style={s.header}>
+            <TouchableOpacity style={s.backBtn} onPress={()=>navigation.goBack()}>
+              <Ionicons name="arrow-back" size={22} color={C.muted}/>
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <Text style={s.headerTitle}>Interview Setup</Text>
+              <Text style={s.headerSub}>{role}</Text>
+            </View>
+            <View style={{width:42}}/>
+          </View>
+        </LinearGradient>
 
         {/* Summary preview */}
         <View style={s.previewCard}>
@@ -162,40 +167,40 @@ export default function InterviewSetupScreen({ navigation, route }:any) {
 
 const s = StyleSheet.create({
   root:         {flex:1,backgroundColor:C.bg},
-  headerBg:     {paddingBottom:12},
+  headerBg:     {paddingBottom:12,marginBottom:16},
   header:       {flexDirection:'row',alignItems:'center',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:32,gap:10},
   backBtn:      {width:42,height:42,borderRadius:13,backgroundColor:'rgba(255,255,255,0.08)',alignItems:'center',justifyContent:'center'},
   headerCenter: {flex:1},
   headerTitle:  {fontSize:17,fontWeight:'700',color:C.text},
   headerSub:    {fontSize:12,color:C.muted,marginTop:2},
-  scroll:       {paddingHorizontal:20,paddingTop:16},
-  previewCard:  {borderRadius:20,padding:16,marginBottom:24,borderWidth:1,borderColor:'rgba(21,101,255,0.20)',overflow:'hidden'},
+  scroll:       {paddingBottom:40},
+  previewCard:  {borderRadius:20,padding:16,marginHorizontal:20,marginBottom:24,borderWidth:1,borderColor:'rgba(21,101,255,0.20)',overflow:'hidden'},
   previewRow:   {flexDirection:'row',justifyContent:'space-around'},
   previewItem:  {alignItems:'center',gap:4,flex:1},
   previewLbl:   {fontSize:11,color:C.muted},
   previewVal:   {fontSize:13,fontWeight:'700',color:C.text,textAlign:'center'},
   previewDivider:{width:1,backgroundColor:C.border,marginVertical:4},
-  sectionTitle: {fontSize:15,fontWeight:'700',color:C.text,marginBottom:12},
-  optGrid:      {flexDirection:'row',flexWrap:'wrap',gap:10,marginBottom:24},
+  sectionTitle: {fontSize:15,fontWeight:'700',color:C.text,marginBottom:12,paddingHorizontal:20},
+  optGrid:      {flexDirection:'row',flexWrap:'wrap',gap:10,marginBottom:24,paddingHorizontal:20},
   optCard:      {width:'47%',backgroundColor:C.bgCard,borderRadius:16,padding:14,borderWidth:1,borderColor:C.border,gap:8,position:'relative'},
   optCardActive:{borderColor:'rgba(21,101,255,0.6)',backgroundColor:'rgba(21,101,255,0.08)'},
   optIcon:      {width:42,height:42,borderRadius:12,alignItems:'center',justifyContent:'center'},
   optLabel:     {fontSize:13,fontWeight:'700',color:C.text},
   optDesc:      {fontSize:11,color:C.muted,lineHeight:16},
   optCheck:     {position:'absolute',top:10,right:10},
-  diffRow:      {flexDirection:'row',gap:10,marginBottom:24},
+  diffRow:      {flexDirection:'row',gap:10,marginBottom:24,paddingHorizontal:20},
   diffCard:     {flex:1,backgroundColor:C.bgCard,borderRadius:16,padding:12,borderWidth:1,borderColor:C.border,alignItems:'center',gap:6},
   diffLabel:    {fontSize:13,fontWeight:'700'},
   diffDesc:     {fontSize:10,color:C.hint,textAlign:'center',lineHeight:14},
-  durRow:       {flexDirection:'row',gap:8,marginBottom:20},
+  durRow:       {flexDirection:'row',gap:8,marginBottom:20,paddingHorizontal:20},
   durCard:      {flex:1,backgroundColor:C.bgCard,borderRadius:14,padding:12,borderWidth:1,borderColor:C.border,alignItems:'center',gap:4},
   durCardActive:{borderColor:'rgba(21,101,255,0.6)',backgroundColor:'rgba(21,101,255,0.10)'},
   durLabel:     {fontSize:13,fontWeight:'700'},
   durQ:         {fontSize:10,color:C.hint},
-  tipsBox:      {flexDirection:'row',gap:10,backgroundColor:C.bgCard,borderRadius:16,padding:14,borderWidth:1,borderColor:'rgba(245,158,11,0.20)',marginBottom:20,alignItems:'flex-start'},
+  tipsBox:      {flexDirection:'row',gap:10,backgroundColor:C.bgCard,borderRadius:16,padding:14,borderWidth:1,borderColor:'rgba(245,158,11,0.20)',marginBottom:20,marginHorizontal:20,alignItems:'flex-start'},
   tipsTitle:    {fontSize:13,fontWeight:'700',color:C.gold,marginBottom:4},
   tipsTxt:      {fontSize:12,color:C.muted,lineHeight:18},
-  startBtn:     {borderRadius:16,overflow:'hidden'},
+  startBtn:     {borderRadius:16,overflow:'hidden',marginHorizontal:20},
   startBtnGrad: {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10,paddingVertical:16},
   startBtnTxt:  {fontSize:16,fontWeight:'700',color:'#fff'},
 });
