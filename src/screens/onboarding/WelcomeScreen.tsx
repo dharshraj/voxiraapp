@@ -204,6 +204,16 @@ export default function WelcomeScreen({ navigation }: any) {
           </LinearGradient>
         </Animated.View>
 
+        {/* Sign In button — below Live Analysis card */}
+        <TouchableOpacity
+          style={s.signInBtn}
+          onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="person-outline" size={18} color="#A78BFA" />
+          <Text style={s.signInBtnTxt}>Sign In</Text>
+        </TouchableOpacity>
+
         {/* 2 — Eyebrow label */}
         <View style={s.eyebrowWrap}>
           <View style={s.eyebrowPill}>
@@ -261,7 +271,7 @@ export default function WelcomeScreen({ navigation }: any) {
 
           <TouchableOpacity style={s.loginLink} onPress={() => navigation.navigate('Login')}>
             <Text style={s.loginLinkTxt}>
-              Already have an account?  <Text style={s.loginLinkAccent}>Sign In</Text>
+              Already have an account?{'  '}<Text style={s.loginLinkAccent}>Sign In</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -298,6 +308,14 @@ const s = StyleSheet.create({
   },
 
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
+  signInBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.50)',
+    borderRadius: 18, paddingVertical: 15,
+    backgroundColor: 'rgba(139,92,246,0.09)',
+    marginBottom: 20,
+  },
+  signInBtnTxt: { fontSize: 16, fontWeight: '700', color: '#A78BFA', letterSpacing: 0.2 },
   logoMark: {
     width: 42, height: 42, borderRadius: 13,
     alignItems: 'center', justifyContent: 'center',

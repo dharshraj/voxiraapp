@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
   StyleSheet, StatusBar, Platform, Animated,
@@ -144,6 +144,54 @@ export default function SpeechHomeScreen({ navigation }: any) {
           ))}
         </View>
 
+        {/* Speaking Benchmarks */}
+        <Text style={s.sectionTitle}>Speaking Benchmarks</Text>
+        <View style={s.benchCard}>
+          {[
+            { label:'Ideal Speaking Pace',      value:'120-150 WPM', icon:'speedometer-outline', color:'#6C5CE7' },
+            { label:'Max Filler Words (good)',   value:'< 3 per min', icon:'warning-outline',     color:'#E17055' },
+            { label:'Ideal Sentence Length',     value:'15-20 words', icon:'text-outline',         color:'#00B894' },
+            { label:'Eye Contact',               value:'60-70% time', icon:'eye-outline',          color:'#F0932B' },
+          ].map((item, i) => (
+            <View key={i} style={[s.benchRow, i === 3 && { borderBottomWidth: 0 }]}>
+              <View style={[s.benchIcon, { backgroundColor: `${item.color}15` }]}>
+                <Ionicons name={item.icon as any} size={16} color={item.color} />
+              </View>
+              <Text style={s.benchLabel}>{item.label}</Text>
+              <Text style={[s.benchValue, { color: item.color }]}>{item.value}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Watch Out For */}
+        <Text style={s.sectionTitle}>Watch Out For</Text>
+        <View style={s.fillerRef}>
+          {['um','uh','like','you know','basically','literally','actually','i mean','sort of','right?'].map((w, i) => (
+            <View key={i} style={s.fillerRefChip}>
+              <Text style={s.fillerRefText}>"{w}"</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Improvement Tips */}
+        <View style={s.improvCard}>
+          <Text style={s.improvTitle}>🎯 Quick Improvement Tips</Text>
+          {[
+            { tip: 'Record yourself daily',    desc: 'Even 2 minutes a day improves speaking by 40% in 30 days' },
+            { tip: 'Use the pause technique',  desc: 'Replace every filler word with a 1-second pause' },
+            { tip: 'Vary your tone',           desc: 'Monotone speech loses listeners after 30 seconds' },
+            { tip: 'Practice tongue twisters', desc: 'Improves articulation and pronunciation clarity' },
+          ].map((item, i) => (
+            <View key={i} style={s.improvRow}>
+              <View style={s.improvDot} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.improvTipText}>{item.tip}</Text>
+                <Text style={s.improvDesc}>{item.desc}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
         {/* PROGRESS CARD */}
         <TouchableOpacity
           style={s.progressCard}
@@ -241,4 +289,18 @@ const s = StyleSheet.create({
   progressText:  { flex: 1, marginLeft: 12 },
   progressTitle: { fontSize: 14, fontWeight: '600', color: C.text },
   progressSub:   { fontSize: 12, color: C.textMuted },
+  benchCard:     { backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E0DDD8', marginHorizontal: 20, marginBottom: 16 },
+  benchRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: '#F1EFEC' },
+  benchIcon:     { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  benchLabel:    { flex: 1, fontSize: 13, color: '#636E72' },
+  benchValue:    { fontSize: 13, fontWeight: '700' },
+  fillerRef:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 16 },
+  fillerRefChip: { backgroundColor: '#FBE9E7', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#FDCB6E' },
+  fillerRefText: { fontSize: 12, color: '#E17055', fontWeight: '500' },
+  improvCard:    { backgroundColor: '#F8F7FF', borderRadius: 14, padding: 14, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: '#EDE7F6' },
+  improvTitle:   { fontSize: 14, fontWeight: '700', color: '#6C5CE7', marginBottom: 12 },
+  improvRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
+  improvDot:     { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6C5CE7', marginTop: 5, flexShrink: 0 },
+  improvTipText: { fontSize: 13, fontWeight: '600', color: '#2D3436', marginBottom: 2 },
+  improvDesc:    { fontSize: 11, color: '#636E72', lineHeight: 17 },
 });

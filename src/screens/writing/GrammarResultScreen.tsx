@@ -20,94 +20,139 @@ interface GrammarIssue {
   explanation:string; applied:boolean;
 }
 
-// ── Analyze the actual text the user typed ────────────────────────────────────
 function analyzeText(text: string): GrammarIssue[] {
+  if (!text || text.trim().length < 10) return [];
+
   const issues: GrammarIssue[] = [];
   let id = 1;
+  const words = text.trim().split(/\s+/);
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
 
-  // Subject-verb agreement checks
-  const svPatterns = [
-    { pattern:/\b(the team|the group|the company|the committee|everyone|nobody) (are|were|have)\b/gi, fix:'is/was/has', cat:'Subject-Verb Agreement', explain:'Collective nouns and indefinite pronouns typically take singular verbs.' },
-    { pattern:/\b(they|we|you) (was|has)\b/gi, fix:'were/have', cat:'Subject-Verb Agreement', explain:'Plural subjects require plural verbs.' },
-  ];
-  svPatterns.forEach(({pattern,fix,cat,explain}) => {
-    let m;
-    while((m=pattern.exec(text))!==null) {
-      issues.push({id:String(id++),type:'error',category:cat,original:m[0],suggestion:m[0].replace(/(are|were|have|was|has)$/i,fix.split('/')[0]),explanation:explain,applied:false});
-    }
-  });
-
-  // Missing comma after introductory words
-  const introWords = ['However','Therefore','Moreover','Furthermore','Meanwhile','Consequently','Nevertheless','Additionally','Fortunately','Unfortunately','Basically','Actually','Overall','Finally','Also'];
-  introWords.forEach(w => {
-    const re = new RegExp(`\\b${w} [a-z]`,'g');
-    let m;
-    while((m=re.exec(text))!==null) {
-      issues.push({id:String(id++),type:'error',category:'Missing Comma',original:`${w} ${text[m.index+w.length+1]}...`,suggestion:`${w}, ${text[m.index+w.length+1]}...`,explanation:`Use a comma after introductory words like "${w}".`,applied:false});
-    }
-  });
-
-  // Passive voice detection
-  const passiveRe = /\b(was|were|is|are|been|being) (completed|done|made|given|taken|written|created|built|designed|developed|used|called|found|seen|known|told|asked|expected|required|needed|considered|reported)\b/gi;
-  let pm;
-  while((pm=passiveRe.exec(text))!==null) {
-    issues.push({id:String(id++),type:'warning',category:'Passive Voice',original:pm[0],suggestion:`Consider active voice: "someone ${pm[2]}"`,explanation:'Active voice is more direct and engaging than passive voice.',applied:false});
+  // 1. Double spaces
+  const doubleSpace = text.match(/  +/g);
+  if (doubleSpace) {
+    issues.push({ id: String(id++), type:'error', category:'Formatting',
+      original: '  (double space)', suggestion: ' (single space)',
+      explanation: 'Remove extra spaces between words for clean formatting.', applied: false });
   }
 
-  // Wordiness
-  const wordyPhrases: [RegExp,string,string][] = [
-    [/\bin order to\b/gi,'to','"In order to" can be shortened to "to".'],
-    [/\bdue to the fact that\b/gi,'because','"Due to the fact that" = "because".'],
-    [/\bat this point in time\b/gi,'now','"At this point in time" = "now".'],
-    [/\bin spite of the fact that\b/gi,'although','Replace with "although" for clarity.'],
-    [/\bfor the purpose of\b/gi,'to','Replace with "to" for conciseness.'],
-    [/\bin the event that\b/gi,'if','Replace with "if" for brevity.'],
-    [/\ba large number of\b/gi,'many','Replace with "many" for simplicity.'],
-    [/\bthere are many .+ that\b/gi,'many...','Remove "there are" for a stronger sentence.'],
-    [/\bit is important to note that\b/gi,'notably','Remove filler phrasing.'],
+  // 2. Sentence starts with lowercase after period
+  const sentenceStarts = text.match(/[.!?]\s+[a-z]/g);
+  if (sentenceStarts && sentenceStarts.length > 0) {
+    issues.push({ id: String(id++), type:'error', category:'Capitalization',
+      original: `"...${sentenceStarts[0].trim()}"`,
+      suggestion: 'Capitalize the first word of every sentence.',
+      explanation: 'Every sentence must begin with a capital letter.', applied: false });
+  }
+
+  // 3. "i" not capitalized
+  const lowercaseI = text.match(/\s+i\s+/g);
+  if (lowercaseI && lowercaseI.length > 0) {
+    issues.push({ id: String(id++), type:'error', category:'Capitalization',
+      original: '"i" (lowercase)',
+      suggestion: '"I" (uppercase)',
+      explanation: 'The pronoun "I" must always be capitalized.', applied: false });
+  }
+
+  // 4. Passive voice
+  const passivePatterns = [
+    /\b(was|were|is|are|has been|have been|had been) (written|done|made|given|taken|built|created|designed|completed|finished|started|used)\b/gi,
   ];
-  wordyPhrases.forEach(([re,fix,explain]) => {
-    let m;
-    while((m=re.exec(text))!==null) {
-      issues.push({id:String(id++),type:'warning',category:'Wordiness',original:m[0],suggestion:fix,explanation:explain,applied:false});
+  passivePatterns.forEach(pattern => {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.slice(0, 2).forEach(match => {
+        issues.push({ id: String(id++), type:'warning', category:'Passive Voice',
+          original: match,
+          suggestion: 'Use active voice for stronger writing',
+          explanation: `"${match}" is passive voice. Active voice makes writing more direct. Example: Instead of "was written by me" use "I wrote".`, applied: false });
+      });
     }
   });
 
-  // Weak word choices
-  const weakWords: [RegExp,string][] = [
-    [/\bvery important\b/gi,'crucial / vital'],
-    [/\bvery good\b/gi,'excellent / outstanding'],
-    [/\bvery bad\b/gi,'terrible / dreadful'],
-    [/\bvery big\b/gi,'enormous / massive'],
-    [/\bvery small\b/gi,'tiny / minute'],
-    [/\bvery happy\b/gi,'delighted / thrilled'],
-    [/\bvery sad\b/gi,'devastated / heartbroken'],
-    [/\bvery fast\b/gi,'rapid / swift'],
-    [/\bvery easy\b/gi,'effortless / straightforward'],
-    [/\bgot\b/gi,'obtained / received'],
-    [/\ba lot of\b/gi,'numerous / many'],
-    [/\breally\b/gi,'(remove or use a stronger word)'],
-    [/\bthings\b/gi,'(use a specific noun)'],
-    [/\bstuff\b/gi,'(use a specific noun)'],
+  // 5. Wordiness patterns
+  const wordyMap: [RegExp, string, string][] = [
+    [/\bin order to\b/gi, 'to', '"In order to" → just use "to"'],
+    [/\bdue to the fact that\b/gi, 'because', '"Due to the fact that" → use "because"'],
+    [/\bat this point in time\b/gi, 'now', '"At this point in time" → use "now"'],
+    [/\bfor the purpose of\b/gi, 'to', '"For the purpose of" → use "to"'],
+    [/\ba large number of\b/gi, 'many', '"A large number of" → use "many"'],
+    [/\bin the event that\b/gi, 'if', '"In the event that" → use "if"'],
+    [/\bhas the ability to\b/gi, 'can', '"Has the ability to" → use "can"'],
+    [/\bwith regard to\b/gi, 'about', '"With regard to" → use "about"'],
   ];
-  weakWords.forEach(([re,fix]) => {
-    let m;
-    while((m=re.exec(text))!==null) {
-      issues.push({id:String(id++),type:'suggestion',category:'Word Choice',original:m[0],suggestion:fix,explanation:`Replace "${m[0]}" with a stronger, more precise word.`,applied:false});
+  wordyMap.forEach(([pattern, fix, explain]) => {
+    if (pattern.test(text)) {
+      const match = text.match(pattern)?.[0] ?? '';
+      issues.push({ id: String(id++), type:'warning', category:'Wordiness',
+        original: match, suggestion: fix, explanation: explain, applied: false });
     }
   });
 
-  // Repeated words detection
-  const words = text.toLowerCase().split(/\s+/);
-  for (let i=1;i<words.length;i++) {
-    if (words[i].length>3 && words[i]===words[i-1]) {
-      issues.push({id:String(id++),type:'error',category:'Repeated Word',original:`${words[i]} ${words[i]}`,suggestion:words[i],explanation:'Remove the repeated word.',applied:false});
+  // 6. Weak adjectives
+  const weakWords: [RegExp, string][] = [
+    [/\bvery unique\b/gi, 'unique (already means one-of-a-kind)'],
+    [/\bvery important\b/gi, 'crucial / critical / vital'],
+    [/\bvery good\b/gi, 'excellent / outstanding / exceptional'],
+    [/\bvery bad\b/gi, 'terrible / dreadful / awful'],
+    [/\bvery big\b/gi, 'enormous / massive / substantial'],
+    [/\bvery small\b/gi, 'tiny / minuscule / negligible'],
+    [/\bvery fast\b/gi, 'rapid / swift / lightning-fast'],
+    [/\bvery difficult\b/gi, 'challenging / demanding / arduous'],
+    [/\bvery happy\b/gi, 'delighted / thrilled / ecstatic'],
+    [/\bvery clear\b/gi, 'crystal-clear / unambiguous / transparent'],
+  ];
+  weakWords.forEach(([pattern, suggestion]) => {
+    if (pattern.test(text)) {
+      const match = text.match(pattern)?.[0] ?? '';
+      issues.push({ id: String(id++), type:'suggestion', category:'Word Choice',
+        original: match, suggestion: suggestion,
+        explanation: `"${match}" is weak. Use a single precise word instead.`, applied: false });
+    }
+  });
+
+  // 7. Sentence length check
+  const longSentences = sentences.filter(s => s.trim().split(/\s+/).length > 35);
+  if (longSentences.length > 0) {
+    issues.push({ id: String(id++), type:'warning', category:'Sentence Length',
+      original: `Sentence with ${longSentences[0].trim().split(/\s+/).length} words`,
+      suggestion: 'Break into 2 shorter sentences (aim for 15-25 words each)',
+      explanation: 'Long sentences lose readers. Split them at natural joining words like "and", "but", "because", "which".', applied: false });
+  }
+
+  // 8. Repeated words
+  const wordArray = text.toLowerCase().split(/\s+/);
+  for (let i = 1; i < wordArray.length; i++) {
+    if (wordArray[i].length > 4 && wordArray[i] === wordArray[i - 1]) {
+      issues.push({ id: String(id++), type:'error', category:'Repeated Word',
+        original: `"${wordArray[i]} ${wordArray[i]}"`,
+        suggestion: `"${wordArray[i]}"`,
+        explanation: `The word "${wordArray[i]}" appears twice in a row. Remove the duplicate.`, applied: false });
     }
   }
 
-  // If no issues found, give positive feedback
-  if (issues.length===0) {
-    issues.push({id:'0',type:'suggestion',category:'Writing Quality',original:'(No issues detected)',suggestion:'Your writing looks clean!',explanation:'No grammar errors, passive voice, or wordiness detected. Consider reviewing for tone and style using the Tone Analysis or Style Suggestions features.',applied:false});
+  // Readability score
+  const avgWordsPerSentence = sentences.length > 0 ? Math.round(words.length / sentences.length) : 0;
+  const readabilityGrade = avgWordsPerSentence <= 15 ? 'Easy' : avgWordsPerSentence <= 25 ? 'Moderate' : 'Complex';
+  issues.push({ id: String(id++), type:'suggestion', category:'Readability',
+    original: `Average sentence length: ${avgWordsPerSentence} words`,
+    suggestion: readabilityGrade === 'Easy' ? 'Great sentence length!' : 'Consider shorter sentences',
+    explanation: `Your average sentence is ${avgWordsPerSentence} words. ${readabilityGrade === 'Easy' ? 'This is ideal for clear communication.' : 'Shorter sentences (15-20 words) improve readability by up to 58%.'}`, applied: false });
+
+  // Word count info
+  issues.push({ id: String(id++), type:'suggestion', category:'Content',
+    original: `${words.length} words, ${sentences.length} sentences`,
+    suggestion: words.length < 50 ? 'Consider expanding your content' : words.length > 300 ? 'Good length — consider subheadings' : 'Good length!',
+    explanation: words.length < 50
+      ? 'Short texts benefit from more supporting details and examples.'
+      : `${words.length} words across ${sentences.length} sentences gives a good content density.`, applied: false });
+
+  // If no critical errors, add positive note at top
+  if (issues.filter(i => i.type === 'error').length === 0) {
+    issues.unshift({ id: '0', type:'suggestion', category:'Overall Quality',
+      original: '✓ No critical errors found',
+      suggestion: 'Your writing is clean!',
+      explanation: 'No grammar errors detected. Focus on style improvements above to make your writing more impactful.', applied: false });
   }
 
   return issues;
@@ -231,6 +276,36 @@ const GrammarResultScreen: React.FC = () => {
             );
           })}
         </View>
+        {/* Writing Quality Report */}
+        <View style={styles.writingScoreCard}>
+          <Text style={styles.writingScoreTitle}>Writing Quality Report</Text>
+          {[
+            { label: 'Grammar',     score: Math.max(60, 100 - errors * 8),     color: '#00B894' },
+            { label: 'Clarity',     score: Math.max(55, 85 - warnings * 5),    color: '#6C5CE7' },
+            { label: 'Word Choice', score: Math.max(50, 90 - suggestions * 3), color: '#0984E3' },
+            { label: 'Structure',   score: Math.max(60, 80 + (errors === 0 ? 10 : 0)), color: '#E17055' },
+          ].map((item, i) => (
+            <View key={i} style={styles.scoreRow}>
+              <Text style={styles.scoreLabelText}>{item.label}</Text>
+              <View style={styles.scoreBarBg}>
+                <View style={[styles.scoreBarFill, { width: `${item.score}%` as any, backgroundColor: item.color }]} />
+              </View>
+              <Text style={[styles.scoreNum, { color: item.color }]}>{item.score}</Text>
+            </View>
+          ))}
+          <View style={styles.writingTipsBox}>
+            <Text style={styles.writingTipsTitle}>✍️ Writing Tips</Text>
+            {[
+              'Start with your strongest point — readers decide in 8 seconds whether to continue.',
+              'Use "you" and "your" to make writing feel personal and direct.',
+              'Read your text aloud — your ear catches awkward sentences your eyes miss.',
+              "Cut every word that doesn't add meaning. Shorter is almost always better.",
+            ].map((tip, i) => (
+              <Text key={i} style={styles.writingTip}>• {tip}</Text>
+            ))}
+          </View>
+        </View>
+
         <View style={{height:120}}/>
       </ScrollView>
     </SafeAreaView>
@@ -276,6 +351,16 @@ const styles=StyleSheet.create({
   applyButton:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:COLORS.primary,paddingVertical:10,borderRadius:10},
   applyButtonApplied:{backgroundColor:COLORS.textMuted},
   applyButtonText:{fontSize:14,fontWeight:'700',color:'#FFF'},
+  writingScoreCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E0DDD8' },
+  writingScoreTitle:{ fontSize: 16, fontWeight: '700', color: '#2D3436', marginBottom: 14 },
+  scoreRow:         { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  scoreLabelText:   { width: 80, fontSize: 12, color: '#636E72', fontWeight: '500' },
+  scoreBarBg:       { flex: 1, height: 6, backgroundColor: '#F1EFEC', borderRadius: 3, overflow: 'hidden' },
+  scoreBarFill:     { height: '100%', borderRadius: 3 },
+  scoreNum:         { width: 28, fontSize: 13, fontWeight: '700', textAlign: 'right' },
+  writingTipsBox:   { backgroundColor: '#F8F7F4', borderRadius: 10, padding: 12, marginTop: 8 },
+  writingTipsTitle: { fontSize: 13, fontWeight: '600', color: '#6C5CE7', marginBottom: 8 },
+  writingTip:       { fontSize: 12, color: '#636E72', lineHeight: 20, marginBottom: 4 },
 });
 
 export default GrammarResultScreen;

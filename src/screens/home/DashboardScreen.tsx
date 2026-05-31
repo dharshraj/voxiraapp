@@ -182,6 +182,83 @@ export default function DashboardScreen({ navigation }: any) {
           ))}
         </View>
 
+        {/* Daily Tip */}
+        <View style={s.tipCard}>
+          <LinearGradient colors={['#6C5CE7', '#A29BFE']} start={{x:0,y:0}} end={{x:1,y:1}} style={s.tipGrad}>
+            <View style={s.tipHeader}>
+              <Text style={{fontSize:20}}>💡</Text>
+              <Text style={s.tipLabel}>DAILY TIP</Text>
+            </View>
+            <Text style={s.tipText}>
+              {[
+                'Pause for 1 second instead of saying "um". Silence sounds more confident than filler words.',
+                'The best speakers speak at 120-140 words per minute. Record yourself to check your pace.',
+                'Start every email with what you want — don\'t bury the main point at the end.',
+                'Use the 3-point structure: Tell them what you\'ll say, say it, tell them what you said.',
+                'Confident speakers make eye contact 60-70% of the time. Practice in your next meeting.',
+              ][new Date().getDay() % 5]}
+            </Text>
+          </LinearGradient>
+        </View>
+
+        {/* Quick Stats Row */}
+        <Text style={s.secTitle}>Your Stats</Text>
+        <View style={s.statsStrip}>
+          {[
+            { icon:'mic-outline',    label:'Sessions',     val:'0', color:'#6C5CE7', bg:'#EDE7F6' },
+            { icon:'flame-outline',  label:'Day Streak',   val:'0', color:'#E17055', bg:'#FBE9E7' },
+            { icon:'star-outline',   label:'Avg Score',    val:'—', color:'#F0932B', bg:'#FFF3E0' },
+            { icon:'trophy-outline', label:'Achievements', val:'0', color:'#00B894', bg:'#E0F7F0' },
+          ].map((stat, i) => (
+            <View key={i} style={[s.stripCard, { backgroundColor: stat.bg }]}>
+              <View style={s.stripIconWrap}>
+                <Ionicons name={stat.icon as any} size={18} color={stat.color} />
+              </View>
+              <Text style={[s.stripValue, { color: stat.color }]}>{stat.val}</Text>
+              <Text style={s.stripLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Communication Skills Progress */}
+        <Text style={s.secTitle}>Skills Overview</Text>
+        <View style={s.skillsCard}>
+          {[
+            { skill:'Public Speaking',     level:'Beginner', progress:15, color:'#6C5CE7' },
+            { skill:'Writing Quality',     level:'Beginner', progress:10, color:'#00B894' },
+            { skill:'Interview Readiness', level:'Beginner', progress:8,  color:'#E17055' },
+          ].map((item, i) => (
+            <View key={i} style={s.skillRow}>
+              <View style={s.skillInfo}>
+                <Text style={s.skillName}>{item.skill}</Text>
+                <Text style={[s.skillLevel, { color: item.color }]}>{item.level}</Text>
+              </View>
+              <View style={s.skillBarBg}>
+                <View style={[s.skillBarFill, { width: `${item.progress}%` as any, backgroundColor: item.color }]} />
+              </View>
+            </View>
+          ))}
+          <Text style={s.skillNote}>Complete sessions to level up your skills 🚀</Text>
+        </View>
+
+        {/* Featured Resources */}
+        <Text style={s.secTitle}>Learn</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.learnRow}>
+          {[
+            { title:'How to Eliminate Filler Words',    emoji:'🎯', time:'3 min read', color:'#EDE7F6' },
+            { title:'The STAR Method for Interviews',    emoji:'⭐', time:'5 min read', color:'#E0F7F0' },
+            { title:'Email Writing Best Practices',      emoji:'✉️', time:'4 min read', color:'#FBE9E7' },
+            { title:'Speak at the Perfect Pace',         emoji:'⏱️', time:'3 min read', color:'#FFF3E0' },
+            { title:'Body Language Tips for Confidence', emoji:'💪', time:'4 min read', color:'#E3F2FD' },
+          ].map((item, i) => (
+            <TouchableOpacity key={i} style={[s.learnCard, { backgroundColor: item.color }]} activeOpacity={0.8}>
+              <Text style={s.learnEmoji}>{item.emoji}</Text>
+              <Text style={s.learnTitle}>{item.title}</Text>
+              <Text style={s.learnTime}>{item.time}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {/* RECENT ACTIVITY */}
         <Text style={s.sectionTitleRecent}>Recent Activity</Text>
         <View style={s.emptyCard}>
@@ -264,4 +341,28 @@ const s = StyleSheet.create({
   },
   emptyTitle:     { fontSize: 15, fontWeight: '600', color: C.text },
   emptySub:       { fontSize: 13, color: C.textMuted },
+  tipCard:        { marginHorizontal: 20, marginTop: 8, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  tipGrad:        { padding: 18, gap: 8 },
+  tipHeader:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tipLabel:       { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
+  tipText:        { fontSize: 14, color: '#fff', lineHeight: 22 },
+  secTitle:       { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
+  statsStrip:     { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
+  stripCard:      { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', gap: 4 },
+  stripIconWrap:  { width: 34, height: 34, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  stripValue:     { fontSize: 18, fontWeight: '800' },
+  stripLabel:     { fontSize: 10, color: '#636E72', textAlign: 'center' },
+  skillsCard:     { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E0DDD8' },
+  skillRow:       { marginBottom: 14 },
+  skillInfo:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  skillName:      { fontSize: 13, fontWeight: '600', color: '#2D3436' },
+  skillLevel:     { fontSize: 11, fontWeight: '500' },
+  skillBarBg:     { height: 6, backgroundColor: '#F1EFEC', borderRadius: 3, overflow: 'hidden' },
+  skillBarFill:   { height: '100%', borderRadius: 3 },
+  skillNote:      { fontSize: 12, color: '#B2BEC3', marginTop: 4, textAlign: 'center' },
+  learnRow:       { gap: 10, paddingLeft: 20, paddingRight: 4, paddingBottom: 4 },
+  learnCard:      { width: 160, borderRadius: 14, padding: 14, gap: 8 },
+  learnEmoji:     { fontSize: 24 },
+  learnTitle:     { fontSize: 13, fontWeight: '600', color: '#2D3436', lineHeight: 18 },
+  learnTime:      { fontSize: 11, color: '#636E72' },
 });

@@ -86,7 +86,7 @@ export default function Feature3Screen({ navigation }: any) {
       >
 
         {/* 0 — Hero card: chat UI */}
-        <Animated.View style={[s.heroWrap, entry(0), { transform: [{ translateY: floatY }] }]}>
+        <Animated.View style={[s.heroWrap, { transform: [{ translateY: floatY }] }]}>
           <LinearGradient
             colors={['#1A0824', '#0D0D28', '#0A0A1E']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

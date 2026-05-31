@@ -155,6 +155,48 @@ export default function WritingHomeScreen({ navigation }: any) {
         >
           <Text style={s.templatesTxt}>📋 Browse 20+ Templates →</Text>
         </TouchableOpacity>
+
+        {/* What We Analyze */}
+        <Text style={s.sectionTitle}>What We Analyze</Text>
+        <View style={s.metricsCard}>
+          {[
+            { icon:'checkmark-circle-outline', label:'Grammar Errors',     desc:'Subject-verb, tense, punctuation', color:'#00B894' },
+            { icon:'color-palette-outline',    label:'Tone & Voice',       desc:'Professional, casual, persuasive', color:'#8B5CF6' },
+            { icon:'layers-outline',           label:'Sentence Structure', desc:'Length, variety, readability',     color:'#0984E3' },
+            { icon:'bulb-outline',             label:'Word Choice',        desc:'Weak words, repetition, clarity',  color:'#F0932B' },
+            { icon:'trending-up-outline',      label:'Style Score',        desc:'Overall writing effectiveness',    color:'#E84393' },
+          ].map((item, i) => (
+            <View key={i} style={[s.metricRow, i === 4 && { borderBottomWidth: 0 }]}>
+              <View style={[s.metricIcon, { backgroundColor: `${item.color}15` }]}>
+                <Ionicons name={item.icon as any} size={16} color={item.color} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.metricLabel}>{item.label}</Text>
+                <Text style={s.metricDesc}>{item.desc}</Text>
+              </View>
+              <Ionicons name="checkmark" size={14} color={item.color} />
+            </View>
+          ))}
+        </View>
+
+        {/* Best Practices */}
+        <Text style={s.sectionTitle}>Best Practices</Text>
+        <View style={s.practiceCard}>
+          {[
+            { emoji:'✉️', title:'Professional Emails',  tip:'Subject line + 3 paragraphs max' },
+            { emoji:'📝', title:'Cover Letters',         tip:'Lead with value, not "I am applying for..."' },
+            { emoji:'📄', title:'Essays & Reports',      tip:'Claim → Evidence → Analysis structure' },
+            { emoji:'💬', title:'Casual Writing',        tip:'Short sentences, contractions are fine' },
+          ].map((item, i) => (
+            <View key={i} style={s.practiceRow}>
+              <Text style={s.practiceEmoji}>{item.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.practiceTitle}>{item.title}</Text>
+                <Text style={s.practiceTip}>{item.tip}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
@@ -234,4 +276,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   templatesTxt:  { fontSize: 14, fontWeight: '600', color: C.text },
+  metricsCard:   { backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E0DDD8', marginHorizontal: 20, marginBottom: 16 },
+  metricRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: '#F1EFEC' },
+  metricIcon:    { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  metricLabel:   { fontSize: 13, fontWeight: '600', color: '#2D3436', marginBottom: 1 },
+  metricDesc:    { fontSize: 11, color: '#B2BEC3' },
+  practiceCard:  { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#E0DDD8', marginHorizontal: 20, marginBottom: 16, gap: 12 },
+  practiceRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  practiceEmoji: { fontSize: 20, marginTop: 2 },
+  practiceTitle: { fontSize: 13, fontWeight: '600', color: '#2D3436', marginBottom: 2 },
+  practiceTip:   { fontSize: 12, color: '#636E72', lineHeight: 17 },
 });

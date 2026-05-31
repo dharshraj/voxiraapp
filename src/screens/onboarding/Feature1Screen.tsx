@@ -98,7 +98,7 @@ export default function Feature1Screen({ navigation }: any) {
       >
 
         {/* 0 — Hero card with waveform */}
-        <Animated.View style={[s.heroWrap, entry(0), { transform: [{ translateY: floatY }] }]}>
+        <Animated.View style={[s.heroWrap, { transform: [{ translateY: floatY }] }]}>
           <LinearGradient
             colors={['#1A0A2E', '#0D1628', '#0A0D1E']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
