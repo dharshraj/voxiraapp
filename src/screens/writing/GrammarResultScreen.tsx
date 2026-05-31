@@ -351,16 +351,16 @@ const styles=StyleSheet.create({
   applyButton:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:COLORS.primary,paddingVertical:10,borderRadius:10},
   applyButtonApplied:{backgroundColor:COLORS.textMuted},
   applyButtonText:{fontSize:14,fontWeight:'700',color:'#FFF'},
-  writingScoreCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E0DDD8' },
-  writingScoreTitle:{ fontSize: 16, fontWeight: '700', color: '#2D3436', marginBottom: 14 },
+  writingScoreCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  writingScoreTitle:{ fontSize: 16, fontWeight: '700', color: '#F1F5F9', marginBottom: 14 },
   scoreRow:         { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  scoreLabelText:   { width: 80, fontSize: 12, color: '#636E72', fontWeight: '500' },
-  scoreBarBg:       { flex: 1, height: 6, backgroundColor: '#F1EFEC', borderRadius: 3, overflow: 'hidden' },
+  scoreLabelText:   { width: 80, fontSize: 12, color: 'rgba(241,245,249,0.55)', fontWeight: '500' },
+  scoreBarBg:       { flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 3, overflow: 'hidden' },
   scoreBarFill:     { height: '100%', borderRadius: 3 },
   scoreNum:         { width: 28, fontSize: 13, fontWeight: '700', textAlign: 'right' },
-  writingTipsBox:   { backgroundColor: '#F8F7F4', borderRadius: 10, padding: 12, marginTop: 8 },
-  writingTipsTitle: { fontSize: 13, fontWeight: '600', color: '#6C5CE7', marginBottom: 8 },
-  writingTip:       { fontSize: 12, color: '#636E72', lineHeight: 20, marginBottom: 4 },
+  writingTipsBox:   { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12, marginTop: 8 },
+  writingTipsTitle: { fontSize: 13, fontWeight: '600', color: '#A78BFA', marginBottom: 8 },
+  writingTip:       { fontSize: 12, color: 'rgba(241,245,249,0.55)', lineHeight: 20, marginBottom: 4 },
 });
 
 export default GrammarResultScreen;

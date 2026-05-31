@@ -103,7 +103,7 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={s.header}>
           <View>
             <Text style={s.greeting}>{greeting},</Text>
-            <Text style={s.userName}>{firstName} 👋</Text>
+            <Text style={s.userName}>{firstName} </Text>
           </View>
           <View style={s.headerBtns}>
             <TouchableOpacity
@@ -205,10 +205,10 @@ export default function DashboardScreen({ navigation }: any) {
         <Text style={s.secTitle}>Your Stats</Text>
         <View style={s.statsStrip}>
           {[
-            { icon:'mic-outline',    label:'Sessions',     val:'0', color:'#6C5CE7', bg:'#EDE7F6' },
-            { icon:'flame-outline',  label:'Day Streak',   val:'0', color:'#E17055', bg:'#FBE9E7' },
-            { icon:'star-outline',   label:'Avg Score',    val:'—', color:'#F0932B', bg:'#FFF3E0' },
-            { icon:'trophy-outline', label:'Achievements', val:'0', color:'#00B894', bg:'#E0F7F0' },
+            { icon:'mic-outline',    label:'Sessions',     val:'0', color:'#A78BFA', bg:'rgba(139,92,246,0.15)' },
+            { icon:'flame-outline',  label:'Day Streak',   val:'0', color:'#F43F5E', bg:'rgba(244,63,94,0.15)'  },
+            { icon:'star-outline',   label:'Avg Score',    val:'—', color:'#F59E0B', bg:'rgba(245,158,11,0.15)' },
+            { icon:'trophy-outline', label:'Achievements', val:'0', color:'#10B981', bg:'rgba(16,185,129,0.15)' },
           ].map((stat, i) => (
             <View key={i} style={[s.stripCard, { backgroundColor: stat.bg }]}>
               <View style={s.stripIconWrap}>
@@ -245,11 +245,11 @@ export default function DashboardScreen({ navigation }: any) {
         <Text style={s.secTitle}>Learn</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.learnRow}>
           {[
-            { title:'How to Eliminate Filler Words',    emoji:'🎯', time:'3 min read', color:'#EDE7F6' },
-            { title:'The STAR Method for Interviews',    emoji:'⭐', time:'5 min read', color:'#E0F7F0' },
-            { title:'Email Writing Best Practices',      emoji:'✉️', time:'4 min read', color:'#FBE9E7' },
-            { title:'Speak at the Perfect Pace',         emoji:'⏱️', time:'3 min read', color:'#FFF3E0' },
-            { title:'Body Language Tips for Confidence', emoji:'💪', time:'4 min read', color:'#E3F2FD' },
+            { title:'How to Eliminate Filler Words',    emoji:'🎯', time:'3 min read', color:'rgba(139,92,246,0.18)' },
+            { title:'The STAR Method for Interviews',    emoji:'⭐', time:'5 min read', color:'rgba(16,185,129,0.18)'  },
+            { title:'Email Writing Best Practices',      emoji:'✉️', time:'4 min read', color:'rgba(244,63,94,0.18)'   },
+            { title:'Speak at the Perfect Pace',         emoji:'⏱️', time:'3 min read', color:'rgba(245,158,11,0.18)'  },
+            { title:'Body Language Tips for Confidence', emoji:'💪', time:'4 min read', color:'rgba(6,182,212,0.18)'   },
           ].map((item, i) => (
             <TouchableOpacity key={i} style={[s.learnCard, { backgroundColor: item.color }]} activeOpacity={0.8}>
               <Text style={s.learnEmoji}>{item.emoji}</Text>
@@ -349,20 +349,20 @@ const s = StyleSheet.create({
   secTitle:       { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
   statsStrip:     { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
   stripCard:      { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', gap: 4 },
-  stripIconWrap:  { width: 34, height: 34, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  stripIconWrap:  { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   stripValue:     { fontSize: 18, fontWeight: '800' },
-  stripLabel:     { fontSize: 10, color: '#636E72', textAlign: 'center' },
-  skillsCard:     { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E0DDD8' },
+  stripLabel:     { fontSize: 10, color: 'rgba(241,245,249,0.45)', textAlign: 'center' },
+  skillsCard:     { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   skillRow:       { marginBottom: 14 },
   skillInfo:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  skillName:      { fontSize: 13, fontWeight: '600', color: '#2D3436' },
+  skillName:      { fontSize: 13, fontWeight: '600', color: '#F1F5F9' },
   skillLevel:     { fontSize: 11, fontWeight: '500' },
-  skillBarBg:     { height: 6, backgroundColor: '#F1EFEC', borderRadius: 3, overflow: 'hidden' },
+  skillBarBg:     { height: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 3, overflow: 'hidden' },
   skillBarFill:   { height: '100%', borderRadius: 3 },
-  skillNote:      { fontSize: 12, color: '#B2BEC3', marginTop: 4, textAlign: 'center' },
+  skillNote:      { fontSize: 12, color: 'rgba(241,245,249,0.35)', marginTop: 4, textAlign: 'center' },
   learnRow:       { gap: 10, paddingLeft: 20, paddingRight: 4, paddingBottom: 4 },
   learnCard:      { width: 160, borderRadius: 14, padding: 14, gap: 8 },
   learnEmoji:     { fontSize: 24 },
-  learnTitle:     { fontSize: 13, fontWeight: '600', color: '#2D3436', lineHeight: 18 },
-  learnTime:      { fontSize: 11, color: '#636E72' },
+  learnTitle:     { fontSize: 13, fontWeight: '600', color: '#F1F5F9', lineHeight: 18 },
+  learnTime:      { fontSize: 11, color: 'rgba(241,245,249,0.45)' },
 });
