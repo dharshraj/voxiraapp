@@ -151,7 +151,11 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
           style={[s.progressFill,{width:`${progress*100}%` as any}]}/>
       </View>
 
-      <Animated.View style={[s.body,{opacity:fadeAnim}]}>
+      <Animated.ScrollView
+        style={[s.body,{opacity:fadeAnim},Platform.OS==='web'&&({overflowY:'auto'} as any)]}
+        contentContainerStyle={s.bodyContent}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* AI avatar */}
         <View style={s.avatarWrap}>
@@ -214,7 +218,7 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
             })}
           </View>
         )}
-      </Animated.View>
+      </Animated.ScrollView>
 
       {/* Controls */}
       <Animated.View style={[s.controls,{opacity:fadeAnim}]}>
@@ -248,7 +252,7 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
 }
 
 const s = StyleSheet.create({
-  root:         {flex:1,backgroundColor:C.bg},
+  root:         {flex:1,backgroundColor:C.bg,...(Platform.OS==='web'&&{height:'100vh' as any,overflow:'hidden' as any})},
   header:       {flexDirection:'row',alignItems:'center',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:36,paddingBottom:12,gap:10},
   endBtn:       {paddingHorizontal:14,paddingVertical:6,borderRadius:10,borderWidth:1,borderColor:'rgba(239,68,68,0.4)',backgroundColor:'rgba(239,68,68,0.1)'},
   endBtnTxt:    {fontSize:13,color:'#EF4444',fontWeight:'600'},
@@ -259,7 +263,8 @@ const s = StyleSheet.create({
   timerTxt:     {fontSize:13,fontWeight:'700',color:C.accent,fontVariant:['tabular-nums']},
   progressBar:  {height:3,backgroundColor:'rgba(255,255,255,0.08)',marginHorizontal:20,borderRadius:2,overflow:'hidden',marginBottom:16},
   progressFill: {height:'100%',borderRadius:2},
-  body:         {flex:1,paddingHorizontal:20,gap:16},
+  body:         {flex:1,paddingHorizontal:20},
+  bodyContent:  {gap:16,paddingBottom:16},
   avatarWrap:   {alignItems:'center',gap:8},
   avatarGrad:   {width:80,height:80,borderRadius:24,alignItems:'center',justifyContent:'center'},
   avatarStatus: {flexDirection:'row',alignItems:'center',gap:6},
