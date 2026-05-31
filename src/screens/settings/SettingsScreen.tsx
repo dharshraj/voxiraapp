@@ -59,7 +59,7 @@ export default function SettingsScreen({ navigation }: any) {
       </View>
 
       <Animated.ScrollView
-        style={{opacity: fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]
+        style={[{opacity: fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
       >

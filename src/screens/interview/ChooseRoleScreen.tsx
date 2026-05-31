@@ -98,7 +98,7 @@ export default function ChooseRoleScreen({ navigation, route }:any) {
         </ScrollView>
       </LinearGradient>
 
-      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {filtered.some(r=>r.popular) && cat==='All' && !search && (
           <>
             <Text style={s.groupLbl}>🔥 POPULAR ROLES</Text>

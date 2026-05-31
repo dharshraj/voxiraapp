@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { transcribeAudio } from '../../services/speechService';
+import '../../testAssemblyAI';
 
 let Audio: any = null;
 if (Platform.OS !== 'web') {

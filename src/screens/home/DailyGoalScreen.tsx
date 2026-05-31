@@ -76,7 +76,7 @@ export default function DailyGoalScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={{opacity:fadeAnim}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fadeAnim}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Streak calendar ───────────────────────────────────────────── */}
         <View style={s.card}>

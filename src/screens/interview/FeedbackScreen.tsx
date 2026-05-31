@@ -95,7 +95,7 @@ export default function FeedbackScreen({ navigation, route }:any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Score card */}
         <View style={s.scoreCard}>

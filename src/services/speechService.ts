@@ -50,13 +50,12 @@ async function uploadAudio(uri: string): Promise<string> {
   // atob() is not available in the React Native JS runtime.
   const response = await FileSystem.uploadAsync(`${BASE}/upload`, uri, {
     httpMethod: 'POST',
-    headers: { authorization: API_KEY, 'content-type': 'application/octet-stream' },
+    headers: { 'authorization': API_KEY },
     uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
   });
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`Upload failed: ${response.status} — ${response.body}`);
-  }
+  console.log('[AssemblyAI] Upload response status:', response.status);
   const data = JSON.parse(response.body);
+  if (!data.upload_url) throw new Error(`No upload_url in response: ${response.body.slice(0, 200)}`);
   console.log('[AssemblyAI] Upload URL:', data.upload_url?.slice(0, 80));
   return data.upload_url;
 }
@@ -91,6 +90,7 @@ async function pollResult(id: string): Promise<TranscriptResult> {
       const words: WordItem[] = data.words ?? [];
       const filler_words = words.filter(w => FILLER_SET.has(w.text.toLowerCase().trim()));
       console.log('[AssemblyAI] Transcript chars:', data.text?.length ?? 0);
+      console.log('[AssemblyAI] Final text (first 100):', data.text?.substring(0, 100));
       console.log('[AssemblyAI] Filler words found:', filler_words.length);
       return { text: data.text ?? '', words, filler_words, status: 'completed' };
     }

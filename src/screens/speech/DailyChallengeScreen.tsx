@@ -126,7 +126,7 @@ export default function DailyChallengeScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <Text style={s.sectionTitle}>Today's Challenges</Text>
 

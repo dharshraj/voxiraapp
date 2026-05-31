@@ -53,7 +53,7 @@ export default function QuestionBankScreen({ navigation }:any){
           ))}
         </ScrollView>
       </LinearGradient>
-      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.qList}>
           {filtered.map((q,i)=>(
             <View key={i} style={[s.qCard,i===filtered.length-1&&{borderBottomWidth:0}]}>
