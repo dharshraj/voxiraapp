@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Alert,
@@ -126,7 +126,7 @@ export default function DailyChallengeScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={{ opacity:fade }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <Text style={s.sectionTitle}>Today's Challenges</Text>
 

@@ -31,23 +31,23 @@ export default function SplashScreen({ navigation }: any) {
   const orb3Yb = useRef(new Animated.Value(0)).current;
 
   // ── Entrance animations ──────────────────────────────────────
-  const logoOpacity   = useRef(new Animated.Value(0)).current;
-  const logoTranslate = useRef(new Animated.Value(30)).current;
-  const logoScale     = useRef(new Animated.Value(0.85)).current;
+  const logoOpacity   = useRef(new Animated.Value(1)).current;
+  const logoTranslate = useRef(new Animated.Value(0)).current;
+  const logoScale     = useRef(new Animated.Value(1)).current;
   const ringScale     = useRef(new Animated.Value(1)).current;
 
-  const titleOpacity   = useRef(new Animated.Value(0)).current;
-  const titleTranslate = useRef(new Animated.Value(30)).current;
+  const titleOpacity   = useRef(new Animated.Value(1)).current;
+  const titleTranslate = useRef(new Animated.Value(0)).current;
 
-  const subOpacity   = useRef(new Animated.Value(0)).current;
-  const subTranslate = useRef(new Animated.Value(30)).current;
+  const subOpacity   = useRef(new Animated.Value(1)).current;
+  const subTranslate = useRef(new Animated.Value(0)).current;
 
-  const pill1Opacity   = useRef(new Animated.Value(0)).current;
-  const pill1Translate = useRef(new Animated.Value(30)).current;
-  const pill2Opacity   = useRef(new Animated.Value(0)).current;
-  const pill2Translate = useRef(new Animated.Value(30)).current;
-  const pill3Opacity   = useRef(new Animated.Value(0)).current;
-  const pill3Translate = useRef(new Animated.Value(30)).current;
+  const pill1Opacity   = useRef(new Animated.Value(1)).current;
+  const pill1Translate = useRef(new Animated.Value(0)).current;
+  const pill2Opacity   = useRef(new Animated.Value(1)).current;
+  const pill2Translate = useRef(new Animated.Value(0)).current;
+  const pill3Opacity   = useRef(new Animated.Value(1)).current;
+  const pill3Translate = useRef(new Animated.Value(0)).current;
 
   // ── Progress bar ─────────────────────────────────────────────
   const progressWidth = useRef(new Animated.Value(0)).current;

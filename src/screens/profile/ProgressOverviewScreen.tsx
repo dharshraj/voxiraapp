@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+﻿import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Dimensions,
@@ -77,7 +77,7 @@ export default function ProgressOverviewScreen({ navigation }:any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={{opacity:fade}} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Feature breakdown */}
         <Text style={s.sectionTitle}>Feature Breakdown</Text>

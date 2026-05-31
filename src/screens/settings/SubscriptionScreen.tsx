@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Alert,
@@ -79,7 +79,7 @@ export default function SubscriptionScreen({ navigation }:any) {
         </Animated.View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={Platform.OS === 'web' ? ({height: '100vh', overflowY: 'scroll'} as any) : undefined} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Plan selector */}
         <Text style={s.sectionTitle}>Choose Your Plan</Text>

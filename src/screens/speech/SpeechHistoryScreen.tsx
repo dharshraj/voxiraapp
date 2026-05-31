@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Dimensions, TextInput,
@@ -134,7 +134,7 @@ export default function SpeechHistoryScreen({ navigation }:any){
         </ScrollView>
       </LinearGradient>
 
-      <Animated.ScrollView style={{opacity:fade}} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)] contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {filtered.length===0?(
           <View style={s.empty}>
             <View style={s.emptyIcon}>

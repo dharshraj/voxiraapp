@@ -112,11 +112,10 @@ export default function LoginScreen({ navigation }: any) {
       </Animated.View>
 
       <ScrollView
-        style={s.flex}
+        style={Platform.OS === 'web' ? ({ height: '100vh', overflowY: 'scroll' } as any) : s.flex}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        {...(Platform.OS === 'web' ? ({ style: { flex: 1, overflowY: 'auto' } } as any) : {})}
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 

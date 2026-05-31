@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, TextInput, Alert, ActivityIndicator,
@@ -105,7 +105,7 @@ export default function EditProfileScreen({ navigation }:any) {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={Platform.OS === 'web' ? ({height: '100vh', overflowY: 'scroll'} as any) : undefined} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Basic info */}
         <Text style={s.sectionTitle}>Basic Information</Text>

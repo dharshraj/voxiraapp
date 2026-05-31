@@ -32,9 +32,14 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         flex-direction: column;
         overflow: hidden;
       }
-      #root > div {
-        overflow: visible !important;
+      /* Ensure React Navigation wrapper divs propagate height so ScrollViews can flex properly */
+      #root > div,
+      #root > div > div {
         flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
       * {
         -webkit-overflow-scrolling: touch;

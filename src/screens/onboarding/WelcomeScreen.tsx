@@ -38,10 +38,6 @@ export default function WelcomeScreen({ navigation }: any) {
   const BAR_COUNT = 24;
   const waveAnims = useRef(Array.from({ length: BAR_COUNT }, () => new Animated.Value(0.25))).current;
 
-  // ── Staggered content entrance ──────────────────────────────────────────────
-  const ITEMS = 7;
-  const opacities   = useRef(Array.from({ length: ITEMS }, () => new Animated.Value(0))).current;
-  const translates  = useRef(Array.from({ length: ITEMS }, () => new Animated.Value(32))).current;
 
   useEffect(() => {
     // Orbs
@@ -72,16 +68,6 @@ export default function WelcomeScreen({ navigation }: any) {
       ])).start();
     });
 
-    // Entrance stagger
-    opacities.forEach((op, i) => {
-      Animated.sequence([
-        Animated.delay(i * 100),
-        Animated.parallel([
-          Animated.timing(op, { toValue: 1, duration: 550, useNativeDriver: true }),
-          Animated.timing(translates[i], { toValue: 0, duration: 550, useNativeDriver: true }),
-        ]),
-      ]).start();
-    });
   }, []);
 
   const orbRanges: Array<[[number, number], [number, number]]> = [
@@ -95,11 +81,6 @@ export default function WelcomeScreen({ navigation }: any) {
   }));
 
   const cardRotate = cardTilt.interpolate({ inputRange: [0, 1], outputRange: ['-1.5deg', '1.5deg'] });
-
-  const entry = (i: number) => ({
-    opacity: opacities[i],
-    transform: [{ translateY: translates[i] }],
-  });
 
   return (
     <View style={s.root}>
@@ -131,27 +112,26 @@ export default function WelcomeScreen({ navigation }: any) {
       )}
 
       <ScrollView
-        style={s.scrollView}
+        style={[s.scrollView, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'scroll' } as any)]}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
 
         {/* 0 — Logo mark */}
-        <Animated.View style={[s.topBar, entry(0)]}>
+        <View style={s.topBar}>
           <LinearGradient colors={['#8B5CF6', '#4338CA']} style={s.logoMark}>
             <Text style={s.logoMarkEmoji}>🎙️</Text>
           </LinearGradient>
           <Text style={s.logoMarkText}>
             VOX<Text style={s.logoMarkAccent}>IRA</Text>
           </Text>
-        </Animated.View>
+        </View>
 
         {/* 1 — Hero card (3D floating) */}
         <Animated.View
           style={[
             s.heroCardWrap,
-            entry(1),
             {
               transform: [
                 { translateY: cardFloat },
@@ -225,28 +205,28 @@ export default function WelcomeScreen({ navigation }: any) {
         </Animated.View>
 
         {/* 2 — Eyebrow label */}
-        <Animated.View style={[s.eyebrowWrap, entry(2)]}>
+        <View style={s.eyebrowWrap}>
           <View style={s.eyebrowPill}>
             <View style={s.eyebrowDot} />
             <Text style={s.eyebrowTxt}>AI Communication Coach</Text>
           </View>
-        </Animated.View>
+        </View>
 
         {/* 3 — Headline (Nike-style bold editorial) */}
-        <Animated.View style={entry(3)}>
+        <View>
           <Text style={s.headline}>
             {'MASTER\nEVERY\n'}
             <Text style={s.headlineAccent}>CONVO.</Text>
           </Text>
-        </Animated.View>
+        </View>
 
         {/* 4 — Subheadline */}
-        <Animated.Text style={[s.subline, entry(4)]}>
+        <Text style={s.subline}>
           AI-powered coaching for speech, writing, and interviews.
-        </Animated.Text>
+        </Text>
 
         {/* 5 — Stats bar */}
-        <Animated.View style={[s.statsBar, entry(5)]}>
+        <View style={s.statsBar}>
           {[
             { val: '50K+', lbl: 'Users' },
             { val: '95%',  lbl: 'Satisfaction' },
@@ -260,10 +240,10 @@ export default function WelcomeScreen({ navigation }: any) {
               </View>
             </React.Fragment>
           ))}
-        </Animated.View>
+        </View>
 
         {/* 6 — CTA buttons */}
-        <Animated.View style={[s.ctaWrap, entry(6)]}>
+        <View style={s.ctaWrap}>
           <TouchableOpacity
             activeOpacity={0.85}
             style={s.ctaBtn}
@@ -284,7 +264,7 @@ export default function WelcomeScreen({ navigation }: any) {
               Already have an account?  <Text style={s.loginLinkAccent}>Sign In</Text>
             </Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
       </ScrollView>
     </View>

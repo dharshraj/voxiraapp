@@ -24,8 +24,6 @@ export default function Feature2Screen({ navigation }: any) {
   const orb1x = useRef(new Animated.Value(0)).current;
   const orb2x = useRef(new Animated.Value(0)).current;
 
-  const opacities  = useRef(Array.from({ length: 5 }, () => new Animated.Value(0))).current;
-  const translates = useRef(Array.from({ length: 5 }, () => new Animated.Value(28))).current;
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -40,23 +38,9 @@ export default function Feature2Screen({ navigation }: any) {
       ])).start();
     });
 
-    opacities.forEach((op, i) => {
-      Animated.sequence([
-        Animated.delay(i * 110),
-        Animated.parallel([
-          Animated.timing(op, { toValue: 1, duration: 520, useNativeDriver: true }),
-          Animated.timing(translates[i], { toValue: 0, duration: 520, useNativeDriver: true }),
-        ]),
-      ]).start();
-    });
   }, []);
 
   const floatY = cardFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
-  const entry  = (i: number) => ({
-    opacity: opacities[i],
-    transform: [{ translateY: translates[i] }],
-  });
-
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#05050F" />
@@ -80,7 +64,7 @@ export default function Feature2Screen({ navigation }: any) {
       </View>
 
       <ScrollView
-        style={s.scroll}
+        style={[s.scroll, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'scroll' } as any)]}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -129,12 +113,12 @@ export default function Feature2Screen({ navigation }: any) {
         </Animated.View>
 
         {/* 1 */}
-        <Animated.View style={[s.labelWrap, entry(1)]}>
+        <View style={s.labelWrap}>
           <Text style={s.eyebrow}>WRITING COACH</Text>
-        </Animated.View>
+        </View>
 
         {/* 2 */}
-        <Animated.View style={entry(2)}>
+        <View>
           <Text style={s.title}>
             {'WRITE\n'}
             <Text style={s.titleAccent}>SHARP.</Text>
@@ -142,10 +126,10 @@ export default function Feature2Screen({ navigation }: any) {
           <Text style={s.desc}>
             AI grammar correction, tone detection, smart rewrites, and 20+ professional templates.
           </Text>
-        </Animated.View>
+        </View>
 
         {/* 3 */}
-        <Animated.View style={[s.grid, entry(3)]}>
+        <View style={s.grid}>
           {FEATURES.map((f, i) => (
             <View key={i} style={s.gridItem}>
               <View style={[s.gridIcon, { backgroundColor: `${f.color}18` }]}>
@@ -157,12 +141,12 @@ export default function Feature2Screen({ navigation }: any) {
               </View>
             </View>
           ))}
-        </Animated.View>
+        </View>
 
       </ScrollView>
 
       {/* 4 */}
-      <Animated.View style={[s.bottom, entry(4)]}>
+      <View style={s.bottom}>
         <View style={s.btnRow}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={18} color="rgba(241,245,249,0.60)" />
@@ -182,7 +166,7 @@ export default function Feature2Screen({ navigation }: any) {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </View>
 
     </View>
   );

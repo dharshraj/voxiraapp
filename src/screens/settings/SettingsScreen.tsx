@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Switch, Alert,
@@ -59,7 +59,7 @@ export default function SettingsScreen({ navigation }: any) {
       </View>
 
       <Animated.ScrollView
-        style={{ opacity: fade }}
+        style={{opacity: fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
       >

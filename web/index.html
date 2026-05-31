@@ -18,13 +18,23 @@
       html, body {
         margin: 0;
         padding: 0;
-        background: #F8F7F4;
+        background: #05050F;
         height: 100%;
+        overflow: hidden;
       }
       #root {
         display: flex;
         flex-direction: column;
-        min-height: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      /* Let scroll containers inside React Navigation work */
+      #root > div, #root > div > div {
+        overflow: visible !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
       }
     </style>
 

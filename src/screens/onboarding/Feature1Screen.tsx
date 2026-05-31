@@ -23,8 +23,6 @@ export default function Feature1Screen({ navigation }: any) {
   const pulseRing = useRef(new Animated.Value(0)).current;
   const cardFloat = useRef(new Animated.Value(0)).current;
 
-  const opacities  = useRef(Array.from({ length: 5 }, () => new Animated.Value(0))).current;
-  const translates = useRef(Array.from({ length: 5 }, () => new Animated.Value(28))).current;
 
   const orb1x = useRef(new Animated.Value(0)).current;
   const orb2x = useRef(new Animated.Value(0)).current;
@@ -62,15 +60,6 @@ export default function Feature1Screen({ navigation }: any) {
       ])).start();
     });
 
-    opacities.forEach((op, i) => {
-      Animated.sequence([
-        Animated.delay(i * 110),
-        Animated.parallel([
-          Animated.timing(op, { toValue: 1, duration: 520, useNativeDriver: true }),
-          Animated.timing(translates[i], { toValue: 0, duration: 520, useNativeDriver: true }),
-        ]),
-      ]).start();
-    });
   }, []);
 
   const floatY = cardFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
@@ -78,11 +67,6 @@ export default function Feature1Screen({ navigation }: any) {
   const orb2TX = orb2x.interpolate({ inputRange: [0, 1], outputRange: [22, -22] });
   const ringScale   = pulseRing.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] });
   const ringOpacity = pulseRing.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0.5, 0.1, 0] });
-
-  const entry = (i: number) => ({
-    opacity: opacities[i],
-    transform: [{ translateY: translates[i] }],
-  });
 
   return (
     <View style={s.root}>
@@ -107,7 +91,7 @@ export default function Feature1Screen({ navigation }: any) {
       </View>
 
       <ScrollView
-        style={s.scroll}
+        style={[s.scroll, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'scroll' } as any)]}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -159,12 +143,12 @@ export default function Feature1Screen({ navigation }: any) {
         </Animated.View>
 
         {/* 1 — Label */}
-        <Animated.View style={[s.labelWrap, entry(1)]}>
+        <View style={s.labelWrap}>
           <Text style={s.eyebrow}>SPEECH ANALYSIS</Text>
-        </Animated.View>
+        </View>
 
         {/* 2 — Title */}
-        <Animated.View style={entry(2)}>
+        <View>
           <Text style={s.title}>
             {'SPEAK\n'}
             <Text style={s.titleAccent}>LOUD.</Text>
@@ -172,10 +156,10 @@ export default function Feature1Screen({ navigation }: any) {
           <Text style={s.desc}>
             AI coaching that detects filler words, measures your pace, and scores your clarity in real time.
           </Text>
-        </Animated.View>
+        </View>
 
         {/* 3 — Feature grid */}
-        <Animated.View style={[s.grid, entry(3)]}>
+        <View style={s.grid}>
           {FEATURES.map((f, i) => (
             <View key={i} style={s.gridItem}>
               <View style={[s.gridIcon, { backgroundColor: `${f.color}18` }]}>
@@ -187,12 +171,12 @@ export default function Feature1Screen({ navigation }: any) {
               </View>
             </View>
           ))}
-        </Animated.View>
+        </View>
 
       </ScrollView>
 
       {/* 4 — Bottom CTA */}
-      <Animated.View style={[s.bottom, entry(4)]}>
+      <View style={s.bottom}>
         <TouchableOpacity
           style={s.nextBtn}
           activeOpacity={0.85}
@@ -207,7 +191,7 @@ export default function Feature1Screen({ navigation }: any) {
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
     </View>
   );

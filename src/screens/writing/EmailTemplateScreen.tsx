@@ -1,4 +1,4 @@
- 
+﻿ 
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -174,7 +174,7 @@ const EmailTemplateScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+          <ScrollView style={Platform.OS === 'web' ? ({height: '100vh', overflowY: 'scroll'} as any) : undefined} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
             {/* Template Badge */}
             <View style={styles.templateBadgeRow}>
               <View style={[styles.templateBadge, { backgroundColor: selectedTemplate.color + '20' }]}>
@@ -248,7 +248,7 @@ const EmailTemplateScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView style={Platform.OS === 'web' ? ({height: '100vh', overflowY: 'scroll'} as any) : undefined} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
