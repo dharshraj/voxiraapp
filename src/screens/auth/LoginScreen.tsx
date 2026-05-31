@@ -90,11 +90,11 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ minHeight: '100vh' } as any)];
+  const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ height: '100vh' } as any)];
   const Wrapper = Platform.OS === 'web'
     ? ({ children }: any) => <View style={wrapperStyle}>{children}</View>
     : ({ children }: any) => (
-        <KeyboardAvoidingView style={wrapperStyle} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={wrapperStyle} behavior="padding">
           {children}
         </KeyboardAvoidingView>
       );

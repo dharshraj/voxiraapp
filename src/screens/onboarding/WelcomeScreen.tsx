@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, StatusBar, Platform, Dimensions,
+  Animated, StatusBar, Platform, Dimensions, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,7 +130,12 @@ export default function WelcomeScreen({ navigation }: any) {
         />
       )}
 
-      <View style={[s.content, Platform.OS === 'web' && ({ minHeight: '100vh' } as any)]}>
+      <ScrollView
+        style={s.scrollView}
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
         {/* 0 — Logo mark */}
         <Animated.View style={[s.topBar, entry(0)]}>
@@ -281,7 +286,7 @@ export default function WelcomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </Animated.View>
 
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -291,6 +296,7 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: '#05050F',
   },
+  scrollView: { flex: 1 },
   noiseOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -304,7 +310,7 @@ const s = StyleSheet.create({
   orb3: { width: 300, height: 300, bottom: -80, alignSelf: 'center', opacity: 0.15 },
 
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 26,
     paddingTop: Platform.OS === 'ios' ? 56 : 36,
     paddingBottom: Platform.OS === 'ios' ? 44 : 28,

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, StatusBar, Platform, Dimensions,
+  Animated, StatusBar, Platform, Dimensions, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -106,7 +106,12 @@ export default function Feature1Screen({ navigation }: any) {
         <Text style={s.stepTxt}>1 / 3</Text>
       </View>
 
-      <View style={s.content}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
         {/* 0 — Hero card with waveform */}
         <Animated.View style={[s.heroWrap, entry(0), { transform: [{ translateY: floatY }] }]}>
@@ -184,7 +189,7 @@ export default function Feature1Screen({ navigation }: any) {
           ))}
         </Animated.View>
 
-      </View>
+      </ScrollView>
 
       {/* 4 — Bottom CTA */}
       <Animated.View style={[s.bottom, entry(4)]}>
@@ -231,7 +236,8 @@ const s = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 2 },
   stepTxt: { fontSize: 12, color: 'rgba(241,245,249,0.45)', fontWeight: '600', width: 32, textAlign: 'right' },
 
-  content: { flex: 1, paddingHorizontal: 24 },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 24, paddingBottom: 8 },
 
   heroWrap: { marginBottom: 20 },
   heroCard: {

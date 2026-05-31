@@ -165,7 +165,7 @@ export default function RegisterScreen({ navigation }: any) {
 
   const wrapperStyle: any[] = [
     s.wrapper,
-    Platform.OS === 'web' && ({ minHeight: '100vh' } as any),
+    Platform.OS === 'web' && ({ height: '100vh' } as any),
   ];
 
   const Wrapper = Platform.OS === 'web'
@@ -173,7 +173,7 @@ export default function RegisterScreen({ navigation }: any) {
     : ({ children }: any) => (
         <KeyboardAvoidingView
           style={wrapperStyle}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           {children}
         </KeyboardAvoidingView>
