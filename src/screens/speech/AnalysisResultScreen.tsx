@@ -135,21 +135,22 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <View style={s.header}>
-        <TouchableOpacity style={s.iconBtn} onPress={()=>navigation.navigate('SpeechHome')}>
-          <Ionicons name="arrow-back" size={22} color={C.textSec}/>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Analysis Result</Text>
-        <TouchableOpacity style={s.iconBtn} onPress={doShare}>
-          <Ionicons name="share-outline" size={22} color={C.textSec}/>
-        </TouchableOpacity>
-      </View>
 
       <Animated.ScrollView
-        style={[{opacity:fadeAnim,flex:1},Platform.OS==='web'&&({overflowY:'auto'} as any)]}
+        style={[{opacity:fadeAnim},Platform.OS==='web'&&({height:'100vh',overflowY:'auto'} as any)]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header — inside scroll so web height works */}
+        <View style={s.header}>
+          <TouchableOpacity style={s.iconBtn} onPress={()=>navigation.navigate('SpeechHome')}>
+            <Ionicons name="arrow-back" size={22} color={C.textSec}/>
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>Analysis Result</Text>
+          <TouchableOpacity style={s.iconBtn} onPress={doShare}>
+            <Ionicons name="share-outline" size={22} color={C.textSec}/>
+          </TouchableOpacity>
+        </View>
         {/* Score card */}
         <View style={s.scoreCard}>
           <Text style={s.modeTag}>{mode}</Text>
@@ -250,11 +251,11 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
 }
 
 const s = StyleSheet.create({
-  root:          {flex:1,backgroundColor:C.bg,...(Platform.OS==='web'&&{height:'100vh' as any,overflow:'hidden' as any})},
-  header:        {flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:36,paddingBottom:8,backgroundColor:C.bg},
+  root:          {flex:1,backgroundColor:C.bg},
+  header:        {flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:36,paddingBottom:8},
   iconBtn:       {width:42,height:42,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.border,alignItems:'center',justifyContent:'center'},
   headerTitle:   {fontSize:17,fontWeight:'700',color:C.text},
-  scroll:        {paddingHorizontal:20,paddingTop:12},
+  scroll:        {paddingHorizontal:20,paddingTop:4,paddingBottom:40},
   scoreCard:     {backgroundColor:C.card,borderRadius:18,padding:24,alignItems:'center',marginBottom:20,borderWidth:1,borderColor:C.border,gap:10},
   modeTag:       {fontSize:12,color:C.textHint,textTransform:'uppercase',letterSpacing:1},
   scoreRing:     {width:120,height:120,borderRadius:60,borderWidth:5,alignItems:'center',justifyContent:'center'},
