@@ -92,9 +92,9 @@ export default function WritingHomeScreen({ navigation }: any) {
               <Text style={s.heroTitle}>Start Writing</Text>
               <Text style={s.heroSub}>Get AI feedback on your text</Text>
               <View style={s.heroPills}>
-                <View style={s.pill}><Text style={s.pillTxt}>✍️ Grammar</Text></View>
-                <View style={s.pill}><Text style={s.pillTxt}>🎨 Tone</Text></View>
-                <View style={s.pill}><Text style={s.pillTxt}>🔄 Rewrite</Text></View>
+                <View style={s.pill}><Text style={s.pillTxt}> Grammar</Text></View>
+                <View style={s.pill}><Text style={s.pillTxt}> Tone</Text></View>
+                <View style={s.pill}><Text style={s.pillTxt}> Rewrite</Text></View>
               </View>
               <View style={s.ctaBtn}>
                 <Text style={s.ctaBtnTxt}>Write Now →</Text>

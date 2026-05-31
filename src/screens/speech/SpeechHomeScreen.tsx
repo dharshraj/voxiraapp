@@ -94,9 +94,9 @@ export default function SpeechHomeScreen({ navigation }: any) {
               <Text style={s.heroTitle}>Start Recording</Text>
               <Text style={s.heroSub}>Analyze your speech with AI</Text>
               <View style={s.heroPills}>
-                <View style={s.pill}><Text style={s.pillTxt}>🎯 Filler</Text></View>
-                <View style={s.pill}><Text style={s.pillTxt}>📊 Pace</Text></View>
-                <View style={s.pill}><Text style={s.pillTxt}>🔊 Clarity</Text></View>
+                <View style={s.pill}><Text style={s.pillTxt}> Filler</Text></View>
+                <View style={s.pill}><Text style={s.pillTxt}> Pace</Text></View>
+                <View style={s.pill}><Text style={s.pillTxt}> Clarity</Text></View>
               </View>
               <View style={s.ctaBtn}>
                 <Text style={s.ctaBtnTxt}>Record Now →</Text>
