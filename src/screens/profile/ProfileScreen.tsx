@@ -79,25 +79,16 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
-  const signOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          setSigningOut(true);
-          try {
-            const { error } = await supabase.auth.signOut();
-            if (error) Alert.alert('Sign out failed', error.message);
-          } catch (e: any) {
-            Alert.alert('Sign out failed', e?.message ?? 'Something went wrong.');
-          } finally {
-            setSigningOut(false);
-          }
-        },
-      },
-    ]);
+  const signOut = async () => {
+    setSigningOut(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) Alert.alert('Sign out failed', error.message);
+    } catch (e: any) {
+      Alert.alert('Sign out failed', e?.message ?? 'Something went wrong.');
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   const initials = (profile?.full_name ?? 'V')
