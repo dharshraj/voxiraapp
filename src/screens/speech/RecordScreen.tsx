@@ -210,32 +210,39 @@ export default function RecordScreen({ navigation, route }: any) {
 
   const goToAnalysis = async () => {
     setPhase('transcribing');
-    let transcript  = '';
-    let fillerWords: any[] = [];
 
-    if (audioUri) {
-      setStatusMsg('Uploading to AssemblyAI...');
-      try {
-        const result = await transcribeAudio(audioUri);
-        if (result.status === 'completed' && result.text) {
-          transcript  = result.text;
-          fillerWords = result.filler_words;
-          setStatusMsg('Transcription complete!');
-        } else if (result.status === 'no_key') {
-          setStatusMsg('No API key — add EXPO_PUBLIC_ASSEMBLYAI_KEY to .env');
-        } else {
-          setStatusMsg(`Error: ${result.error ?? 'Unknown'}`);
-        }
-      } catch (e: any) {
-        setStatusMsg(`Error: ${e?.message ?? 'Failed'}`);
-      }
-    } else {
+    if (!audioUri) {
       setStatusMsg('No audio captured — please record first.');
+      setPhase('done');
+      return;
     }
 
-    setTimeout(() => {
-      navigation.navigate('Analyzing', { duration, mode, transcript, fillerWords });
-    }, 600);
+    setStatusMsg('Uploading to AssemblyAI...');
+    let result;
+    try {
+      result = await transcribeAudio(audioUri);
+    } catch (e: any) {
+      setStatusMsg(`Upload error: ${e?.message ?? 'Failed'}`);
+      setPhase('done');
+      return;
+    }
+
+    if (result.status === 'completed' && result.text) {
+      setStatusMsg('Transcription complete!');
+      setTimeout(() => {
+        navigation.navigate('Analyzing', {
+          duration, mode,
+          transcript: result.text,
+          fillerWords: result.filler_words,
+        });
+      }, 600);
+    } else {
+      const errMsg = result.status === 'no_key'
+        ? 'AssemblyAI API key not set.\n\nAdd EXPO_PUBLIC_ASSEMBLYAI_KEY to your .env file.'
+        : `Transcription failed: ${result.error ?? 'Unknown error'}`;
+      setStatusMsg(errMsg);
+      setPhase('done');
+    }
   };
 
   const reset = () => {

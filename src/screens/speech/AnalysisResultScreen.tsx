@@ -29,7 +29,7 @@ function scoreLabel(s:number){ return s>=85?'Excellent':s>=75?'Great':s>=60?'Goo
 export default function AnalysisResultScreen({ navigation, route }:any) {
   const {
     score=0, duration=0, fillerCount=0, fillerBreakdown={},
-    mode='Free Speech', wpm=0,
+    mode='Free Speech', wpm=0, transcript='',
     details={ clarity:0, pace:0, pronunciation:0, confidence:0 },
     aiAnalysis=null,
   } = route?.params ?? {};
@@ -166,6 +166,21 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
             {wpm>0&&<><View style={s.metaDot}/><View style={s.metaItem}><Ionicons name="speedometer-outline" size={14} color={C.textHint}/><Text style={s.metaTxt}>{wpm} WPM</Text></View></>}
           </View>
         </View>
+
+        {/* Real Transcript */}
+        {transcript && transcript.length > 10 && (
+          <View style={s.transcriptCard}>
+            <View style={s.transcriptHeader}>
+              <Ionicons name="document-text-outline" size={16} color={C.accent} />
+              <Text style={s.transcriptTitle}>Your Transcript</Text>
+            </View>
+            <Text style={s.transcriptText}>{transcript}</Text>
+            <Text style={s.transcriptMeta}>
+              {transcript.trim().split(/\s+/).filter(Boolean).length} words · {formatTime(duration)}
+              {wpm > 0 ? ` · ${wpm} WPM` : ''}
+            </Text>
+          </View>
+        )}
 
         {/* Filler Word Breakdown */}
         {fillerCount > 0 && (
@@ -334,6 +349,11 @@ const s = StyleSheet.create({
   primBtn:       {flex:2,borderRadius:12,overflow:'hidden'},
   primBtnGrad:   {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:14},
   primBtnTxt:    {fontSize:14,fontWeight:'700',color:'#fff'},
+  transcriptCard:   {backgroundColor:'rgba(167,139,250,0.08)',borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:'rgba(167,139,250,0.20)'},
+  transcriptHeader: {flexDirection:'row',alignItems:'center',gap:8,marginBottom:8},
+  transcriptTitle:  {fontSize:14,fontWeight:'700',color:C.accent},
+  transcriptText:   {fontSize:13,color:C.textSec,lineHeight:20,marginBottom:8},
+  transcriptMeta:   {fontSize:11,color:C.textHint},
   altCard:       {backgroundColor:'rgba(162,155,254,0.08)',borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:'rgba(162,155,254,0.25)'},
   altBadge:      {alignSelf:'flex-start',backgroundColor:'rgba(162,155,254,0.20)',borderRadius:20,paddingHorizontal:10,paddingVertical:3,marginBottom:8},
   altBadgeTxt:   {fontSize:11,fontWeight:'700',color:C.accent},

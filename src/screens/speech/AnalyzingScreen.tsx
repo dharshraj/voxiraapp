@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Animated, StatusBar, Dimensions, Platform,
+  View, Text, StyleSheet, Animated, StatusBar, Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +33,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
   const [currentStep, setCurrentStep] = useState(0);
   const [done,        setDone]        = useState(false);
   const [statusMsg,   setStatusMsg]   = useState('');
+  const [hasError,    setHasError]    = useState<string | null>(null);
   const fadeAnim     = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -46,16 +47,23 @@ export default function AnalyzingScreen({ navigation, route }: any) {
   };
 
   const runAnalysis = async () => {
-    // Step 0 — brief visual for "processed audio" (already done in RecordScreen)
     updateStep(0);
     await delay(700);
 
-    // Step 1 — display the real transcript
+    // Guard: should never arrive here without a real transcript
+    if (!transcript || transcript.length < 10) {
+      setHasError(
+        'No transcript was captured.\n\nTranscription may have failed — go back and try recording again.'
+      );
+      return;
+    }
+
+    // Step 1 — show real transcript preview
     updateStep(1);
-    setStatusMsg(transcript ? `Transcript: ${transcript.slice(0, 50)}…` : 'No transcript available');
+    setStatusMsg(`Transcript: ${transcript.slice(0, 60)}…`);
     await delay(900);
 
-    // Step 2 — compute filler breakdown from real AssemblyAI data
+    // Step 2 — compute filler breakdown from AssemblyAI word data
     updateStep(2);
     const fillerBreakdown: Record<string, number> = {};
     for (const w of fillerWords as Array<{ text: string }>) {
@@ -69,40 +77,37 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     updateStep(3);
     setStatusMsg('');
 
-    // Words per minute from real word count
     const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
     const wpm       = duration > 0 ? Math.round((wordCount / duration) * 60) : 0;
-
-    // Pace score: ideal is 110-150 wpm
-    const paceScore  = wpm > 0
+    const paceScore = wpm > 0
       ? Math.round(Math.max(40, 100 - Math.abs(wpm - 130) / 1.2))
       : 65;
 
-    // Call OpenAI if we have a real transcript (>30 chars)
-    let aiAnalysis = null;
-    if (transcript && transcript.length > 30) {
-      try {
-        aiAnalysis = await analyzeSpeech(transcript, duration, mode);
-        console.log('[AnalyzingScreen] AI analysis done:', aiAnalysis.clarityScore);
-      } catch (e: any) {
-        console.warn('[AnalyzingScreen] AI analysis failed, using derived scores:', e.message);
-      }
+    let aiAnalysis;
+    try {
+      aiAnalysis = await analyzeSpeech(transcript, duration, mode);
+      console.log('[AnalyzingScreen] AI analysis done:', aiAnalysis.clarityScore);
+    } catch (e: any) {
+      console.error('[AnalyzingScreen] AI analysis failed:', e.message);
+      setHasError(
+        `AI analysis failed: ${e.message}\n\nCheck EXPO_PUBLIC_OPENAI_KEY in your .env file.`
+      );
+      return;
     }
 
-    // Build final scores
-    const clarity       = aiAnalysis?.clarityScore      ?? Math.min(96, 68 + Math.random() * 20);
-    const confidence    = aiAnalysis?.confidenceScore   ?? Math.min(96, 60 + Math.random() * 25);
-    const structureScore= aiAnalysis?.structureScore    ?? Math.min(96, 65 + Math.random() * 20);
-    // Pronunciation can't be assessed from text alone — use a heuristic
-    const pronunciation = Math.min(96, 72 + Math.random() * 15);
+    // All scores come from real AI output
+    const clarity        = aiAnalysis.clarityScore;
+    const confidence     = aiAnalysis.confidenceScore;
+    const structureScore = aiAnalysis.structureScore;
+    // Pronunciation is inferred from clarity (text alone can't measure it)
+    const pronunciation  = Math.min(96, Math.round(clarity * 0.93 + 5));
 
-    // Overall score weighs all dimensions; penalise fillers
     const fillerPenalty = Math.min(25, fillerCount * 2);
     let score = Math.round(
       (clarity * 0.3 + confidence * 0.2 + structureScore * 0.2 + paceScore * 0.15 + pronunciation * 0.15)
       - fillerPenalty
     );
-    if (duration < 10) score = Math.max(40, score - 15); // very short clip
+    if (duration < 10) score = Math.max(40, score - 15);
     score = Math.max(35, Math.min(98, score));
 
     const details = {
@@ -116,8 +121,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     setTimeout(() => {
       navigation.replace('AnalysisResult', {
         score, duration, fillerCount, fillerBreakdown,
-        transcript, mode, wpm, details,
-        aiAnalysis,  // structured AI insights for the result screen
+        transcript, mode, wpm, details, aiAnalysis,
       });
     }, 600);
   };
@@ -133,62 +137,68 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     <View style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
       <Animated.View style={[s.content, { opacity: fadeAnim }]}>
-        <View style={s.iconArea}>
-          {!done ? (
-            <View style={s.spinnerOuter}>
-              <Ionicons
-                name={(STEPS[currentStep]?.icon ?? 'mic') as any}
-                size={32}
-                color={STEPS[currentStep]?.color ?? C.primary}
-              />
-            </View>
-          ) : (
-            <Ionicons name="checkmark-circle" size={64} color={C.green} />
-          )}
-        </View>
-        <Text style={s.title}>{done ? 'Analysis Complete' : 'Analyzing Your Speech'}</Text>
-        <Text style={s.sub}>{done ? 'Your results are ready' : (statusMsg || 'Please wait…')}</Text>
-        <View style={s.progressTrack}>
-          <Animated.View style={[s.progressFill, { width: progressWidth }]}>
-            <LinearGradient
-              colors={[C.primary, C.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
-        </View>
-        <View style={s.stepList}>
-          {STEPS.map((step, i) => {
-            const isDone    = i < currentStep || done;
-            const isCurrent = i === currentStep && !done;
-            return (
-              <View key={i} style={s.stepRow}>
-                <View style={[
-                  s.stepDot,
-                  isDone    && { backgroundColor: C.green },
-                  isCurrent && { backgroundColor: step.color },
-                ]}>
-                  {isDone && <Ionicons name="checkmark" size={12} color="#fff" />}
-                </View>
-                <Text style={[
-                  s.stepLabel,
-                  isDone    && { color: C.textSec },
-                  isCurrent && { color: C.text, fontWeight: '600' },
-                ]}>
-                  {step.label}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-        {!transcript && !done && (
-          <View style={s.noKeyNote}>
-            <Ionicons name="information-circle-outline" size={15} color={C.textHint} />
-            <Text style={s.noKeyTxt}>
-              No transcript available — check EXPO_PUBLIC_ASSEMBLYAI_KEY in .env
-            </Text>
+
+        {hasError ? (
+          <View style={s.errorWrap}>
+            <Ionicons name="alert-circle" size={60} color={C.rose} />
+            <Text style={s.errorTitle}>Analysis Failed</Text>
+            <Text style={s.errorMsg}>{hasError}</Text>
+            <TouchableOpacity style={s.retryBtn} onPress={() => navigation.goBack()}>
+              <Text style={s.retryTxt}>← Go Back & Try Again</Text>
+            </TouchableOpacity>
           </View>
+        ) : (
+          <>
+            <View style={s.iconArea}>
+              {!done ? (
+                <View style={s.spinnerOuter}>
+                  <Ionicons
+                    name={(STEPS[currentStep]?.icon ?? 'mic') as any}
+                    size={32}
+                    color={STEPS[currentStep]?.color ?? C.primary}
+                  />
+                </View>
+              ) : (
+                <Ionicons name="checkmark-circle" size={64} color={C.green} />
+              )}
+            </View>
+            <Text style={s.title}>{done ? 'Analysis Complete' : 'Analyzing Your Speech'}</Text>
+            <Text style={s.sub}>{done ? 'Your results are ready' : (statusMsg || 'Please wait…')}</Text>
+            <View style={s.progressTrack}>
+              <Animated.View style={[s.progressFill, { width: progressWidth }]}>
+                <LinearGradient
+                  colors={[C.primary, C.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+              </Animated.View>
+            </View>
+            <View style={s.stepList}>
+              {STEPS.map((step, i) => {
+                const isDone    = i < currentStep || done;
+                const isCurrent = i === currentStep && !done;
+                return (
+                  <View key={i} style={s.stepRow}>
+                    <View style={[
+                      s.stepDot,
+                      isDone    && { backgroundColor: C.green },
+                      isCurrent && { backgroundColor: step.color },
+                    ]}>
+                      {isDone && <Ionicons name="checkmark" size={12} color="#fff" />}
+                    </View>
+                    <Text style={[
+                      s.stepLabel,
+                      isDone    && { color: C.textSec },
+                      isCurrent && { color: C.text, fontWeight: '600' },
+                    ]}>
+                      {step.label}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </>
         )}
       </Animated.View>
     </View>
@@ -208,6 +218,9 @@ const s = StyleSheet.create({
   stepRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepDot:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
   stepLabel:    { flex: 1, fontSize: 14, color: C.textHint },
-  noKeyNote:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, paddingHorizontal: 8 },
-  noKeyTxt:     { flex: 1, fontSize: 11, color: C.textHint, lineHeight: 16 },
+  errorWrap:    { alignItems: 'center', gap: 16, paddingHorizontal: 8, marginTop: 20 },
+  errorTitle:   { fontSize: 20, fontWeight: '700', color: C.rose, textAlign: 'center' },
+  errorMsg:     { fontSize: 13, color: C.textSec, lineHeight: 20, textAlign: 'center' },
+  retryBtn:     { marginTop: 8, backgroundColor: C.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 },
+  retryTxt:     { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

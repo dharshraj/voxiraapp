@@ -137,16 +137,13 @@ Tips must be specific (not generic). Alternate answers must preserve the speaker
 
   const user = `Mode: ${mode} | Duration: ${durationSecs}s\n\nTranscript:\n${transcript.slice(0, 2500)}`;
 
-  try {
-    const raw = await chat(system, user, 800);
-    const parsed = parseJSON<SpeechAnalysis>(raw, SPEECH_FALLBACK);
-    // Validate key fields are present
-    if (typeof parsed.clarityScore !== 'number') return SPEECH_FALLBACK;
-    return parsed;
-  } catch (e: any) {
-    console.error('[OpenAI] analyzeSpeech error:', e.message);
-    return SPEECH_FALLBACK;
+  // Let errors propagate — AnalyzingScreen shows error UI when this throws
+  const raw = await chat(system, user, 800);
+  const parsed = parseJSON<SpeechAnalysis>(raw, SPEECH_FALLBACK);
+  if (typeof parsed.clarityScore !== 'number') {
+    throw new Error('AI returned an invalid response — could not parse speech scores');
   }
+  return parsed;
 }
 
 // ─── Tone Analysis ────────────────────────────────────────────────────────────
