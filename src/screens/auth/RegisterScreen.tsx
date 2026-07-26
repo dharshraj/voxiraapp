@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   StatusBar,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -67,6 +66,7 @@ export default function RegisterScreen({ navigation }: any) {
   const [loading,         setLoading]         = useState(false);
   const [googleLoading,   setGoogleLoading]   = useState(false);
   const [passwordValue,   setPasswordValue]   = useState('');
+  const [formError,       setFormError]       = useState<string | null>(null);
 
   const strength = getStrength(passwordValue);
 
@@ -135,31 +135,41 @@ export default function RegisterScreen({ navigation }: any) {
   });
 
   const onGoogleSignIn = async () => {
+    setFormError(null);
     setGoogleLoading(true);
     try {
       const { error } = await signInWithGoogle();
-      if (error) Alert.alert('Google Sign-In', error);
+      if (error) setFormError(error);
     } finally {
       setGoogleLoading(false);
     }
   };
 
   const onRegister = async (data: RegisterForm) => {
+    setFormError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email:    data.email,
-      password: data.password,
-      options:  { data: { full_name: data.fullName } },
-    });
-    setLoading(false);
-    if (error) {
-      Alert.alert('Sign up failed', error.message);
-    } else {
-      Alert.alert(
-        'Account created!',
-        'Check your email to verify your account.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-      );
+    try {
+      const { error } = await supabase.auth.signUp({
+        email:    data.email,
+        password: data.password,
+        options:  { data: { full_name: data.fullName } },
+      });
+      if (error) {
+        setFormError(
+          error.message.toLowerCase().includes('already registered')
+            ? 'An account with this email already exists. Try signing in.'
+            : error.message
+        );
+      } else {
+        setFormError(null);
+        navigation.navigate('Login', {
+          notice: 'Account created! Check your email to verify before signing in.',
+        });
+      }
+    } catch (e: any) {
+      setFormError(e?.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -398,6 +408,14 @@ export default function RegisterScreen({ navigation }: any) {
               <Text style={s.termsLink}>Privacy Policy</Text>
             </Text>
 
+            {/* Backend / form-level error */}
+            {formError && (
+              <View style={s.formErrorWrap}>
+                <Ionicons name="alert-circle-outline" size={15} color="#F43F5E" style={{ marginRight: 7 }} />
+                <Text style={s.formErrorText}>{formError}</Text>
+              </View>
+            )}
+
             {/* Create Account button */}
             <TouchableOpacity
               onPress={handleSubmit(onRegister)}
@@ -614,6 +632,15 @@ const s = StyleSheet.create({
     width: 44,
     textAlign: 'right',
   },
+
+  // Form-level error banner
+  formErrorWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(244,63,94,0.08)',
+    borderWidth: 1, borderColor: 'rgba(244,63,94,0.25)',
+    borderRadius: 12, padding: 12, marginBottom: 12,
+  },
+  formErrorText: { flex: 1, color: '#F43F5E', fontSize: 13 },
 
   // Terms
   termsText: {

@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Alert, Dimensions,
+  TextInput, ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { evaluateInterviewAnswer, AnswerEvaluation } from '../../lib/openai';
 
 const { width: W, height: H } = Dimensions.get('window');
 const C = {
@@ -15,32 +17,6 @@ const C = {
   hint:'rgba(240,244,255,0.25)', border:'rgba(255,255,255,0.07)',
 };
 
-const QUESTIONS_BY_ROLE: Record<string,string[]> = {
-  'Software Engineer': [
-    'Tell me about yourself and your programming background.',
-    'Describe a challenging technical problem you solved. What was your approach?',
-    'How do you ensure code quality in your projects?',
-    'Tell me about a time you worked under tight deadlines. How did you manage it?',
-    'Where do you see yourself in 5 years as a software engineer?',
-    'How do you stay updated with new technologies and trends?',
-    'Describe a situation where you disagreed with a team member. How did you resolve it?',
-    'What is your experience with agile development methodologies?',
-    'Tell me about your most impactful project. What did you learn?',
-    'Why do you want to work at our company?',
-  ],
-  'default': [
-    'Tell me about yourself and your professional background.',
-    'What is your greatest professional achievement so far?',
-    'Describe a time you faced a major challenge. How did you overcome it?',
-    'Tell me about a time you demonstrated leadership.',
-    'Where do you see yourself in 5 years?',
-    'What are your greatest strengths and weaknesses?',
-    'Describe a situation where you had to work under pressure.',
-    'Tell me about a time you worked in a team. What was your role?',
-    'Why are you leaving your current position?',
-    'Why do you want to work at our company?',
-  ],
-};
 
 function formatTime(secs:number){
   const m=Math.floor(secs/60).toString().padStart(2,'0');
@@ -51,23 +27,20 @@ function formatTime(secs:number){
 export default function LiveInterviewScreen({ navigation, route }:any) {
   const {
     role='Software Engineer', type='behavioral',
-    difficulty='medium', questions:totalQ=7,
+    difficulty='medium', questions:sessionQs=[],
   } = route?.params ?? {};
 
-  const questionList = QUESTIONS_BY_ROLE[role] ?? QUESTIONS_BY_ROLE['default'];
-  const sessionQs    = questionList.slice(0, totalQ);
+  const [qIndex,      setQIndex]     = useState(0);
+  const [phase,       setPhase]      = useState<'question'|'answering'|'evaluating'|'thinking'|'done'>('question');
+  const [timer,       setTimer]      = useState(0);
+  const [currentAnswer,setCurAnswer] = useState('');
+  const [evaluations, setEvals]      = useState<AnswerEvaluation[]>([]);
+  const [scores,      setScores]     = useState<number[]>([]);
 
-  const [qIndex,    setQIndex]    = useState(0);
-  const [phase,     setPhase]     = useState<'question'|'answering'|'thinking'|'done'>('question');
-  const [timer,     setTimer]     = useState(0);
-  const [answers,   setAnswers]   = useState<string[]>([]);
-  const [scores,    setScores]    = useState<number[]>([]);
-  const [isRecording,setIsRec]   = useState(false);
-
-  const fadeAnim   = useRef(new Animated.Value(0)).current;
-  const pulseAnim  = useRef(new Animated.Value(1)).current;
-  const timerRef   = useRef<any>(null);
-  const pulseRef   = useRef<Animated.CompositeAnimation|null>(null);
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const timerRef  = useRef<any>(null);
+  const pulseRef  = useRef<Animated.CompositeAnimation|null>(null);
 
   useEffect(()=>{
     Animated.timing(fadeAnim,{toValue:1,duration:600,useNativeDriver:true}).start();
@@ -79,8 +52,8 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
 
   const startAnswer=()=>{
     setPhase('answering');
+    setCurAnswer('');
     setTimer(0);
-    setIsRec(true);
     startTimer();
     pulseRef.current=Animated.loop(Animated.sequence([
       Animated.timing(pulseAnim,{toValue:1.15,duration:700,useNativeDriver:true}),
@@ -89,20 +62,36 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
     pulseRef.current.start();
   };
 
-  const submitAnswer=()=>{
+  const submitAnswer=async ()=>{
     stopTimer();
-    setIsRec(false);
     pulseRef.current?.stop();
     pulseAnim.setValue(1);
-    const score = Math.floor(65+Math.random()*30);
-    setScores(prev=>[...prev,score]);
-    setAnswers(prev=>[...prev,`Answer ${qIndex+1} recorded (${formatTime(timer)})`]);
+    setPhase('evaluating');
+
+    const question = sessionQs[qIndex] ?? '';
+    const answer   = currentAnswer.trim() || `(No written answer — answered verbally in ${formatTime(timer)})`;
+
+    try {
+      const evaluation = await evaluateInterviewAnswer(question, answer, role, difficulty);
+      setEvals(prev=>[...prev, evaluation]);
+      setScores(prev=>[...prev, evaluation.score]);
+    } catch {
+      const fallbackScore = 70;
+      setEvals(prev=>[...prev, {
+        score: fallbackScore, strengths:['Attempted the question'],
+        weaknesses:['Could not evaluate — check API key'],
+        modelAnswer:'', followUpQuestion:'',
+      }]);
+      setScores(prev=>[...prev, fallbackScore]);
+    }
+
     if(qIndex+1>=sessionQs.length){
       setPhase('done');
     } else {
       setPhase('thinking');
       setTimeout(()=>{
         setQIndex(i=>i+1);
+        setCurAnswer('');
         setTimer(0);
         setPhase('question');
       },1800);
@@ -117,13 +106,13 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
   };
 
   const goToFeedback=()=>{
-    const avgScore=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):75;
-    navigation.replace('Feedback',{role,type,difficulty,scores,answers:sessionQs,avgScore});
+    const avgScore=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):70;
+    navigation.replace('Feedback',{role,type,difficulty,scores,questions:sessionQs,evaluations,avgScore});
   };
 
   useEffect(()=>{ if(phase==='done') setTimeout(goToFeedback,1000); },[phase]);
 
-  const progress=(qIndex+1)/sessionQs.length;
+  const progress = sessionQs.length > 0 ? (qIndex+1)/sessionQs.length : 1;
 
   return (
     <View style={s.root}>
@@ -197,11 +186,31 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
           </View>
         )}
 
-        {/* Recording indicator */}
+        {/* Answer text input */}
         {phase==='answering' && (
-          <View style={s.recBar}>
-            <View style={s.recDot}/>
-            <Text style={s.recTxt}>Recording your answer — {formatTime(timer)}</Text>
+          <>
+            <View style={s.recBar}>
+              <View style={s.recDot}/>
+              <Text style={s.recTxt}>Answering — {formatTime(timer)}</Text>
+            </View>
+            <TextInput
+              style={s.answerInput}
+              placeholder="Type your answer here (or speak — just tap Done when finished)…"
+              placeholderTextColor={C.hint}
+              value={currentAnswer}
+              onChangeText={setCurAnswer}
+              multiline
+              textAlignVertical="top"
+              autoFocus
+            />
+          </>
+        )}
+
+        {/* Evaluating spinner */}
+        {phase==='evaluating' && (
+          <View style={s.evalBar}>
+            <ActivityIndicator size="small" color={C.accent}/>
+            <Text style={s.evalTxt}>AI is evaluating your answer…</Text>
           </View>
         )}
 
@@ -236,14 +245,14 @@ export default function LiveInterviewScreen({ navigation, route }:any) {
           <TouchableOpacity style={s.primaryBtn} onPress={submitAnswer} activeOpacity={0.85}>
             <LinearGradient colors={['#22C55E','#15803D']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.primaryBtnGrad}>
               <Ionicons name="checkmark-circle" size={22} color="#fff"/>
-              <Text style={s.primaryBtnTxt}>Done Answering</Text>
+              <Text style={s.primaryBtnTxt}>Submit Answer</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
-        {phase==='thinking' && (
+        {(phase==='evaluating'||phase==='thinking') && (
           <View style={s.thinkingBar}>
-            <Ionicons name="ellipsis-horizontal" size={22} color={C.muted}/>
-            <Text style={s.thinkingTxt}>Next question loading...</Text>
+            <ActivityIndicator size="small" color={C.muted}/>
+            <Text style={s.thinkingTxt}>{phase==='evaluating' ? 'AI evaluating your answer…' : 'Next question…'}</Text>
           </View>
         )}
       </Animated.View>
@@ -292,4 +301,7 @@ const s = StyleSheet.create({
   primaryBtnTxt:{fontSize:16,fontWeight:'700',color:'#fff'},
   thinkingBar:  {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10,paddingVertical:16},
   thinkingTxt:  {fontSize:14,color:C.muted},
+  answerInput:  {backgroundColor:C.bgCard,borderRadius:16,padding:16,color:C.text,fontSize:14,lineHeight:22,minHeight:120,borderWidth:1,borderColor:'rgba(21,101,255,0.35)',textAlignVertical:'top'},
+  evalBar:      {flexDirection:'row',alignItems:'center',gap:10,backgroundColor:'rgba(79,195,247,0.10)',borderRadius:14,padding:12,borderWidth:1,borderColor:'rgba(79,195,247,0.20)'},
+  evalTxt:      {fontSize:13,color:C.accent,fontWeight:'500'},
 });

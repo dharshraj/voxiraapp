@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Animated, View, Text, TextInput, TouchableOpacity,
   StyleSheet, Platform, ScrollView, KeyboardAvoidingView,
-  StatusBar, ActivityIndicator, Alert,
+  StatusBar, ActivityIndicator,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -30,10 +30,12 @@ const C = {
   borderMed: 'rgba(255,255,255,0.12)',
 };
 
-export default function LoginScreen({ navigation }: any) {
+export default function LoginScreen({ navigation, route }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [formError, setFormError]         = useState<string | null>(null);
+  const notice: string | undefined        = route?.params?.notice;
 
   const orb1x = useRef(new Animated.Value(0)).current;
   const orb1y = useRef(new Animated.Value(0)).current;
@@ -66,25 +68,33 @@ export default function LoginScreen({ navigation }: any) {
   });
 
   const onLogin = async (data: LoginForm) => {
+    setFormError(null);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email:    data.email.trim().toLowerCase(),
         password: data.password,
       });
-      if (error) Alert.alert('Sign in failed', error.message);
+      if (error) {
+        setFormError(
+          error.message.toLowerCase().includes('invalid')
+            ? 'Incorrect email or password. Please try again.'
+            : error.message
+        );
+      }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Something went wrong.');
+      setFormError(e?.message ?? 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const onGoogleSignIn = async () => {
+    setFormError(null);
     setGoogleLoading(true);
     try {
       const { error } = await signInWithGoogle();
-      if (error) Alert.alert('Google Sign-In', error);
+      if (error) setFormError(error);
     } finally {
       setGoogleLoading(false);
     }
@@ -136,6 +146,14 @@ export default function LoginScreen({ navigation }: any) {
 
           <Text style={s.heading}>Welcome Back</Text>
           <Text style={s.sub}>Sign in to continue your journey</Text>
+
+          {/* Registration success notice */}
+          {notice && (
+            <View style={s.noticeWrap}>
+              <Ionicons name="checkmark-circle-outline" size={15} color="#10B981" style={{ marginRight: 7 }} />
+              <Text style={s.noticeText}>{notice}</Text>
+            </View>
+          )}
 
           {/* ── Google button ──────────────────────────────────── */}
           <TouchableOpacity
@@ -225,6 +243,14 @@ export default function LoginScreen({ navigation }: any) {
               />
               {errors.password && <Text style={s.errorText}>{errors.password.message}</Text>}
             </View>
+
+            {/* Backend / form-level error */}
+            {formError && (
+              <View style={s.formErrorWrap}>
+                <Ionicons name="alert-circle-outline" size={15} color={C.rose} style={{ marginRight: 7 }} />
+                <Text style={s.formErrorText}>{formError}</Text>
+              </View>
+            )}
 
             {/* Sign In */}
             <TouchableOpacity
@@ -355,6 +381,22 @@ const s = StyleSheet.create({
   inputIcon:  { marginRight: 10 },
   input: { flex: 1, color: C.text, fontSize: 15 },
   errorText: { color: C.rose, fontSize: 12, marginTop: 5 },
+
+  noticeWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)',
+    borderRadius: 12, padding: 12, marginBottom: 16,
+  },
+  noticeText: { flex: 1, color: '#10B981', fontSize: 13 },
+
+  formErrorWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(244,63,94,0.08)',
+    borderWidth: 1, borderColor: 'rgba(244,63,94,0.25)',
+    borderRadius: 12, padding: 12, marginBottom: 12,
+  },
+  formErrorText: { flex: 1, color: C.rose, fontSize: 13 },
 
   signInOuter: {
     borderRadius: 18, overflow: 'hidden',

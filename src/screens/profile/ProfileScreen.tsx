@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  StatusBar, Platform, Animated, Alert,
+  View, Text, StyleSheet, TouchableOpacity,
+  StatusBar, Platform, Animated, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -54,7 +54,8 @@ const MENU_SECTIONS = [
 ];
 
 export default function ProfileScreen({ navigation }: any) {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile]       = useState<any>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -82,8 +83,18 @@ export default function ProfileScreen({ navigation }: any) {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Sign Out', style: 'destructive', onPress: async () => {
-          await supabase.auth.signOut();
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          setSigningOut(true);
+          try {
+            const { error } = await supabase.auth.signOut();
+            if (error) Alert.alert('Sign out failed', error.message);
+          } catch (e: any) {
+            Alert.alert('Sign out failed', e?.message ?? 'Something went wrong.');
+          } finally {
+            setSigningOut(false);
+          }
         },
       },
     ]);
@@ -203,9 +214,21 @@ export default function ProfileScreen({ navigation }: any) {
         ))}
 
         {/* SIGN OUT */}
-        <TouchableOpacity style={s.signOutBtn} onPress={signOut} activeOpacity={0.75}>
-          <Ionicons name={'log-out-outline' as any} size={20} color={C.rose} />
-          <Text style={s.signOutTxt}>Sign Out</Text>
+        <TouchableOpacity
+          style={[s.signOutBtn, signingOut && s.signOutBtnDisabled]}
+          onPress={signOut}
+          disabled={signingOut}
+          activeOpacity={0.75}
+        >
+          {signingOut
+            ? <ActivityIndicator size="small" color={C.rose} />
+            : (
+              <>
+                <Ionicons name={'log-out-outline' as any} size={20} color={C.rose} />
+                <Text style={s.signOutTxt}>Sign Out</Text>
+              </>
+            )
+          }
         </TouchableOpacity>
 
         <Text style={s.version}>Voxira v1.0.0</Text>
@@ -299,6 +322,7 @@ const s = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, borderColor: 'rgba(244,63,94,0.25)',
     padding: 18,
   },
+  signOutBtnDisabled: { opacity: 0.5 },
   signOutTxt:    { fontSize: 15, fontWeight: '600', color: C.rose },
   version:       { textAlign: 'center', fontSize: 12, color: C.textHint, marginTop: 16 },
 });

@@ -31,6 +31,7 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     score=0, duration=0, fillerCount=0, fillerBreakdown={},
     mode='Free Speech', wpm=0,
     details={ clarity:0, pace:0, pronunciation:0, confidence:0 },
+    aiAnalysis=null,
   } = route?.params ?? {};
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -214,6 +215,41 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
           </View>
         ))}
 
+        {/* AI Insights — alternate answers + improvement tips */}
+        {aiAnalysis && (
+          <>
+            {aiAnalysis.alternateAnswers?.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>AI-Suggested Rephrasings</Text>
+                {(aiAnalysis.alternateAnswers as string[]).map((alt: string, i: number) => (
+                  <View key={i} style={s.altCard}>
+                    <View style={s.altBadge}><Text style={s.altBadgeTxt}>Version {i + 1}</Text></View>
+                    <Text style={s.altText}>{alt}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+            {aiAnalysis.improvementTips?.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>AI Improvement Tips</Text>
+                {(aiAnalysis.improvementTips as string[]).map((tip: string, i: number) => (
+                  <View key={i} style={s.tipCard}>
+                    <View style={s.tipNum}><Text style={s.tipNumTxt}>{i + 1}</Text></View>
+                    <Text style={s.tipText}>{tip}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+            {aiAnalysis.structureFeedback && (
+              <View style={s.structureCard}>
+                <Ionicons name="git-branch-outline" size={16} color={C.accent} style={{ marginBottom: 6 }} />
+                <Text style={s.structureTitle}>Structure Feedback</Text>
+                <Text style={s.structureText}>{aiAnalysis.structureFeedback}</Text>
+              </View>
+            )}
+          </>
+        )}
+
         {/* 7-Day Plan */}
         <View style={s.planCard}>
           <Text style={s.planTitle}>📈 Your 7-Day Improvement Plan</Text>
@@ -298,4 +334,15 @@ const s = StyleSheet.create({
   primBtn:       {flex:2,borderRadius:12,overflow:'hidden'},
   primBtnGrad:   {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:14},
   primBtnTxt:    {fontSize:14,fontWeight:'700',color:'#fff'},
+  altCard:       {backgroundColor:'rgba(162,155,254,0.08)',borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:'rgba(162,155,254,0.25)'},
+  altBadge:      {alignSelf:'flex-start',backgroundColor:'rgba(162,155,254,0.20)',borderRadius:20,paddingHorizontal:10,paddingVertical:3,marginBottom:8},
+  altBadgeTxt:   {fontSize:11,fontWeight:'700',color:C.accent},
+  altText:       {fontSize:13,color:C.textSec,lineHeight:20},
+  tipCard:       {flexDirection:'row',alignItems:'flex-start',gap:12,backgroundColor:'rgba(139,92,246,0.08)',borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:'rgba(139,92,246,0.20)'},
+  tipNum:        {width:26,height:26,borderRadius:13,backgroundColor:C.purple,alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
+  tipNumTxt:     {fontSize:12,fontWeight:'800',color:'#fff'},
+  tipText:       {flex:1,fontSize:13,color:C.textSec,lineHeight:20},
+  structureCard: {backgroundColor:'rgba(0,184,148,0.08)',borderRadius:14,padding:14,marginBottom:16,borderWidth:1,borderColor:'rgba(0,184,148,0.20)'},
+  structureTitle:{fontSize:14,fontWeight:'700',color:C.green,marginBottom:6},
+  structureText: {fontSize:13,color:C.textSec,lineHeight:20},
 });

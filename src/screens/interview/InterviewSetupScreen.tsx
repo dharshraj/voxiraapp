@@ -1,10 +1,11 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  StatusBar, Platform, Animated,
+  StatusBar, Platform, Animated, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { generateInterviewQuestions } from '../../lib/openai';
 
 const C = {
   bg:'#0A1628', bgCard:'#111E30', surface:'#1A2B3C',
@@ -39,6 +40,7 @@ export default function InterviewSetupScreen({ navigation, route }:any) {
   const [intType,   setIntType]   = useState(presetType?.toLowerCase()||'behavioral');
   const [difficulty,setDifficulty]= useState('medium');
   const [duration,  setDuration]  = useState('10');
+  const [starting,  setStarting]  = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
 
   useEffect(()=>{
@@ -49,11 +51,19 @@ export default function InterviewSetupScreen({ navigation, route }:any) {
   const selDiff  = DIFFICULTIES.find(d=>d.id===difficulty)!;
   const selDur   = DURATIONS.find(d=>d.id===duration)!;
 
-  const startInterview = () => {
-    navigation.navigate('LiveInterview',{
-      role, type:intType, difficulty, duration:parseInt(duration),
-      questions:selDur.questions,
-    });
+  const startInterview = async () => {
+    setStarting(true);
+    try {
+      const questions = await generateInterviewQuestions(role, intType, difficulty, selDur.questions);
+      navigation.navigate('LiveInterview', {
+        role, type: intType, difficulty, duration: parseInt(duration),
+        questionCount: selDur.questions, questions,
+      });
+    } catch (e: any) {
+      Alert.alert('Could not load questions', e?.message ?? 'Please check your connection and try again.');
+    } finally {
+      setStarting(false);
+    }
   };
 
   return (
@@ -152,10 +162,13 @@ export default function InterviewSetupScreen({ navigation, route }:any) {
         </View>
 
         {/* Start button */}
-        <TouchableOpacity style={s.startBtn} onPress={startInterview} activeOpacity={0.85}>
+        <TouchableOpacity style={[s.startBtn, starting && {opacity:0.7}]} onPress={startInterview} disabled={starting} activeOpacity={0.85}>
           <LinearGradient colors={['#7C3AED','#4C1D95']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.startBtnGrad}>
-            <Ionicons name="people" size={20} color="#fff"/>
-            <Text style={s.startBtnTxt}>Start Interview</Text>
+            {starting
+              ? <ActivityIndicator size="small" color="#fff"/>
+              : <Ionicons name="people" size={20} color="#fff"/>
+            }
+            <Text style={s.startBtnTxt}>{starting ? 'Generating Questions…' : 'Start Interview'}</Text>
           </LinearGradient>
         </TouchableOpacity>
 

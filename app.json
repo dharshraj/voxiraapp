@@ -23,7 +23,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F8F7F4"
       },
-      "package": "com.voxira.app"
+      "package": "com.voxira.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -38,6 +42,12 @@
           "microphonePermission": "Allow VoxiraApp to access your microphone for speech analysis."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3c29e70b-3b75-4ae6-9131-28d256aa8d16"
+      }
+    },
+    "owner": "dharshinig"
   }
 }

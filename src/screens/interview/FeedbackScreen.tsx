@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AnswerEvaluation } from '../../lib/openai';
 
 const C = {
   bg:'#0A1628', bgCard:'#111E30', surface:'#1A2B3C',
@@ -46,7 +47,7 @@ const sc=StyleSheet.create({
 export default function FeedbackScreen({ navigation, route }:any) {
   const {
     role='Software Engineer', type='behavioral', difficulty='medium',
-    scores=[], answers=[], avgScore=78,
+    scores=[], questions=[], evaluations=[] as AnswerEvaluation[], avgScore=70,
   } = route?.params ?? {};
 
   const fade=useRef(new Animated.Value(0)).current;
@@ -57,23 +58,13 @@ export default function FeedbackScreen({ navigation, route }:any) {
     Animated.timing(fade,{toValue:1,duration:600,useNativeDriver:true}).start();
   },[]);
 
+  const evals: AnswerEvaluation[] = evaluations;
+
   const METRICS=[
     {label:'Content',    score:Math.min(100,avgScore+5),  icon:'document-text-outline',color:C.accent },
     {label:'Clarity',    score:Math.min(100,avgScore-3),  icon:'eye-outline',           color:C.green  },
     {label:'Structure',  score:Math.min(100,avgScore+8),  icon:'git-branch-outline',    color:C.purple },
     {label:'Confidence', score:Math.min(100,avgScore-8),  icon:'trending-up-outline',   color:C.gold   },
-  ];
-
-  const FEEDBACK_ITEMS=[
-    {type:'pos',text:'You demonstrated clear communication and stayed on topic throughout the interview.'},
-    {type:'pos',text:'Your answers showed relevant experience and practical examples.'},
-    avgScore<75
-      ?{type:'neg',text:'Some answers lacked the STAR structure. Practice framing with Situation→Task→Action→Result.'}
-      :{type:'pos',text:'You used the STAR method effectively in most behavioral answers.'},
-    {type:'tip',text:'Add specific metrics and numbers to your answers. "Improved performance by 40%" is more impactful than "improved performance".'},
-    difficulty==='hard'
-      ?{type:'tip',text:'For senior roles, emphasise strategic thinking and team impact in your answers.'}
-      :{type:'pos',text:'Your confidence level was appropriate for the difficulty level.'},
   ];
 
   const doShare=async()=>{
@@ -130,41 +121,68 @@ export default function FeedbackScreen({ navigation, route }:any) {
           ))}
         </View>
 
-        {/* Per-question scores */}
+        {/* Per-question detailed feedback */}
         <Text style={s.sectionTitle}>Question-by-Question</Text>
         <View style={s.qList}>
-          {answers.map((q:string,i:number)=>{
-            const sc2=scores[i]??75;
-            const col=scoreColor(sc2);
+          {questions.map((q:string,i:number)=>{
+            const sc2 = scores[i] ?? (evals[i]?.score ?? 70);
+            const col = scoreColor(sc2);
+            const ev: AnswerEvaluation | undefined = evals[i];
+            const isOpen = activeQ === i;
             return(
-              <TouchableOpacity key={i} style={[s.qRow,i===answers.length-1&&{borderBottomWidth:0}]}
-                onPress={()=>setActiveQ(activeQ===i?null:i)} activeOpacity={0.8}>
-                <View style={[s.qBadge,{backgroundColor:`${col}18`}]}>
-                  <Text style={[s.qBadgeTxt,{color:col}]}>Q{i+1}</Text>
-                </View>
-                <Text style={s.qTxt} numberOfLines={activeQ===i?0:2}>{q}</Text>
-                <View style={s.qRight}>
-                  <Text style={[s.qScore,{color:col}]}>{sc2}</Text>
-                  <Ionicons name={activeQ===i?'chevron-up':'chevron-down'} size={14} color={C.hint}/>
-                </View>
-              </TouchableOpacity>
+              <View key={i} style={[s.qRow, i===questions.length-1&&{borderBottomWidth:0}]}>
+                <TouchableOpacity style={s.qRowHeader} onPress={()=>setActiveQ(isOpen?null:i)} activeOpacity={0.8}>
+                  <View style={[s.qBadge,{backgroundColor:`${col}18`}]}>
+                    <Text style={[s.qBadgeTxt,{color:col}]}>Q{i+1}</Text>
+                  </View>
+                  <Text style={s.qTxt} numberOfLines={isOpen?0:2}>{q}</Text>
+                  <View style={s.qRight}>
+                    <Text style={[s.qScore,{color:col}]}>{sc2}</Text>
+                    <Ionicons name={isOpen?'chevron-up':'chevron-down'} size={14} color={C.hint}/>
+                  </View>
+                </TouchableOpacity>
+
+                {isOpen && ev && (
+                  <View style={s.evalDetail}>
+                    {ev.strengths?.length > 0 && (
+                      <View style={s.evalSection}>
+                        <Text style={s.evalSectionTitle}>Strengths</Text>
+                        {ev.strengths.map((str,si)=>(
+                          <View key={si} style={s.evalItem}>
+                            <Ionicons name="checkmark-circle-outline" size={14} color={C.green}/>
+                            <Text style={s.evalItemTxt}>{str}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    {ev.weaknesses?.length > 0 && (
+                      <View style={s.evalSection}>
+                        <Text style={[s.evalSectionTitle,{color:C.danger}]}>Improvements</Text>
+                        {ev.weaknesses.map((w,wi)=>(
+                          <View key={wi} style={s.evalItem}>
+                            <Ionicons name="arrow-up-circle-outline" size={14} color={C.gold}/>
+                            <Text style={s.evalItemTxt}>{w}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    {ev.modelAnswer ? (
+                      <View style={s.modelAnswerBox}>
+                        <Text style={s.modelAnswerLabel}>Model Answer</Text>
+                        <Text style={s.modelAnswerTxt}>{ev.modelAnswer}</Text>
+                      </View>
+                    ) : null}
+                    {ev.followUpQuestion ? (
+                      <View style={s.followUpBox}>
+                        <Ionicons name="help-circle-outline" size={14} color={C.accent}/>
+                        <Text style={s.followUpTxt}>Follow-up: {ev.followUpQuestion}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+              </View>
             );
           })}
-        </View>
-
-        {/* AI feedback */}
-        <Text style={s.sectionTitle}>AI Feedback</Text>
-        <View style={s.feedbackList}>
-          {FEEDBACK_ITEMS.map((fb,i)=>(
-            <View key={i} style={[s.feedbackRow,{
-              borderLeftColor:fb.type==='pos'?C.green:fb.type==='neg'?C.danger:C.gold,
-              backgroundColor:fb.type==='pos'?`${C.green}08`:fb.type==='neg'?`${C.danger}08`:`${C.gold}08`,
-            }]}>
-              <Ionicons name={fb.type==='pos'?'checkmark-circle-outline':fb.type==='neg'?'close-circle-outline':'bulb-outline'} size={18}
-                color={fb.type==='pos'?C.green:fb.type==='neg'?C.danger:C.gold}/>
-              <Text style={s.feedbackTxt}>{fb.text}</Text>
-            </View>
-          ))}
         </View>
 
         {/* Actions */}
@@ -210,12 +228,23 @@ const s=StyleSheet.create({
   metricBarBg:   {height:4,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:2,overflow:'hidden'},
   metricBarFill: {height:'100%',borderRadius:2},
   qList:         {backgroundColor:C.bgCard,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:C.border,marginBottom:24},
-  qRow:          {flexDirection:'row',alignItems:'flex-start',gap:12,padding:14,borderBottomWidth:1,borderBottomColor:C.border},
+  qRow:          {borderBottomWidth:1,borderBottomColor:C.border},
+  qRowHeader:    {flexDirection:'row',alignItems:'flex-start',gap:12,padding:14},
   qBadge:        {paddingHorizontal:8,paddingVertical:4,borderRadius:8,flexShrink:0},
   qBadgeTxt:     {fontSize:11,fontWeight:'700'},
   qTxt:          {flex:1,fontSize:13,color:C.muted,lineHeight:20},
   qRight:        {flexDirection:'row',alignItems:'center',gap:6,flexShrink:0},
   qScore:        {fontSize:14,fontWeight:'800'},
+  evalDetail:    {paddingHorizontal:14,paddingBottom:14,gap:12},
+  evalSection:   {gap:6},
+  evalSectionTitle:{fontSize:11,fontWeight:'700',color:C.green,textTransform:'uppercase',letterSpacing:0.8},
+  evalItem:      {flexDirection:'row',alignItems:'flex-start',gap:8},
+  evalItemTxt:   {flex:1,fontSize:12,color:C.muted,lineHeight:18},
+  modelAnswerBox:{backgroundColor:'rgba(79,195,247,0.08)',borderRadius:12,padding:12,borderWidth:1,borderColor:'rgba(79,195,247,0.20)'},
+  modelAnswerLabel:{fontSize:10,fontWeight:'700',color:C.accent,textTransform:'uppercase',letterSpacing:0.8,marginBottom:6},
+  modelAnswerTxt:{fontSize:12,color:C.text,lineHeight:18},
+  followUpBox:   {flexDirection:'row',alignItems:'flex-start',gap:8},
+  followUpTxt:   {flex:1,fontSize:12,color:C.accent,lineHeight:18,fontStyle:'italic'},
   feedbackList:  {gap:10,marginBottom:24},
   feedbackRow:   {flexDirection:'row',gap:12,padding:14,borderRadius:14,borderLeftWidth:3,alignItems:'flex-start'},
   feedbackTxt:   {flex:1,fontSize:13,color:C.text,lineHeight:20},

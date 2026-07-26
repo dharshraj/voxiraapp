@@ -8,11 +8,14 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { analyzeTone, ToneResult } from '../../lib/openai';
 
 const COLORS = {
   primary: '#6C5CE7',
@@ -43,59 +46,73 @@ interface ToneSuggestion {
   type: 'positive' | 'improve';
 }
 
-const toneMetrics: ToneMetric[] = [
-  { label: 'Confidence', value: 78, color: '#6C5CE7', icon: 'shield-checkmark-outline' },
-  { label: 'Formality', value: 65, color: '#00CEC9', icon: 'business-outline' },
-  { label: 'Friendliness', value: 82, color: '#FDCB6E', icon: 'heart-outline' },
-  { label: 'Clarity', value: 90, color: '#00B894', icon: 'eye-outline' },
-  { label: 'Persuasiveness', value: 55, color: '#E17055', icon: 'megaphone-outline' },
-  { label: 'Empathy', value: 72, color: '#74B9FF', icon: 'hand-left-outline' },
-];
-
-const suggestions: ToneSuggestion[] = [
-  { id: '1', text: 'Your writing conveys warmth effectively. The friendly tone builds rapport with readers.', type: 'positive' },
-  { id: '2', text: 'Consider using more assertive language in key claims to boost persuasiveness.', type: 'improve' },
-  { id: '3', text: 'Excellent clarity — your sentences are well-structured and easy to follow.', type: 'positive' },
-  { id: '4', text: 'The formality level varies between paragraphs. Choose a consistent register throughout.', type: 'improve' },
+const METRIC_META: { label: string; color: string; icon: string }[] = [
+  { label: 'Confidence',     color: '#6C5CE7', icon: 'shield-checkmark-outline' },
+  { label: 'Formality',      color: '#00CEC9', icon: 'business-outline'         },
+  { label: 'Friendliness',   color: '#FDCB6E', icon: 'heart-outline'            },
+  { label: 'Clarity',        color: '#00B894', icon: 'eye-outline'              },
+  { label: 'Persuasiveness', color: '#E17055', icon: 'megaphone-outline'        },
+  { label: 'Empathy',        color: '#74B9FF', icon: 'hand-left-outline'        },
 ];
 
 const ToneAnalysisScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const [inputText, setInputText] = useState(route.params?.text || '');
-  const [analyzed, setAnalyzed] = useState(!!route.params?.text);
+  const [inputText,   setInputText]   = useState(route.params?.text || '');
+  const [analyzed,    setAnalyzed]    = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const barAnims = useRef(toneMetrics.map(() => new Animated.Value(0))).current;
+  const [error,       setError]       = useState<string | null>(null);
+  const [metrics,     setMetrics]     = useState<ToneMetric[]>([]);
+  const [suggestions, setSuggestions] = useState<ToneSuggestion[]>([]);
+  const barAnims = useRef(METRIC_META.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    if (analyzed) animateBars();
   }, []);
 
-  const animateBars = () => {
-    toneMetrics.forEach((metric, i) => {
+  const animateBars = (values: number[]) => {
+    METRIC_META.forEach((_, i) => {
       Animated.timing(barAnims[i], {
-        toValue: metric.value / 100,
+        toValue:  values[i] / 100,
         duration: 800,
-        delay: 200 + i * 100,
+        delay:    200 + i * 100,
         useNativeDriver: false,
       }).start();
     });
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
+    setError(null);
     barAnims.forEach(a => a.setValue(0));
-    setTimeout(() => {
-      setIsAnalyzing(false);
+    try {
+      const result: ToneResult = await analyzeTone(inputText.trim());
+      // result.metrics is already shaped as ToneMetric[]
+      const built: ToneMetric[] = METRIC_META.map((meta, i) => ({
+        ...meta,
+        value: result.metrics[i]?.value ?? 0,
+      }));
+      const values = built.map(m => m.value);
+      setMetrics(built);
+      setSuggestions(result.suggestions.map((s, i) => ({
+        id:   String(i),
+        text: s.text,
+        type: s.type,
+      })));
       setAnalyzed(true);
-      animateBars();
-    }, 1200);
+      animateBars(values);
+    } catch (e: any) {
+      setError(e?.message ?? 'Analysis failed. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const dominantTone = toneMetrics.reduce((a, b) => (a.value > b.value ? a : b));
+  const dominantTone = metrics.length > 0
+    ? metrics.reduce((a, b) => (a.value > b.value ? a : b))
+    : { ...METRIC_META[0], value: 0 };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -137,10 +154,15 @@ const ToneAnalysisScreen: React.FC = () => {
 
         {isAnalyzing && (
           <View style={styles.loadingContainer}>
-            <Animated.View style={styles.loadingPulse}>
-              <Ionicons name="pulse" size={40} color={COLORS.primaryLight} />
-            </Animated.View>
-            <Text style={styles.loadingText}>Analyzing writing tone...</Text>
+            <ActivityIndicator size="large" color={COLORS.primaryLight} style={{ marginBottom: 16 }} />
+            <Text style={styles.loadingText}>Analyzing writing tone with AI…</Text>
+          </View>
+        )}
+
+        {error && !isAnalyzing && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={18} color={COLORS.error} />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
@@ -166,7 +188,7 @@ const ToneAnalysisScreen: React.FC = () => {
             {/* Tone Bars */}
             <View style={styles.metricsSection}>
               <Text style={styles.sectionTitle}>Tone Breakdown</Text>
-              {toneMetrics.map((metric, index) => (
+              {metrics.map((metric, index) => (
                 <View key={metric.label} style={styles.metricRow}>
                   <View style={styles.metricHeader}>
                     <View style={[styles.metricIconContainer, { backgroundColor: metric.color + '20' }]}>
@@ -191,21 +213,23 @@ const ToneAnalysisScreen: React.FC = () => {
             </View>
 
             {/* Suggestions */}
-            <View style={styles.suggestionsSection}>
-              <Text style={styles.sectionTitle}>Insights & Suggestions</Text>
-              {suggestions.map((suggestion) => (
-                <View key={suggestion.id} style={styles.suggestionCard}>
-                  <View style={[styles.suggestionIcon, { backgroundColor: suggestion.type === 'positive' ? COLORS.success + '20' : COLORS.warning + '20' }]}>
-                    <Ionicons
-                      name={suggestion.type === 'positive' ? 'thumbs-up-outline' : 'bulb-outline'}
-                      size={18}
-                      color={suggestion.type === 'positive' ? COLORS.success : COLORS.warning}
-                    />
+            {suggestions.length > 0 && (
+              <View style={styles.suggestionsSection}>
+                <Text style={styles.sectionTitle}>AI Insights & Suggestions</Text>
+                {suggestions.map((suggestion) => (
+                  <View key={suggestion.id} style={styles.suggestionCard}>
+                    <View style={[styles.suggestionIcon, { backgroundColor: suggestion.type === 'positive' ? COLORS.success + '20' : COLORS.warning + '20' }]}>
+                      <Ionicons
+                        name={suggestion.type === 'positive' ? 'thumbs-up-outline' : 'bulb-outline'}
+                        size={18}
+                        color={suggestion.type === 'positive' ? COLORS.success : COLORS.warning}
+                      />
+                    </View>
+                    <Text style={styles.suggestionText}>{suggestion.text}</Text>
                   </View>
-                  <Text style={styles.suggestionText}>{suggestion.text}</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
 
             {/* Re-analyze */}
             <TouchableOpacity
@@ -258,6 +282,8 @@ const styles = StyleSheet.create({
   suggestionText: { flex: 1, fontSize: 14, color: COLORS.textSecondary, lineHeight: 20 },
   reanalyzeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 20, paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: COLORS.primary + '40' },
   reanalyzeText: { fontSize: 15, fontWeight: '600', color: COLORS.primaryLight },
+  errorBanner:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginBottom: 12, backgroundColor: 'rgba(255,107,107,0.12)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)' },
+  errorText:     { flex: 1, fontSize: 13, color: COLORS.error, lineHeight: 18 },
 });
 
 export default ToneAnalysisScreen;

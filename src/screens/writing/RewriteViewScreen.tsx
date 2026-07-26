@@ -9,11 +9,14 @@ import {
   Animated,
   StatusBar,
   Dimensions,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { rewriteText } from '../../lib/openai';
 
 const { width } = Dimensions.get('window');
 
@@ -51,14 +54,6 @@ const rewriteStyles: RewriteStyle[] = [
   { id: 'academic', label: 'Academic', icon: 'school-outline', color: '#74B9FF', description: 'Scholarly & precise' },
 ];
 
-const mockRewrites: Record<string, string> = {
-  professional: 'We would like to formally propose a strategic partnership that would leverage our respective strengths to drive mutual growth and deliver enhanced value to our stakeholders.',
-  casual: 'Hey! We think it\'d be awesome to team up. Together we could do some really great things — what do you say?',
-  concise: 'We propose a partnership to combine strengths and drive mutual growth.',
-  elaborate: 'We are reaching out to explore the possibility of establishing a comprehensive strategic partnership between our organizations, one that would thoughtfully combine our complementary capabilities and resources to create meaningful value for all parties involved.',
-  persuasive: 'Imagine what we could accomplish together. A partnership between us wouldn\'t just benefit our teams — it would reshape the industry. The opportunity is too significant to pass up.',
-  academic: 'This correspondence serves to propose a collaborative engagement predicated upon the synergistic alignment of our organizational competencies, with the objective of achieving mutually beneficial outcomes.',
-};
 
 const RewriteScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -67,24 +62,30 @@ const RewriteScreen: React.FC = () => {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [rewrittenText, setRewrittenText] = useState('');
   const [isRewriting, setIsRewriting] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [copied,  setCopied]  = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
   const resultAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
 
-  const handleRewrite = (styleId: string) => {
+  const handleRewrite = async (styleId: string) => {
+    if (!inputText.trim()) return;
     setSelectedStyle(styleId);
     setIsRewriting(true);
+    setError(null);
     resultAnim.setValue(0);
-
-    setTimeout(() => {
-      setRewrittenText(mockRewrites[styleId] || 'Rewritten text will appear here.');
-      setIsRewriting(false);
+    try {
+      const result = await rewriteText(inputText.trim(), styleId);
+      setRewrittenText(result);
       Animated.spring(resultAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }).start();
-    }, 1000);
+    } catch (e: any) {
+      setError(e?.message ?? 'Rewrite failed. Please try again.');
+    } finally {
+      setIsRewriting(false);
+    }
   };
 
   const handleCopy = () => {
@@ -151,15 +152,19 @@ const RewriteScreen: React.FC = () => {
           </View>
         </Animated.View>
 
-        {/* Result */}
+        {/* Error */}
+        {error && !isRewriting && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={18} color={COLORS.error} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {/* Rewriting indicator */}
         {isRewriting && (
           <View style={styles.loadingContainer}>
-            <View style={styles.loadingDots}>
-              {[0, 1, 2].map(i => (
-                <Animated.View key={i} style={[styles.loadingDot, { backgroundColor: COLORS.primaryLight }]} />
-              ))}
-            </View>
-            <Text style={styles.loadingText}>Rewriting with {rewriteStyles.find(s => s.id === selectedStyle)?.label} tone...</Text>
+            <ActivityIndicator size="large" color={COLORS.primaryLight} style={{ marginBottom: 12 }} />
+            <Text style={styles.loadingText}>Rewriting with {rewriteStyles.find(s => s.id === selectedStyle)?.label} style via AI…</Text>
           </View>
         )}
 
@@ -239,8 +244,6 @@ const styles = StyleSheet.create({
   styleLabel: { fontSize: 15, fontWeight: '700', color: COLORS.text },
   styleDesc: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3 },
   loadingContainer: { alignItems: 'center', paddingVertical: 32 },
-  loadingDots: { flexDirection: 'row', gap: 6, marginBottom: 12 },
-  loadingDot: { width: 8, height: 8, borderRadius: 4 },
   loadingText: { fontSize: 14, color: COLORS.textSecondary },
   resultSection: { paddingHorizontal: 20 },
   resultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -256,6 +259,8 @@ const styles = StyleSheet.create({
   useButton: { marginTop: 16 },
   useButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14 },
   useButtonText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  errorBanner:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginBottom: 12, backgroundColor: 'rgba(255,107,107,0.12)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)' },
+  errorText:     { flex: 1, fontSize: 13, color: COLORS.error, lineHeight: 18 },
 });
 
 export default RewriteScreen;

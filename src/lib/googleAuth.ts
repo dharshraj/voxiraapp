@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 
 export async function signInWithGoogle(): Promise<{ error?: string }> {
   if (Platform.OS === 'web') {
@@ -61,8 +61,9 @@ export async function signInWithGoogle(): Promise<{ error?: string }> {
         const { error: ex } = await supabase.auth.exchangeCodeForSession(code);
         if (ex) return { error: ex.message };
       }
-    } else if (result.type === 'cancel') {
-      return { error: 'Sign-in cancelled' };
+    } else if (result.type === 'cancel' || result.type === 'dismiss') {
+      // User dismissed the browser — not an error, just do nothing
+      return {};
     }
 
     return {};
