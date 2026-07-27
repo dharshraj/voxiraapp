@@ -46,42 +46,70 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
 
   const generateFeedback = () => {
     const tips: {type:string,icon:string,color:string,title:string,text:string}[] = [];
+
+    // ── Filler words ─────────────────────────────────────────────────────────
     if (fillerCount === 0) {
-      tips.push({ type:'pos', icon:'checkmark-circle', color:'#10B981', title:'Zero Filler Words!', text:'Exceptional control — you spoke with no filler words at all. This puts you in the top 5% of speakers.' });
+      tips.push({ type:'pos', icon:'checkmark-circle', color:'#10B981', title:'Zero Filler Words',
+        text:'Exceptional delivery — you spoke your entire session without a single filler word. This level of control puts you in the top 5% of speakers. Filler-free speech signals preparation, confidence, and respect for your audience\'s time. Keep up this standard in your next session.' });
     } else if (fillerCount <= 3) {
-      tips.push({ type:'pos', icon:'checkmark-circle', color:'#10B981', title:'Excellent Filler Control', text:`Only ${fillerCount} filler words in your entire speech. Professional speakers average 1-2 per minute, and you're right on track.` });
+      tips.push({ type:'pos', icon:'checkmark-circle', color:'#10B981', title:'Excellent Filler Control',
+        text:`Only ${fillerCount} filler word${fillerCount > 1 ? 's' : ''} across your entire speech — that is well within the professional range. Research shows that listeners start to lose trust after about 5 fillers per minute, so you are comfortably clear of that threshold. Your next goal is to eliminate the remaining few by replacing each one with a deliberate half-second pause.` });
     } else if (fillerCount <= 7) {
       const topFiller = Object.entries(fillerBreakdown as Record<string,number>).sort((a,b)=>b[1]-a[1])[0];
-      tips.push({ type:'warn', icon:'warning', color:'#F59E0B', title:`${fillerCount} Filler Words Detected`, text:`Your most used filler was "${topFiller?.[0] ?? 'um'}" (${topFiller?.[1] ?? 3}x). Try replacing fillers with a 1-second pause.` });
+      tips.push({ type:'warn', icon:'warning', color:'#F59E0B', title:`${fillerCount} Filler Words Detected`,
+        text:`Your most-used filler was "${topFiller?.[0] ?? 'um'}" (${topFiller?.[1] ?? 3}×). Filler words usually appear when you are searching for the next thought — the fix is not to speak faster, but to slow down and embrace silence. Try the pause technique: whenever you feel a filler coming, close your mouth, breathe through your nose for one second, then continue. Practise this in low-stakes conversations first.` });
     } else {
-      const top3 = Object.entries(fillerBreakdown as Record<string,number>).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([w,c])=>`"${w}" (${c}x)`).join(', ');
-      tips.push({ type:'neg', icon:'close-circle', color:'#F43F5E', title:`${fillerCount} Filler Words — Needs Work`, text:`Top offenders: ${top3}. Practice the pause technique: when you feel an "um" coming, take a breath instead.` });
+      const top3 = Object.entries(fillerBreakdown as Record<string,number>).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([w,c])=>`"${w}" (${c}×)`).join(', ');
+      tips.push({ type:'neg', icon:'close-circle', color:'#F43F5E', title:`${fillerCount} Filler Words — Focus Area`,
+        text:`Your top fillers were ${top3}. At this frequency, fillers distract listeners and undercut the authority of your message. The most effective remedy is daily recording practice: record two minutes of speech, count every filler, and try to halve the count in your next attempt. Within two weeks of consistent effort, most speakers cut their filler rate by 60–70%.` });
     }
+
+    // ── Speaking pace ─────────────────────────────────────────────────────────
     if (wpm >= 110 && wpm <= 150) {
-      tips.push({ type:'pos', icon:'speedometer', color:'#8B5CF6', title:`Perfect Pace: ${wpm} WPM`, text:'Your speaking pace is in the ideal range (110-150 WPM). Listeners can follow you easily.' });
+      tips.push({ type:'pos', icon:'speedometer', color:'#8B5CF6', title:`Strong Pace: ${wpm} WPM`,
+        text:`${wpm} words per minute sits squarely in the ideal conversational range of 110–150 WPM. At this pace, listeners can process each idea before the next one arrives, which improves both comprehension and retention. Maintaining this rhythm under pressure — nerves often cause speed to spike — is the real skill to build.` });
     } else if (wpm > 150) {
-      tips.push({ type:'warn', icon:'speedometer', color:'#F59E0B', title:`Speaking Too Fast: ${wpm} WPM`, text:`Try pausing for 2 seconds after key points.` });
+      tips.push({ type:'warn', icon:'speedometer', color:'#F59E0B', title:`Speaking Too Fast: ${wpm} WPM`,
+        text:`${wpm} WPM is above the comfortable processing limit for most audiences. Fast speech is often driven by nerves or over-preparation — the brain races ahead of the mouth. Try anchoring yourself with deliberate two-second pauses after every major point. Not only does this slow your pace, it also signals confidence and gives listeners time to absorb what you just said.` });
     } else if (wpm > 0 && wpm < 110) {
-      tips.push({ type:'warn', icon:'speedometer', color:'#F59E0B', title:`Speaking Too Slow: ${wpm} WPM`, text:`Aim for 120-140 WPM. Practice reading aloud daily.` });
+      tips.push({ type:'warn', icon:'speedometer', color:'#F59E0B', title:`Speaking Too Slow: ${wpm} WPM`,
+        text:`${wpm} WPM is below the range where speech feels natural and engaging. Very slow delivery can cause audiences to disengage or assume a lack of confidence. Aim for 120–140 WPM as your target. Reading a news article aloud and timing yourself is a practical daily drill — it builds the muscle memory for a more energetic, conversational pace.` });
     }
+
+    // ── Clarity ───────────────────────────────────────────────────────────────
     if (details.clarity >= 85) {
-      tips.push({ type:'pos', icon:'mic', color:'#10B981', title:'Clear Articulation', text:'Your words were well-articulated and easy to understand.' });
+      tips.push({ type:'pos', icon:'mic', color:'#10B981', title:'Clear Articulation',
+        text:`A clarity score of ${details.clarity}/100 means your words were consistently well-formed and easy to follow. Crisp articulation makes a strong impression in professional contexts — it signals effort and preparation. To maintain this standard, keep warming up your voice before important sessions with lip trills or tongue twisters.` });
+    } else if (details.clarity >= 65) {
+      tips.push({ type:'warn', icon:'mic', color:'#F59E0B', title:'Articulation Needs Attention',
+        text:`Your clarity score of ${details.clarity}/100 suggests that some words were swallowed or blurred, particularly under conversational speed. The most common cause is insufficient mouth movement — many speakers barely open their jaw when they talk. Practise exaggerating your enunciation on tongue twisters for five minutes daily; within a few weeks your natural speech will become noticeably crisper.` });
     } else {
-      tips.push({ type:'warn', icon:'mic', color:'#F59E0B', title:'Improve Articulation', text:'Practice tongue twisters daily to strengthen articulation muscles.' });
+      tips.push({ type:'neg', icon:'mic', color:'#F43F5E', title:'Articulation Needs Significant Work',
+        text:`A clarity score of ${details.clarity}/100 indicates that a meaningful portion of your speech was difficult to follow. This often stems from speaking too quickly for your current articulation ability, or from reduced mouth opening. Focus on slow, deliberate speech practice before speed. Read a paragraph aloud at half your normal pace, over-articulating every consonant, then gradually increase speed over several weeks.` });
     }
+
+    // ── Confidence ────────────────────────────────────────────────────────────
     if (details.confidence >= 80) {
-      tips.push({ type:'pos', icon:'trending-up', color:'#8B5CF6', title:'Strong Confidence', text:'Your tone projected confidence.' });
+      tips.push({ type:'pos', icon:'trending-up', color:'#8B5CF6', title:'Strong Confidence',
+        text:`Your confidence score of ${details.confidence}/100 reflects a delivery that sounded assured and purposeful. Vocal confidence comes through in steady volume, avoided upward inflection at sentence ends, and a lack of hesitation. This is a genuine strength — make sure it carries into high-pressure situations where nerves typically erode it.` });
+    } else if (details.confidence >= 60) {
+      tips.push({ type:'warn', icon:'trending-up', color:'#F59E0B', title:'Build Your Vocal Confidence',
+        text:`A confidence score of ${details.confidence}/100 suggests moments of hesitation or dropping volume that signal uncertainty to listeners. One practical technique: record yourself and identify the exact moments where your tone dips or rises into a question. Then re-record those sentences with a flat, declarative ending. Repetition of this exercise builds the neural pathway for confident delivery.` });
     } else {
-      tips.push({ type:'warn', icon:'trending-up', color:'#F59E0B', title:'Build Confidence', text:'Try the "power pose" for 2 minutes before speaking.' });
+      tips.push({ type:'neg', icon:'trending-up', color:'#F43F5E', title:'Confidence Needs Development',
+        text:`A confidence score of ${details.confidence}/100 means your delivery frequently conveyed uncertainty — through upward inflections, whispered endings, or long hesitation gaps. Before your next session, try a two-minute power pose (stand tall, arms wide) which has been shown to reduce cortisol and increase assertiveness. Also, memorise your opening three sentences so you can begin any speech on solid ground.` });
     }
+
+    // ── Pro tip ───────────────────────────────────────────────────────────────
     const proTips = [
-      'Record yourself daily for 2 minutes on any topic. Review it and note 1 improvement each time.',
-      'Join a Toastmasters club near you — structured practice dramatically accelerates improvement.',
-      'Read aloud for 10 minutes every day. It trains your mouth to form words without thinking.',
-      'Before important speeches, hum for 30 seconds to warm up your vocal cords.',
-      'Breathe from your diaphragm, not your chest — it gives your voice more power and steadiness.',
+      'Record yourself for two minutes every day on any topic. Review the recording and commit to fixing one specific thing in your next attempt — not five things, just one.',
+      'Join a structured speaking group such as Toastmasters. The combination of regular practice, peer feedback, and a safe environment accelerates improvement faster than solo practice alone.',
+      'Read aloud for ten minutes every day from a book or article. This trains your mouth to form words automatically, freeing your brain to focus on ideas rather than mechanics.',
+      'Before any important speech or recording, hum for thirty seconds to warm up your vocal cords. Cold vocal cords produce thinner, less confident-sounding tone.',
+      'Breathe from your diaphragm rather than your chest. Place a hand on your stomach — it should move outward when you inhale. Diaphragmatic breathing produces a steadier, more authoritative voice with significantly fewer fillers.',
     ];
-    tips.push({ type:'tip', icon:'bulb', color:'#A78BFA', title:'Pro Tip', text: proTips[Math.floor(Math.random() * proTips.length)] });
+    tips.push({ type:'tip', icon:'bulb', color:'#A78BFA', title:'Practice Tip',
+      text: proTips[Math.floor(Math.random() * proTips.length)] });
     return tips;
   };
 
@@ -107,14 +135,60 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     metaItem:      {flexDirection:'row',alignItems:'center',gap:4},
     metaTxt:       {fontSize:12,color:C.textSec},
     metaDot:       {width:3,height:3,borderRadius:2,backgroundColor:C.textMuted},
-    fillerCard:    {backgroundColor:C.warning+'1A',borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:C.warning+'40'},
-    fillerTitle:   {fontSize:15,fontWeight:'700',color:C.text,marginBottom:12},
-    fillerGrid:    {flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:12},
-    fillerChip:    {flexDirection:'row',alignItems:'center',backgroundColor:C.surface,borderRadius:20,paddingLeft:10,paddingRight:4,paddingVertical:4,gap:6,borderWidth:1,borderColor:C.warning+'4D'},
-    fillerWord:    {fontSize:13,fontWeight:'600',color:C.warning},
-    fillerBadge:   {backgroundColor:C.warning,borderRadius:16,paddingHorizontal:8,paddingVertical:2},
-    fillerCount:   {fontSize:11,fontWeight:'700',color:'#000'},
-    fillerNote:    {fontSize:12,color:C.textSec,lineHeight:18},
+    // ── Transcript card — beige background ───────────────────────────────────
+    transcriptCard:   {backgroundColor:'#F5EFE6',borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:'#E8DDD0'},
+    transcriptHeader: {flexDirection:'row',alignItems:'center',gap:8,marginBottom:8},
+    transcriptTitle:  {fontSize:14,fontWeight:'700',color:'#78350F'},
+    transcriptText:   {fontSize:14,color:C.textSec,lineHeight:22,marginBottom:8},
+    transcriptMeta:   {fontSize:12,color:C.textMuted},
+
+    // ── Filler word breakdown — vertical list, larger chips ──────────────────
+    fillerCard:    {borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:'#F0E0BE',backgroundColor:'#FFFBEB'},
+    fillerTitle:   {fontSize:16,fontWeight:'700',color:C.text,marginBottom:12},
+    fillerGrid:    {gap:10,marginBottom:12},           // vertical gap — no flexWrap
+    fillerChip:    {flexDirection:'row',alignItems:'center',backgroundColor:C.surface,borderRadius:12,paddingLeft:14,paddingRight:8,paddingVertical:10,gap:10,borderWidth:1,borderColor:'#E8C880'},
+    fillerWord:    {fontSize:16,fontWeight:'700',color:'#92400E',flex:1},
+    fillerBadge:   {backgroundColor:'#92400E',borderRadius:20,paddingHorizontal:12,paddingVertical:4},
+    fillerCount:   {fontSize:13,fontWeight:'700',color:'#fff'},
+    fillerNote:    {fontSize:13,color:C.textSec,lineHeight:20},
+
+    // ── Feedback cards ────────────────────────────────────────────────────────
+    feedbackCard:  {borderRadius:14,padding:16,marginBottom:10,borderLeftWidth:3},
+    feedbackHeader:{flexDirection:'row',alignItems:'center',gap:8,marginBottom:8},
+    feedbackTitle: {fontSize:15,fontWeight:'700'},
+    feedbackText:  {fontSize:14,color:C.textSec,lineHeight:22},
+
+    // ── Content-specific suggestions ─────────────────────────────────────────
+    contentSugCard:  {flexDirection:'row',alignItems:'flex-start',gap:12,backgroundColor:'#F5EFE6',borderRadius:14,padding:16,marginBottom:10,borderWidth:1,borderColor:'#E8DDD0'},
+    contentSugIcon:  {width:32,height:32,borderRadius:16,backgroundColor:'#E8DDD0',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
+    contentSugText:  {flex:1,fontSize:15,color:C.textSec,lineHeight:23},
+
+    // ── Suggested Rephrasings — beige background ──────────────────────────────
+    altCard:       {backgroundColor:'#F5EFE6',borderRadius:14,padding:16,marginBottom:10,borderWidth:1,borderColor:'#E8DDD0'},
+    altNum:        {width:26,height:26,borderRadius:13,backgroundColor:'#92400E',alignItems:'center',justifyContent:'center',flexShrink:0,marginBottom:8},
+    altNumTxt:     {fontSize:12,fontWeight:'800',color:'#fff'},
+    altText:       {fontSize:15,color:C.textSec,lineHeight:23},
+
+    // ── Improvement Tips — beige background ──────────────────────────────────
+    tipCard:       {flexDirection:'row',alignItems:'flex-start',gap:12,backgroundColor:'#F5EFE6',borderRadius:14,padding:16,marginBottom:10,borderWidth:1,borderColor:'#E8DDD0'},
+    tipNum:        {width:26,height:26,borderRadius:13,backgroundColor:'#92400E',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
+    tipNumTxt:     {fontSize:12,fontWeight:'800',color:'#fff'},
+    tipText:       {flex:1,fontSize:15,color:C.textSec,lineHeight:23},
+
+    // ── Structure Feedback ────────────────────────────────────────────────────
+    structureCard: {backgroundColor:C.success+'14',borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:C.success+'33'},
+    structureTitle:{fontSize:15,fontWeight:'700',color:C.success,marginBottom:8},
+    structureText: {fontSize:15,color:C.textSec,lineHeight:23},
+
+    // ── 7-Day Plan — beige background ────────────────────────────────────────
+    planCard:      {backgroundColor:'#F5EFE6',borderRadius:14,padding:18,marginBottom:16,borderWidth:1,borderColor:'#E8DDD0'},
+    planTitle:     {fontSize:16,fontWeight:'700',color:'#78350F',marginBottom:14},
+    planRow:       {flexDirection:'row',alignItems:'flex-start',gap:12,marginBottom:12},
+    planDayBadge:  {backgroundColor:'#92400E',borderRadius:8,paddingHorizontal:10,paddingVertical:5,minWidth:62,alignItems:'center'},
+    planDay:       {fontSize:11,fontWeight:'700',color:'#fff'},
+    planTask:      {flex:1,fontSize:14,color:C.textSec,lineHeight:21},
+
+    // ── Shared layout ─────────────────────────────────────────────────────────
     sectionTitle:  {fontSize:16,fontWeight:'700',color:C.text,marginBottom:12},
     metricsGrid:   {flexDirection:'row',flexWrap:'wrap',gap:10,marginBottom:20},
     metricCard:    {width:(W-50)/2,backgroundColor:C.surface,borderRadius:14,padding:14,borderWidth:1,borderColor:C.border,gap:6},
@@ -123,52 +197,12 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     metricVal:     {fontSize:24,fontWeight:'800'},
     metricBarBg:   {height:4,backgroundColor:C.border,borderRadius:2,overflow:'hidden'},
     metricBarFill: {height:'100%',borderRadius:2},
-    feedbackCard:  {borderRadius:14,padding:14,marginBottom:10,borderLeftWidth:3},
-    feedbackHeader:{flexDirection:'row',alignItems:'center',gap:8,marginBottom:6},
-    feedbackTitle: {fontSize:14,fontWeight:'700'},
-    feedbackText:  {fontSize:13,color:C.textSec,lineHeight:20},
-    planCard:      {backgroundColor:C.primaryLight,borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:C.primary+'33'},
-    planTitle:     {fontSize:15,fontWeight:'700',color:C.primary,marginBottom:12},
-    planRow:       {flexDirection:'row',alignItems:'flex-start',gap:10,marginBottom:10},
-    planDayBadge:  {backgroundColor:C.primary+'4D',borderRadius:8,paddingHorizontal:8,paddingVertical:4,minWidth:60,alignItems:'center'},
-    planDay:       {fontSize:10,fontWeight:'700',color:C.primary},
-    planTask:      {flex:1,fontSize:12,color:C.textSec,lineHeight:18},
     actionsRow:    {flexDirection:'row',gap:12},
     secBtn:        {flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,backgroundColor:C.surface,borderRadius:12,borderWidth:1,borderColor:C.border,paddingVertical:14},
     secBtnTxt:     {fontSize:14,fontWeight:'600',color:C.text},
     primBtn:       {flex:2,borderRadius:12,overflow:'hidden',backgroundColor:C.primary},
     primBtnInner:  {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:14},
     primBtnTxt:    {fontSize:14,fontWeight:'700',color:'#fff'},
-    transcriptCard:   {backgroundColor:C.primaryLight,borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:C.primary+'33'},
-    transcriptHeader: {flexDirection:'row',alignItems:'center',gap:8,marginBottom:8},
-    transcriptTitle:  {fontSize:14,fontWeight:'700',color:C.primary},
-    transcriptText:   {fontSize:13,color:C.textSec,lineHeight:20,marginBottom:8},
-    transcriptMeta:   {fontSize:11,color:C.textMuted},
-    altCard:       {backgroundColor:C.primaryLight,borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:C.primary+'40'},
-    altBadge:      {alignSelf:'flex-start',backgroundColor:C.primaryLight,borderRadius:20,paddingHorizontal:10,paddingVertical:3,marginBottom:8},
-    altBadgeTxt:   {fontSize:11,fontWeight:'700',color:C.primary},
-    altText:       {fontSize:13,color:C.textSec,lineHeight:20},
-    tipCard:       {flexDirection:'row',alignItems:'flex-start',gap:12,backgroundColor:C.primaryLight,borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:C.primary+'33'},
-    tipNum:        {width:26,height:26,borderRadius:13,backgroundColor:C.primary,alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
-    tipNumTxt:     {fontSize:12,fontWeight:'800',color:'#fff'},
-    tipText:       {flex:1,fontSize:13,color:C.textSec,lineHeight:20},
-    structureCard: {backgroundColor:C.success+'14',borderRadius:14,padding:14,marginBottom:16,borderWidth:1,borderColor:C.success+'33'},
-    structureTitle:{fontSize:14,fontWeight:'700',color:C.success,marginBottom:6},
-    structureText: {fontSize:13,color:C.textSec,lineHeight:20},
-    // LLM filler analysis
-    llmFillerCard:   {backgroundColor:C.error+'0D',borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:C.error+'33'},
-    llmFillerHeader: {flexDirection:'row',alignItems:'center',gap:8,marginBottom:10},
-    llmFillerTitle:  {fontSize:14,fontWeight:'700',color:C.error,flex:1},
-    llmFillerGrid:   {flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:10},
-    llmFillerChip:   {flexDirection:'row',alignItems:'center',backgroundColor:C.surface,borderRadius:20,paddingLeft:10,paddingRight:4,paddingVertical:4,gap:6,borderWidth:1,borderColor:C.error+'33'},
-    llmFillerWord:   {fontSize:13,fontWeight:'600',color:C.error},
-    llmFillerBadge:  {backgroundColor:C.error,borderRadius:16,paddingHorizontal:8,paddingVertical:2},
-    llmFillerCount:  {fontSize:11,fontWeight:'700',color:'#fff'},
-    llmFillerNote:   {fontSize:12,color:C.textSec,lineHeight:18},
-    // Content suggestions
-    contentSugCard:  {flexDirection:'row',alignItems:'flex-start',gap:12,backgroundColor:C.info+'0D',borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:C.info+'33'},
-    contentSugIcon:  {width:30,height:30,borderRadius:15,backgroundColor:C.info+'20',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
-    contentSugText:  {flex:1,fontSize:13,color:C.textSec,lineHeight:20},
   });
 
   return (
@@ -219,18 +253,36 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
         {fillerCount > 0 && (
           <View style={s.fillerCard}>
             <Text style={s.fillerTitle}>Filler Word Breakdown</Text>
+            {/* Merged: shows AssemblyAI word-level data merged with LLM scan.
+                Vertical list (one chip per row), large font, beige card. */}
             <View style={s.fillerGrid}>
-              {Object.entries(fillerBreakdown as Record<string,number>)
-                .filter(([_, count]) => count > 0)
-                .sort((a, b) => b[1] - a[1])
-                .map(([word, count]) => (
-                  <View key={word} style={s.fillerChip}>
-                    <Text style={s.fillerWord}>"{word}"</Text>
-                    <View style={s.fillerBadge}><Text style={s.fillerCount}>{count}x</Text></View>
-                  </View>
-                ))}
+              {(() => {
+                // Prefer LLM analysis if available (more accurate), fall back to
+                // AssemblyAI breakdown — deduplicate by choosing the higher count.
+                const llmEntries: Record<string,number> = {};
+                if (aiAnalysis && Array.isArray(aiAnalysis.fillerWordAnalysis)) {
+                  for (const e of aiAnalysis.fillerWordAnalysis as FillerWordEntry[]) {
+                    if (e.word && e.count > 0) llmEntries[e.word.toLowerCase()] = e.count;
+                  }
+                }
+                const merged: Record<string,number> = { ...(fillerBreakdown as Record<string,number>) };
+                for (const [w, c] of Object.entries(llmEntries)) {
+                  merged[w] = Math.max(merged[w] ?? 0, c);
+                }
+                return Object.entries(merged)
+                  .filter(([_, count]) => count > 0)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([word, count]) => (
+                    <View key={word} style={s.fillerChip}>
+                      <Text style={s.fillerWord}>"{word}"</Text>
+                      <View style={s.fillerBadge}><Text style={s.fillerCount}>{count}×</Text></View>
+                    </View>
+                  ));
+              })()}
             </View>
-            <Text style={s.fillerNote}>Every filler costs ~2 points. Replacing them with pauses dramatically improves your score.</Text>
+            <Text style={s.fillerNote}>
+              These were found by scanning your actual transcript. Replacing each filler word with a deliberate 1-second pause can improve your score by up to 2 points per occurrence.
+            </Text>
           </View>
         )}
 
@@ -261,40 +313,17 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
 
         {aiAnalysis && (
           <>
-            {/* LLM Filler Word Analysis — derived from actual transcript text */}
-            {Array.isArray(aiAnalysis.fillerWordAnalysis) && aiAnalysis.fillerWordAnalysis.length > 0 && (
-              <>
-                <Text style={s.sectionTitle}>Filler Words (AI Analysis)</Text>
-                <View style={s.llmFillerCard}>
-                  <View style={s.llmFillerHeader}>
-                    <Ionicons name="warning-outline" size={16} color={C.error} />
-                    <Text style={s.llmFillerTitle}>
-                      {(aiAnalysis.fillerWordAnalysis as FillerWordEntry[]).reduce((sum: number, e: FillerWordEntry) => sum + e.count, 0)} filler words detected in your transcript
-                    </Text>
-                  </View>
-                  <View style={s.llmFillerGrid}>
-                    {(aiAnalysis.fillerWordAnalysis as FillerWordEntry[])
-                      .sort((a: FillerWordEntry, b: FillerWordEntry) => b.count - a.count)
-                      .map((entry: FillerWordEntry) => (
-                        <View key={entry.word} style={s.llmFillerChip}>
-                          <Text style={s.llmFillerWord}>"{entry.word}"</Text>
-                          <View style={s.llmFillerBadge}><Text style={s.llmFillerCount}>{entry.count}x</Text></View>
-                        </View>
-                      ))}
-                  </View>
-                  <Text style={s.llmFillerNote}>These were found by scanning your actual transcript. Replace each filler with a deliberate 1-second pause.</Text>
-                </View>
-              </>
-            )}
+            {/* Filler Words (AI Analysis) is intentionally omitted here —
+                the data is already merged into "Filler Word Breakdown" above. */}
 
-            {/* Content-specific suggestions — based on what was actually said */}
+            {/* Content-specific suggestions */}
             {Array.isArray(aiAnalysis.contentSuggestions) && aiAnalysis.contentSuggestions.length > 0 && (
               <>
                 <Text style={s.sectionTitle}>Content-Specific Suggestions</Text>
                 {(aiAnalysis.contentSuggestions as string[]).map((suggestion: string, i: number) => (
                   <View key={i} style={s.contentSugCard}>
                     <View style={s.contentSugIcon}>
-                      <Ionicons name="arrow-forward-outline" size={16} color={C.info} />
+                      <Ionicons name="arrow-forward-outline" size={16} color="#92400E" />
                     </View>
                     <Text style={s.contentSugText}>{suggestion}</Text>
                   </View>
@@ -302,20 +331,23 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
               </>
             )}
 
+            {/* Suggested Rephrasings — "AI" removed from title, number badge not "Version N" */}
             {aiAnalysis.alternateAnswers?.length > 0 && (
               <>
-                <Text style={s.sectionTitle}>AI-Suggested Rephrasings</Text>
+                <Text style={s.sectionTitle}>Suggested Rephrasings</Text>
                 {(aiAnalysis.alternateAnswers as string[]).map((alt: string, i: number) => (
                   <View key={i} style={s.altCard}>
-                    <View style={s.altBadge}><Text style={s.altBadgeTxt}>Version {i + 1}</Text></View>
+                    <View style={s.altNum}><Text style={s.altNumTxt}>{i + 1}</Text></View>
                     <Text style={s.altText}>{alt}</Text>
                   </View>
                 ))}
               </>
             )}
+
+            {/* Improvement Tips — "AI" removed from title */}
             {aiAnalysis.improvementTips?.length > 0 && (
               <>
-                <Text style={s.sectionTitle}>AI Improvement Tips</Text>
+                <Text style={s.sectionTitle}>Improvement Tips</Text>
                 {(aiAnalysis.improvementTips as string[]).map((tip: string, i: number) => (
                   <View key={i} style={s.tipCard}>
                     <View style={s.tipNum}><Text style={s.tipNumTxt}>{i + 1}</Text></View>
@@ -324,6 +356,8 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
                 ))}
               </>
             )}
+
+            {/* Structure Feedback */}
             {aiAnalysis.structureFeedback && (
               <View style={s.structureCard}>
                 <Ionicons name="git-branch-outline" size={16} color={C.success} style={{ marginBottom: 6 }} />
