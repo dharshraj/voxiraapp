@@ -37,7 +37,8 @@ import DailyChallengeScreen from '../screens/speech/DailyChallengeScreen';
 import SpeechHistoryScreen  from '../screens/speech/SpeechHistoryScreen';
 import ShareResultScreen    from '../screens/speech/ShareResultScreen';
 import PronunciationScreen  from '../screens/speech/PronunciationScreen';
-import PaceAndClarityScreen from '../screens/speech/PaceAndClarityScreen';
+import PaceAndClarityScreen     from '../screens/speech/PaceAndClarityScreen';
+import SpeechDashboardScreen    from '../screens/speech/SpeechDashboardScreen';
 
 // ── Writing ───────────────────────────────────────────────────────────────────
 import WritingHomeScreen       from '../screens/writing/WritingHomeScreen';
@@ -142,7 +143,8 @@ function SpeechStack() {
       <Stack.Screen name="SpeechHistory"  component={SpeechHistoryScreen} />
       <Stack.Screen name="ShareResult"    component={ShareResultScreen} />
       <Stack.Screen name="Pronunciation"  component={PronunciationScreen} />
-      <Stack.Screen name="PaceAndClarity" component={PaceAndClarityScreen} />
+      <Stack.Screen name="PaceAndClarity"     component={PaceAndClarityScreen} />
+      <Stack.Screen name="SpeechDashboard"   component={SpeechDashboardScreen} />
     </Stack.Navigator>
   );
 }

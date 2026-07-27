@@ -4,94 +4,108 @@ import {
   StatusBar, Platform, Animated, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
+import { useSessionStore, SpeechSession } from '../../store/sessionStore';
 import { useTheme } from '../../theme/ThemeContext';
 
 const MENU_SECTIONS = [
   {
     title: 'PROGRESS',
     items: [
-      { label: 'Progress Overview', icon: 'trending-up',  screen: 'ProgressOverview' },
-      { label: 'Achievements',      icon: 'trophy',        screen: 'Achievements'     },
+      { label: 'Progress Overview', icon: 'trending-up-outline',  screen: 'ProgressOverview' },
+      { label: 'Achievements',      icon: 'trophy-outline',       screen: 'Achievements'     },
     ],
   },
   {
     title: 'ACCOUNT',
     items: [
-      { label: 'Edit Profile',          icon: 'person',        screen: 'EditProfile'          },
-      { label: 'Notification Settings', icon: 'notifications', screen: 'NotificationSettings' },
-      { label: 'Settings',              icon: 'settings',      screen: 'Settings'             },
+      { label: 'Edit Profile',          icon: 'person-outline',        screen: 'EditProfile'          },
+      { label: 'Notification Settings', icon: 'notifications-outline', screen: 'NotificationSettings' },
+      { label: 'Settings',              icon: 'settings-outline',      screen: 'Settings'             },
     ],
   },
   {
     title: 'SUPPORT',
     items: [
-      { label: 'Privacy Policy', icon: 'shield-checkmark', screen: 'PrivacyPolicy' },
+      { label: 'Privacy Policy', icon: 'shield-checkmark-outline', screen: 'PrivacyPolicy' },
     ],
   },
 ];
 
 export default function ProfileScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
-  const profile    = useUserStore(s => s.profile);
-  const signOut    = useAuthStore(s => s.signOut);
+  const profile     = useUserStore(s => s.profile);
+  const signOut     = useAuthStore(s => s.signOut);
+  const sessions    = useSessionStore(s => s.sessions);
   const [signingOut, setSigningOut] = useState(false);
-  const fade       = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
   const handleSignOut = async () => {
     setSigningOut(true);
-    try {
-      await signOut();
-    } catch (e: any) {
+    try { await signOut(); } catch (e: any) {
       Alert.alert('Sign out failed', e?.message ?? 'Something went wrong.');
-    } finally {
-      setSigningOut(false);
-    }
+    } finally { setSigningOut(false); }
   };
 
   const initials = (profile?.full_name ?? 'V')
-    .split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+    .split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+
+  // Real computed stats
+  const speechSessions = sessions.filter(s => s.type === 'speech') as SpeechSession[];
+  const sessionCount   = speechSessions.length;
+  const avgScore       = sessionCount > 0
+    ? Math.round(speechSessions.reduce((a, s) => a + s.score, 0) / sessionCount)
+    : null;
+  const streakDays = profile?.streak_days ?? 0;
+
+  // Level derived from real score data, not profile field fallback
+  const level = sessionCount === 0 ? null
+    : avgScore != null && avgScore >= 85 ? 'Advanced'
+    : avgScore != null && avgScore >= 65 ? 'Intermediate'
+    : 'Beginner';
 
   const s = StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100vh' as any, overflow: 'hidden' as any }) },
-    scrollContent: { paddingBottom: 100 },
-    header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 20 },
+    scrollContent: { paddingBottom: 80 },
+
+    header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14 },
     headerTitle:   { fontSize: 22, fontWeight: '700', color: C.text },
-    settingsBtn:   { width: 42, height: 42, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    avatarSection: { alignItems: 'center', gap: 10, marginBottom: 24 },
-    avatarWrap:    { position: 'relative' },
-    avatarGrad:    { width: 90, height: 90, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-    avatarTxt:     { fontSize: 32, fontWeight: '800', color: '#fff' },
-    editBadge:     { position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderRadius: 14, backgroundColor: C.primary, borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' },
-    profileName:   { fontSize: 22, fontWeight: '700', color: C.text },
-    profileEmail:  { fontSize: 13, color: C.textMuted },
-    levelBadge:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.warning + '20', borderWidth: 1, borderColor: C.warning + '40', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-    levelTxt:      { fontSize: 12, color: C.warning, fontWeight: '600' },
-    statsRow:      { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
-    statItem:      { flex: 1, alignItems: 'center', paddingVertical: 14 },
-    statVal:       { fontSize: 16, fontWeight: '800', marginBottom: 2 },
-    statLbl:       { fontSize: 10, color: C.textMuted },
-    section:       { marginTop: 20, paddingHorizontal: 20 },
-    sectionTitle:  { fontSize: 11, fontWeight: '700', color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-    menuCard:      { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 20, overflow: 'hidden' },
-    menuRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+    settingsBtn:   { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    divider:       { height: 1, backgroundColor: C.border, marginHorizontal: 20, marginBottom: 20 },
+
+    // Avatar block
+    avatarSection: { alignItems: 'center', gap: 6, marginBottom: 20, paddingHorizontal: 20 },
+    avatarCircle:  { width: 72, height: 72, borderRadius: 22, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    avatarTxt:     { fontSize: 26, fontWeight: '800', color: '#fff' },
+    editBadge:     { position: 'absolute', bottom: -3, right: -3, width: 22, height: 22, borderRadius: 11, backgroundColor: C.primary, borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    profileName:   { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 4 },
+    profileEmail:  { fontSize: 12, color: C.textMuted },
+    levelBadge:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.primaryLight, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.border },
+    levelTxt:      { fontSize: 11, color: C.primary, fontWeight: '600' },
+
+    // Compact stats bar
+    statsRow:      { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border, marginBottom: 20 },
+    statItem:      { flex: 1, alignItems: 'center', paddingVertical: 12 },
+    statVal:       { fontSize: 16, fontWeight: '700', color: C.text },
+    statLbl:       { fontSize: 10, color: C.textMuted, marginTop: 1 },
+    statDivider:   { width: 1, backgroundColor: C.border, marginVertical: 8 },
+
+    // Menu
+    sectionLabel:  { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: 20, marginBottom: 8, marginTop: 16 },
+    menuCard:      { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, overflow: 'hidden', marginHorizontal: 20 },
+    menuRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border },
     menuRowLast:   { borderBottomWidth: 0 },
-    menuIconBox:   { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryLight },
-    menuLabel:     { flex: 1, fontSize: 14, fontWeight: '500', color: C.text },
-    signOutBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 24, marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.error + '40', padding: 18 },
-    signOutBtnDisabled: { opacity: 0.5 },
-    signOutTxt:    { fontSize: 15, fontWeight: '600', color: C.error },
-    version:       { textAlign: 'center', fontSize: 12, color: C.textMuted, marginTop: 16 },
+    menuIconBox:   { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryLight },
+    menuLabel:     { flex: 1, fontSize: 13, fontWeight: '500', color: C.text },
+
+    signOutBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20, marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.error + '40', paddingVertical: 14 },
+    signOutTxt:    { fontSize: 14, fontWeight: '600', color: C.error },
+    version:       { textAlign: 'center', fontSize: 11, color: C.textMuted, marginTop: 14 },
   });
 
   return (
@@ -102,51 +116,54 @@ export default function ProfileScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
       >
-        {/* HEADER */}
         <View style={s.header}>
           <Text style={s.headerTitle}>Profile</Text>
           <TouchableOpacity style={s.settingsBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.75}>
-            <Ionicons name={'settings-outline' as any} size={22} color={C.textMuted} />
+            <Ionicons name="settings-outline" size={18} color={C.textMuted} />
           </TouchableOpacity>
         </View>
+        <View style={s.divider} />
 
-        {/* AVATAR SECTION */}
+        {/* Avatar */}
         <View style={s.avatarSection}>
-          <View style={s.avatarWrap}>
-            <LinearGradient colors={[C.primary, C.primaryPressed]} style={s.avatarGrad}>
-              <Text style={s.avatarTxt}>{initials}</Text>
-            </LinearGradient>
+          <View style={s.avatarCircle}>
+            <Text style={s.avatarTxt}>{initials}</Text>
             <TouchableOpacity style={s.editBadge} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.75}>
-              <Ionicons name={'pencil' as any} size={14} color="#fff" />
+              <Ionicons name="pencil" size={11} color="#fff" />
             </TouchableOpacity>
           </View>
           <Text style={s.profileName}>{profile?.full_name ?? 'Loading...'}</Text>
           <Text style={s.profileEmail}>{profile?.email ?? ''}</Text>
-          <View style={s.levelBadge}>
-            <Ionicons name={'trophy-outline' as any} size={13} color={C.warning} />
-            <Text style={s.levelTxt}>{profile?.level ?? 'Beginner'} Speaker</Text>
+          {level && (
+            <View style={s.levelBadge}>
+              <Ionicons name="trending-up-outline" size={12} color={C.primary} />
+              <Text style={s.levelTxt}>{level} Speaker</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Compact stats — real data only */}
+        <View style={s.statsRow}>
+          <View style={s.statItem}>
+            <Text style={s.statVal}>{sessionCount}</Text>
+            <Text style={s.statLbl}>Sessions</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statVal}>{streakDays}</Text>
+            <Text style={s.statLbl}>Streak</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statVal}>{avgScore ?? '—'}</Text>
+            <Text style={s.statLbl}>Avg Score</Text>
           </View>
         </View>
 
-        {/* STATS ROW */}
-        <View style={s.statsRow}>
-          {[
-            { val: '0',                               lbl: 'Sessions', color: C.primary  },
-            { val: String(profile?.streak_days ?? 0), lbl: 'Streak',   color: C.warning  },
-            { val: '—',                               lbl: 'Avg Score',color: C.primary  },
-            { val: profile?.level?.slice(0, 3) ?? 'Beg', lbl: 'Level', color: C.success  },
-          ].map((st, i) => (
-            <View key={i} style={[s.statItem, i < 3 && { borderRightWidth: 1, borderRightColor: C.border }]}>
-              <Text style={[s.statVal, { color: st.color }]}>{st.val}</Text>
-              <Text style={s.statLbl}>{st.lbl}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* MENU SECTIONS */}
+        {/* Menu sections */}
         {MENU_SECTIONS.map((section, si) => (
-          <View key={si} style={s.section}>
-            <Text style={s.sectionTitle}>{section.title}</Text>
+          <View key={si}>
+            <Text style={s.sectionLabel}>{section.title}</Text>
             <View style={s.menuCard}>
               {section.items.map((item, ii) => (
                 <TouchableOpacity
@@ -156,34 +173,30 @@ export default function ProfileScreen({ navigation }: any) {
                   activeOpacity={0.75}
                 >
                   <View style={s.menuIconBox}>
-                    <Ionicons name={item.icon as any} size={20} color={C.primary} />
+                    <Ionicons name={item.icon as any} size={16} color={C.primary} />
                   </View>
                   <Text style={s.menuLabel}>{item.label}</Text>
-                  <Ionicons name={'chevron-forward' as any} size={16} color={C.textMuted} />
+                  <Ionicons name="chevron-forward" size={14} color={C.textMuted} />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ))}
 
-        {/* SIGN OUT */}
+        {/* Sign out */}
         <TouchableOpacity
-          style={[s.signOutBtn, signingOut && s.signOutBtnDisabled]}
+          style={[s.signOutBtn, signingOut && { opacity: 0.5 }]}
           onPress={handleSignOut}
           disabled={signingOut}
           activeOpacity={0.75}
         >
           {signingOut
             ? <ActivityIndicator size="small" color={C.error} />
-            : (
-              <>
-                <Ionicons name={'log-out-outline' as any} size={20} color={C.error} />
+            : (<>
+                <Ionicons name="log-out-outline" size={18} color={C.error} />
                 <Text style={s.signOutTxt}>Sign Out</Text>
-              </>
-            )
-          }
+              </>)}
         </TouchableOpacity>
-
         <Text style={s.version}>Voxira v1.0.0</Text>
       </Animated.ScrollView>
     </View>
