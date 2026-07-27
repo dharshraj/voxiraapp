@@ -4,44 +4,24 @@ import {
   StyleSheet, StatusBar, Platform, Animated, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
-
-const C = {
-  bg:         '#05050F',
-  bgCard:     '#0C0C1E',
-  surface:    '#12122A',
-  purple:     '#8B5CF6',
-  purpleSoft: 'rgba(139,92,246,0.12)',
-  cyan:       '#06B6D4',
-  cyanSoft:   'rgba(6,182,212,0.12)',
-  amber:      '#F59E0B',
-  amberSoft:  'rgba(245,158,11,0.12)',
-  emerald:    '#10B981',
-  emeraldSoft:'rgba(16,185,129,0.12)',
-  text:       '#F1F5F9',
-  textSec:    'rgba(241,245,249,0.65)',
-  textMuted:  'rgba(241,245,249,0.38)',
-  textHint:   'rgba(241,245,249,0.22)',
-  border:     'rgba(255,255,255,0.07)',
-  borderMed:  'rgba(255,255,255,0.12)',
-};
+import { useTheme } from '../../theme/ThemeContext';
 
 const ACTIONS = [
-  { label:'Speech',    sub:'Voice analysis',  icon:'mic',         grad:['#8B5CF6','#4338CA'] as const, screen:'Speech'    },
-  { label:'Writing',   sub:'AI feedback',     icon:'create',      grad:['#06B6D4','#0891B2'] as const, screen:'Writing'   },
-  { label:'Interview', sub:'Mock sessions',   icon:'people',      grad:['#F59E0B','#D97706'] as const, screen:'Interview' },
-  { label:'Progress',  sub:'Your stats',      icon:'trending-up', grad:['#10B981','#059669'] as const, screen:'Profile'   },
+  { label: 'Speech',    sub: 'Voice analysis', icon: 'mic',         screen: 'Speech'    },
+  { label: 'Writing',   sub: 'AI feedback',    icon: 'create',      screen: 'Writing'   },
+  { label: 'Interview', sub: 'Mock sessions',  icon: 'people',      screen: 'Interview' },
+  { label: 'Progress',  sub: 'Your stats',     icon: 'trending-up', screen: 'Profile'   },
 ];
 
 export default function DashboardScreen({ navigation }: any) {
+  const { colors: C, isDark } = useTheme();
   const userId  = useAuthStore(s => s.user?.id);
   const profile = useUserStore(s => s.profile);
   const profileLoading = useUserStore(s => s.loading);
   const fadeAnim = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0)).current;
 
-  // Animate in on first render
   React.useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, []);
@@ -55,32 +35,98 @@ export default function DashboardScreen({ navigation }: any) {
   const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const dynamicStats = [
-    { icon:'mic-outline',  color:C.cyan,    softBg:C.cyanSoft,    value:'0',                                   label:'Sessions' },
-    { icon:'flame',        color:C.amber,   softBg:C.amberSoft,   value:String(profile?.streak_days ?? 0),     label:'Streak'   },
-    { icon:'star',         color:C.purple,  softBg:C.purpleSoft,  value:'—',                                   label:'Score'    },
-    { icon:'trophy',       color:C.emerald, softBg:C.emeraldSoft, value:profile?.level?.slice(0, 3) ?? 'Beg',  label:'Level'    },
+    { icon: 'mic-outline', color: C.primary,  value: '0',                                label: 'Sessions' },
+    { icon: 'flame',       color: C.warning,  value: String(profile?.streak_days ?? 0), label: 'Streak'   },
+    { icon: 'star',        color: C.primary,  value: '—',                                label: 'Score'    },
+    { icon: 'trophy',      color: C.success,  value: profile?.level?.slice(0, 3) ?? 'Beg', label: 'Level' },
+  ];
+
+  const s = StyleSheet.create({
+    root:           { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100vh' as any, overflow: 'hidden' as any }) },
+    scrollContent:  { paddingBottom: 100 },
+    header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingHorizontal: 20, paddingBottom: 20 },
+    greeting:       { fontSize: 13, color: C.textMuted },
+    userName:       { fontSize: 26, fontWeight: '800', color: C.text },
+    headerBtns:     { flexDirection: 'row', gap: 10 },
+    iconBtn:        { width: 42, height: 42, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    heroBannerWrap: { marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', marginBottom: 16, backgroundColor: C.primary },
+    heroOrb:        { position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.08)' },
+    heroBannerContent: { padding: 24, gap: 8 },
+    heroEmoji:      { fontSize: 32 },
+    heroTitle:      { fontSize: 18, fontWeight: '700', color: '#fff' },
+    heroSub:        { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+    statsRow:       { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
+    statCard:       { flex: 1, padding: 14, borderRadius: 18, gap: 6, alignItems: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
+    statIconBox:    { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryLight },
+    statValue:      { fontSize: 16, fontWeight: '800' },
+    statLabel:      { fontSize: 10, color: C.textMuted },
+    sectionTitle:   { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12 },
+    grid:           { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20, marginBottom: 8 },
+    actionCard:     { width: '48%', borderRadius: 18, overflow: 'hidden', height: 88, backgroundColor: C.primary, borderWidth: 1, borderColor: C.border },
+    actionInner:    { padding: 14, height: '100%', justifyContent: 'space-between', position: 'relative', flexDirection: 'row', alignItems: 'center', gap: 12 },
+    actionIconBox:  { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center' },
+    actionBottom:   { flex: 1 },
+    actionLabel:    { fontSize: 14, fontWeight: '700', color: '#fff' },
+    actionSub:      { fontSize: 11, color: 'rgba(255,255,255,0.65)' },
+    sectionTitleRecent: { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginTop: 8, marginBottom: 12 },
+    emptyCard:      { marginHorizontal: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 20, padding: 24, alignItems: 'center', gap: 8 },
+    emptyTitle:     { fontSize: 15, fontWeight: '600', color: C.text },
+    emptySub:       { fontSize: 13, color: C.textMuted },
+    tipCard:        { marginHorizontal: 20, marginTop: 8, borderRadius: 16, overflow: 'hidden', marginBottom: 16, backgroundColor: C.primary },
+    tipInner:       { padding: 18, gap: 8 },
+    tipHeader:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    tipLabel:       { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
+    tipText:        { fontSize: 14, color: '#fff', lineHeight: 22 },
+    secTitle:       { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
+    statsStrip:     { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
+    stripCard:      { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', gap: 4, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
+    stripIconWrap:  { width: 34, height: 34, borderRadius: 10, backgroundColor: C.primaryLight, alignItems: 'center', justifyContent: 'center' },
+    stripValue:     { fontSize: 18, fontWeight: '800' },
+    stripLabel:     { fontSize: 10, color: C.textMuted, textAlign: 'center' },
+    skillsCard:     { backgroundColor: C.surface, borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: C.border },
+    skillRow:       { marginBottom: 14 },
+    skillInfo:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    skillName:      { fontSize: 13, fontWeight: '600', color: C.text },
+    skillLevel:     { fontSize: 11, fontWeight: '500' },
+    skillBarBg:     { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
+    skillBarFill:   { height: '100%', borderRadius: 3 },
+    skillNote:      { fontSize: 12, color: C.textMuted, marginTop: 4, textAlign: 'center' },
+    learnRow:       { gap: 10, paddingLeft: 20, paddingRight: 4, paddingBottom: 4 },
+    learnCard:      { width: 160, borderRadius: 14, padding: 14, gap: 8, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
+    learnEmoji:     { fontSize: 24 },
+    learnTitle:     { fontSize: 13, fontWeight: '600', color: C.text, lineHeight: 18 },
+    learnTime:      { fontSize: 11, color: C.textMuted },
+  });
+
+  const SKILLS = [
+    { skill: 'Public Speaking',     level: 'Beginner', progress: 15, color: C.primary },
+    { skill: 'Writing Quality',     level: 'Beginner', progress: 10, color: C.success },
+    { skill: 'Interview Readiness', level: 'Beginner', progress: 8,  color: C.warning },
+  ];
+
+  const STAT_STRIP = [
+    { icon: 'mic-outline',    label: 'Sessions',     val: '0',                                color: C.primary },
+    { icon: 'flame-outline',  label: 'Day Streak',   val: String(profile?.streak_days ?? 0), color: C.error   },
+    { icon: 'star-outline',   label: 'Avg Score',    val: '—',                                color: C.warning },
+    { icon: 'trophy-outline', label: 'Achievements', val: '0',                                color: C.success },
   ];
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[
-          { opacity: fadeAnim },
-          Platform.OS === 'web' && ({ height: '100vh', overflowY: 'auto' } as any),
-        ]}
+        style={[{ opacity: fadeAnim }, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'auto' } as any)]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={profileLoading}
             onRefresh={handleRefresh}
-            colors={['#8B5CF6']}
-            tintColor="#8B5CF6"
+            colors={[C.primary]}
+            tintColor={C.primary}
           />
         }
       >
-        {/* HEADER */}
         <View style={s.header}>
           <View>
             <Text style={s.greeting}>{greeting},</Text>
@@ -96,27 +142,19 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* HERO BANNER */}
         <View style={s.heroBannerWrap}>
-          <LinearGradient
-            colors={['#8B5CF6', '#4338CA', '#1D4ED8']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={s.heroBannerGrad}
-          >
-            <View style={s.heroOrb} />
-            <View style={s.heroBannerContent}>
-              <Text style={s.heroEmoji}>🎯</Text>
-              <Text style={s.heroTitle}>Welcome to Voxira!</Text>
-              <Text style={s.heroSub}>Complete your first session to unlock insights.</Text>
-            </View>
-          </LinearGradient>
+          <View style={s.heroOrb} />
+          <View style={s.heroBannerContent}>
+            <Text style={s.heroEmoji}>🎯</Text>
+            <Text style={s.heroTitle}>Welcome to Voxira!</Text>
+            <Text style={s.heroSub}>Complete your first session to unlock insights.</Text>
+          </View>
         </View>
 
-        {/* STATS ROW */}
         <View style={s.statsRow}>
           {dynamicStats.map((st, i) => (
             <View key={i} style={s.statCard}>
-              <View style={[s.statIconBox, { backgroundColor: st.softBg }]}>
+              <View style={s.statIconBox}>
                 <Ionicons name={st.icon as any} size={17} color={st.color} />
               </View>
               <Text style={[s.statValue, { color: st.color }]}>{st.value}</Text>
@@ -125,7 +163,6 @@ export default function DashboardScreen({ navigation }: any) {
           ))}
         </View>
 
-        {/* QUICK ACTIONS */}
         <Text style={s.sectionTitle}>Quick Start</Text>
         <View style={s.grid}>
           {ACTIONS.map((a, i) => (
@@ -135,49 +172,41 @@ export default function DashboardScreen({ navigation }: any) {
               onPress={() => navigation.navigate(a.screen)}
               activeOpacity={0.75}
             >
-              <LinearGradient colors={a.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.actionGrad}>
-                <View style={s.actionOrb} />
+              <View style={s.actionInner}>
                 <View style={s.actionIconBox}>
-                  <Ionicons name={a.icon as any} size={22} color="#fff" />
+                  <Ionicons name={a.icon as any} size={18} color="#fff" />
                 </View>
                 <View style={s.actionBottom}>
                   <Text style={s.actionLabel}>{a.label}</Text>
                   <Text style={s.actionSub}>{a.sub}</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Daily Tip */}
         <View style={s.tipCard}>
-          <LinearGradient colors={['#6C5CE7', '#A29BFE']} start={{x:0,y:0}} end={{x:1,y:1}} style={s.tipGrad}>
+          <View style={s.tipInner}>
             <View style={s.tipHeader}>
-              <Text style={{fontSize:20}}>💡</Text>
+              <Text style={{ fontSize: 20 }}>💡</Text>
               <Text style={s.tipLabel}>DAILY TIP</Text>
             </View>
             <Text style={s.tipText}>
               {[
                 'Pause for 1 second instead of saying "um". Silence sounds more confident than filler words.',
                 'The best speakers speak at 120-140 words per minute. Record yourself to check your pace.',
-                'Start every email with what you want — don\'t bury the main point at the end.',
-                'Use the 3-point structure: Tell them what you\'ll say, say it, tell them what you said.',
+                "Start every email with what you want — don't bury the main point at the end.",
+                "Use the 3-point structure: Tell them what you'll say, say it, tell them what you said.",
                 'Confident speakers make eye contact 60-70% of the time. Practice in your next meeting.',
               ][new Date().getDay() % 5]}
             </Text>
-          </LinearGradient>
+          </View>
         </View>
 
-        {/* Quick Stats Row */}
         <Text style={s.secTitle}>Your Stats</Text>
         <View style={s.statsStrip}>
-          {[
-            { icon:'mic-outline',    label:'Sessions',     val:'0', color:'#A78BFA', bg:'rgba(139,92,246,0.15)' },
-            { icon:'flame-outline',  label:'Day Streak',   val:String(profile?.streak_days ?? 0), color:'#F43F5E', bg:'rgba(244,63,94,0.15)'  },
-            { icon:'star-outline',   label:'Avg Score',    val:'—', color:'#F59E0B', bg:'rgba(245,158,11,0.15)' },
-            { icon:'trophy-outline', label:'Achievements', val:'0', color:'#10B981', bg:'rgba(16,185,129,0.15)' },
-          ].map((stat, i) => (
-            <View key={i} style={[s.stripCard, { backgroundColor: stat.bg }]}>
+          {STAT_STRIP.map((stat, i) => (
+            <View key={i} style={s.stripCard}>
               <View style={s.stripIconWrap}>
                 <Ionicons name={stat.icon as any} size={18} color={stat.color} />
               </View>
@@ -187,14 +216,9 @@ export default function DashboardScreen({ navigation }: any) {
           ))}
         </View>
 
-        {/* Skills Overview */}
         <Text style={s.secTitle}>Skills Overview</Text>
         <View style={s.skillsCard}>
-          {[
-            { skill:'Public Speaking',     level:'Beginner', progress:15, color:'#6C5CE7' },
-            { skill:'Writing Quality',     level:'Beginner', progress:10, color:'#00B894' },
-            { skill:'Interview Readiness', level:'Beginner', progress:8,  color:'#E17055' },
-          ].map((item, i) => (
+          {SKILLS.map((item, i) => (
             <View key={i} style={s.skillRow}>
               <View style={s.skillInfo}>
                 <Text style={s.skillName}>{item.skill}</Text>
@@ -208,17 +232,16 @@ export default function DashboardScreen({ navigation }: any) {
           <Text style={s.skillNote}>Complete sessions to level up your skills 🚀</Text>
         </View>
 
-        {/* Featured Resources */}
         <Text style={s.secTitle}>Learn</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.learnRow}>
           {[
-            { title:'How to Eliminate Filler Words',    emoji:'🎯', time:'3 min read', color:'rgba(139,92,246,0.18)' },
-            { title:'The STAR Method for Interviews',    emoji:'⭐', time:'5 min read', color:'rgba(16,185,129,0.18)'  },
-            { title:'Email Writing Best Practices',      emoji:'✉️', time:'4 min read', color:'rgba(244,63,94,0.18)'   },
-            { title:'Speak at the Perfect Pace',         emoji:'⏱️', time:'3 min read', color:'rgba(245,158,11,0.18)'  },
-            { title:'Body Language Tips for Confidence', emoji:'💪', time:'4 min read', color:'rgba(6,182,212,0.18)'   },
+            { title: 'How to Eliminate Filler Words',    emoji: '🎯', time: '3 min read' },
+            { title: 'The STAR Method for Interviews',    emoji: '⭐', time: '5 min read' },
+            { title: 'Email Writing Best Practices',      emoji: '✉️', time: '4 min read' },
+            { title: 'Speak at the Perfect Pace',         emoji: '⏱️', time: '3 min read' },
+            { title: 'Body Language Tips for Confidence', emoji: '💪', time: '4 min read' },
           ].map((item, i) => (
-            <TouchableOpacity key={i} style={[s.learnCard, { backgroundColor: item.color }]} activeOpacity={0.8}>
+            <TouchableOpacity key={i} style={s.learnCard} activeOpacity={0.8}>
               <Text style={s.learnEmoji}>{item.emoji}</Text>
               <Text style={s.learnTitle}>{item.title}</Text>
               <Text style={s.learnTime}>{item.time}</Text>
@@ -226,10 +249,9 @@ export default function DashboardScreen({ navigation }: any) {
           ))}
         </ScrollView>
 
-        {/* RECENT ACTIVITY */}
         <Text style={s.sectionTitleRecent}>Recent Activity</Text>
         <View style={s.emptyCard}>
-          <Ionicons name={'rocket-outline' as any} size={28} color={C.purple} />
+          <Ionicons name={'rocket-outline' as any} size={28} color={C.primary} />
           <Text style={s.emptyTitle}>No sessions yet</Text>
           <Text style={s.emptySub}>Tap a module above to start</Text>
         </View>
@@ -237,62 +259,3 @@ export default function DashboardScreen({ navigation }: any) {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  root:           { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100vh' as any, overflow: 'hidden' as any }) },
-  scrollContent:  { paddingBottom: 100 },
-  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingHorizontal: 20, paddingBottom: 20 },
-  greeting:       { fontSize: 13, color: C.textMuted },
-  userName:       { fontSize: 26, fontWeight: '800', color: C.text },
-  headerBtns:     { flexDirection: 'row', gap: 10 },
-  iconBtn:        { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  heroBannerWrap: { marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', marginBottom: 16 },
-  heroBannerGrad: {},
-  heroOrb:        { position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.08)' },
-  heroBannerContent: { padding: 24, gap: 8 },
-  heroEmoji:      { fontSize: 32 },
-  heroTitle:      { fontSize: 18, fontWeight: '700', color: '#fff' },
-  heroSub:        { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-  statsRow:       { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
-  statCard:       { flex: 1, padding: 14, borderRadius: 18, gap: 6, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.border },
-  statIconBox:    { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statValue:      { fontSize: 16, fontWeight: '800' },
-  statLabel:      { fontSize: 10, color: C.textMuted },
-  sectionTitle:   { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12 },
-  grid:           { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20, marginBottom: 8 },
-  actionCard:     { width: '48%', borderRadius: 22, overflow: 'hidden', height: 130 },
-  actionGrad:     { padding: 16, height: '100%', justifyContent: 'space-between', position: 'relative' },
-  actionOrb:      { position: 'absolute', right: -12, top: -12, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.10)' },
-  actionIconBox:  { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center' },
-  actionBottom:   {},
-  actionLabel:    { fontSize: 14, fontWeight: '700', color: '#fff' },
-  actionSub:      { fontSize: 11, color: 'rgba(255,255,255,0.65)' },
-  sectionTitleRecent: { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginTop: 8, marginBottom: 12 },
-  emptyCard:      { marginHorizontal: 20, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.border, borderRadius: 20, padding: 24, alignItems: 'center', gap: 8 },
-  emptyTitle:     { fontSize: 15, fontWeight: '600', color: C.text },
-  emptySub:       { fontSize: 13, color: C.textMuted },
-  tipCard:        { marginHorizontal: 20, marginTop: 8, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
-  tipGrad:        { padding: 18, gap: 8 },
-  tipHeader:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tipLabel:       { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
-  tipText:        { fontSize: 14, color: '#fff', lineHeight: 22 },
-  secTitle:       { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
-  statsStrip:     { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
-  stripCard:      { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', gap: 4 },
-  stripIconWrap:  { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  stripValue:     { fontSize: 18, fontWeight: '800' },
-  stripLabel:     { fontSize: 10, color: 'rgba(241,245,249,0.45)', textAlign: 'center' },
-  skillsCard:     { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 16, marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  skillRow:       { marginBottom: 14 },
-  skillInfo:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  skillName:      { fontSize: 13, fontWeight: '600', color: '#F1F5F9' },
-  skillLevel:     { fontSize: 11, fontWeight: '500' },
-  skillBarBg:     { height: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 3, overflow: 'hidden' },
-  skillBarFill:   { height: '100%', borderRadius: 3 },
-  skillNote:      { fontSize: 12, color: 'rgba(241,245,249,0.35)', marginTop: 4, textAlign: 'center' },
-  learnRow:       { gap: 10, paddingLeft: 20, paddingRight: 4, paddingBottom: 4 },
-  learnCard:      { width: 160, borderRadius: 14, padding: 14, gap: 8 },
-  learnEmoji:     { fontSize: 24 },
-  learnTitle:     { fontSize: 13, fontWeight: '600', color: '#F1F5F9', lineHeight: 18 },
-  learnTime:      { fontSize: 11, color: 'rgba(241,245,249,0.45)' },
-});

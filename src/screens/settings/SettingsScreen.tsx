@@ -1,30 +1,14 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity,
   StatusBar, Platform, Animated, Switch, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-
-const C = {
-  bg:          '#05050F',
-  purple:      '#8B5CF6',
-  purpleSoft:  'rgba(139,92,246,0.12)',
-  cyan:        '#06B6D4',
-  cyanSoft:    'rgba(6,182,212,0.12)',
-  amber:       '#F59E0B',
-  amberSoft:   'rgba(245,158,11,0.12)',
-  emerald:     '#10B981',
-  emeraldSoft: 'rgba(16,185,129,0.12)',
-  rose:        '#F43F5E',
-  text:        '#F1F5F9',
-  textMuted:   'rgba(241,245,249,0.38)',
-  textHint:    'rgba(241,245,249,0.22)',
-  textSec:     'rgba(241,245,249,0.65)',
-  border:      'rgba(255,255,255,0.07)',
-};
+import { useTheme } from '../../theme/ThemeContext';
 
 export default function SettingsScreen({ navigation }: any) {
+  const { colors: C, isDark, toggle } = useTheme();
   const [pushNotifs,  setPushNotifs]  = useState(true);
   const [signingOut,  setSigningOut]  = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
@@ -45,9 +29,52 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
+  const s = StyleSheet.create({
+    root:          { flex: 1, backgroundColor: C.bg },
+    header:        {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 16,
+    },
+    backBtn:       {
+      width: 42, height: 42, borderRadius: 13,
+      backgroundColor: C.surface,
+      borderWidth: 1, borderColor: C.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    headerTitle:   { fontSize: 20, fontWeight: '700', color: C.text },
+    scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
+    sectionTitle:  {
+      fontSize: 11, fontWeight: '700', color: C.textMuted,
+      textTransform: 'uppercase', letterSpacing: 0.8,
+      marginBottom: 8, marginTop: 24,
+    },
+    card:          {
+      backgroundColor: C.surface,
+      borderRadius: 18, overflow: 'hidden',
+      borderWidth: 1, borderColor: C.border,
+    },
+    row:           {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      padding: 14,
+      borderBottomWidth: 1, borderBottomColor: C.border,
+    },
+    rowLast:       { borderBottomWidth: 0 },
+    rowIcon:       { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+    rowLabel:      { flex: 1, fontSize: 14, color: C.text, fontWeight: '500' },
+    signOutBtn:    {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+      marginTop: 24,
+      backgroundColor: C.surface,
+      borderRadius: 20, borderWidth: 1, borderColor: C.error + '40',
+      padding: 18,
+    },
+    signOutBtnDisabled: { opacity: 0.5 },
+    signOutTxt:    { fontSize: 15, fontWeight: '600', color: C.error },
+  });
+
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={s.header}>
         <TouchableOpacity
           style={s.backBtn}
@@ -69,15 +96,15 @@ export default function SettingsScreen({ navigation }: any) {
         <Text style={s.sectionTitle}>APPEARANCE</Text>
         <View style={s.card}>
           <View style={s.row}>
-            <View style={[s.rowIcon, { backgroundColor: 'rgba(139,92,246,0.12)' }]}>
-              <Ionicons name={'moon-outline' as any} size={19} color={C.textMuted} />
+            <View style={[s.rowIcon, { backgroundColor: C.primaryLight }]}>
+              <Ionicons name={'moon-outline' as any} size={19} color={C.primary} />
             </View>
             <Text style={s.rowLabel}>Dark Mode</Text>
             <Switch
-              value={true}
-              onValueChange={() => {}}
-              trackColor={{ false: C.border, true: 'rgba(139,92,246,0.50)' }}
-              thumbColor={C.purple}
+              value={isDark}
+              onValueChange={toggle}
+              trackColor={{ false: C.border, true: C.primary + '80' }}
+              thumbColor={C.primary}
             />
           </View>
         </View>
@@ -86,15 +113,15 @@ export default function SettingsScreen({ navigation }: any) {
         <Text style={s.sectionTitle}>NOTIFICATIONS</Text>
         <View style={s.card}>
           <View style={s.row}>
-            <View style={[s.rowIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
-              <Ionicons name={'notifications' as any} size={19} color={C.emerald} />
+            <View style={[s.rowIcon, { backgroundColor: C.success + '20' }]}>
+              <Ionicons name={'notifications' as any} size={19} color={C.success} />
             </View>
             <Text style={s.rowLabel}>Push Notifications</Text>
             <Switch
               value={pushNotifs}
               onValueChange={setPushNotifs}
-              trackColor={{ false: C.border, true: 'rgba(16,185,129,0.50)' }}
-              thumbColor={pushNotifs ? C.emerald : C.bg}
+              trackColor={{ false: C.border, true: C.success + '80' }}
+              thumbColor={pushNotifs ? C.success : C.textMuted}
             />
           </View>
         </View>
@@ -107,11 +134,11 @@ export default function SettingsScreen({ navigation }: any) {
             onPress={() => Alert.alert('Coming soon', 'This feature is coming soon.')}
             activeOpacity={0.75}
           >
-            <View style={[s.rowIcon, { backgroundColor: 'rgba(6,182,212,0.12)' }]}>
-              <Ionicons name={'mail-outline' as any} size={19} color={C.cyan} />
+            <View style={[s.rowIcon, { backgroundColor: C.primaryLight }]}>
+              <Ionicons name={'mail-outline' as any} size={19} color={C.primary} />
             </View>
             <Text style={s.rowLabel}>Change Email</Text>
-            <Ionicons name={'chevron-forward' as any} size={16} color={C.textHint} />
+            <Ionicons name={'chevron-forward' as any} size={16} color={C.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -119,11 +146,11 @@ export default function SettingsScreen({ navigation }: any) {
             onPress={() => Alert.alert('Coming soon', 'This feature is coming soon.')}
             activeOpacity={0.75}
           >
-            <View style={[s.rowIcon, { backgroundColor: 'rgba(6,182,212,0.12)' }]}>
-              <Ionicons name={'lock-closed' as any} size={19} color={C.cyan} />
+            <View style={[s.rowIcon, { backgroundColor: C.primaryLight }]}>
+              <Ionicons name={'lock-closed' as any} size={19} color={C.primary} />
             </View>
             <Text style={s.rowLabel}>Change Password</Text>
-            <Ionicons name={'chevron-forward' as any} size={16} color={C.textHint} />
+            <Ionicons name={'chevron-forward' as any} size={16} color={C.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -131,11 +158,11 @@ export default function SettingsScreen({ navigation }: any) {
             onPress={() => navigation.navigate('DeleteAccount')}
             activeOpacity={0.75}
           >
-            <View style={[s.rowIcon, { backgroundColor: 'rgba(244,63,94,0.12)' }]}>
-              <Ionicons name={'trash-outline' as any} size={19} color={C.rose} />
+            <View style={[s.rowIcon, { backgroundColor: C.error + '20' }]}>
+              <Ionicons name={'trash-outline' as any} size={19} color={C.error} />
             </View>
-            <Text style={[s.rowLabel, { color: C.rose }]}>Delete Account</Text>
-            <Ionicons name={'chevron-forward' as any} size={16} color={C.textHint} />
+            <Text style={[s.rowLabel, { color: C.error }]}>Delete Account</Text>
+            <Ionicons name={'chevron-forward' as any} size={16} color={C.textMuted} />
           </TouchableOpacity>
         </View>
 
@@ -147,10 +174,10 @@ export default function SettingsScreen({ navigation }: any) {
           activeOpacity={0.75}
         >
           {signingOut
-            ? <ActivityIndicator size="small" color={C.rose} />
+            ? <ActivityIndicator size="small" color={C.error} />
             : (
               <>
-                <Ionicons name={'log-out-outline' as any} size={20} color={C.rose} />
+                <Ionicons name={'log-out-outline' as any} size={20} color={C.error} />
                 <Text style={s.signOutTxt}>Sign Out</Text>
               </>
             )
@@ -160,46 +187,3 @@ export default function SettingsScreen({ navigation }: any) {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: C.bg },
-  header:        {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 16,
-  },
-  backBtn:       {
-    width: 42, height: 42, borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: C.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  headerTitle:   { fontSize: 20, fontWeight: '700', color: C.text },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  sectionTitle:  {
-    fontSize: 11, fontWeight: '700', color: C.textHint,
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    marginBottom: 8, marginTop: 24,
-  },
-  card:          {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 18, overflow: 'hidden',
-    borderWidth: 1, borderColor: C.border,
-  },
-  row:           {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-  },
-  rowLast:       { borderBottomWidth: 0 },
-  rowIcon:       { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  rowLabel:      { flex: 1, fontSize: 14, color: C.text, fontWeight: '500' },
-  signOutBtn:    {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    marginTop: 24,
-    backgroundColor: 'rgba(244,63,94,0.06)',
-    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(244,63,94,0.25)',
-    padding: 18,
-  },
-  signOutBtnDisabled: { opacity: 0.5 },
-  signOutTxt:    { fontSize: 15, fontWeight: '600', color: C.rose },
-});
