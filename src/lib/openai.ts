@@ -22,13 +22,22 @@ const TIMEOUT_MS  = 30_000;
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
+export interface FillerWordEntry {
+  word:  string;
+  count: number;
+}
+
 export interface SpeechAnalysis {
-  clarityScore:       number;
-  confidenceScore:    number;
-  structureScore:     number;
-  structureFeedback:  string;
-  alternateAnswers:   string[];
-  improvementTips:    string[];
+  clarityScore:        number;
+  confidenceScore:     number;
+  structureScore:      number;
+  structureFeedback:   string;
+  alternateAnswers:    string[];
+  improvementTips:     string[];
+  /** LLM-detected filler words found in the actual transcript, with counts */
+  fillerWordAnalysis:  FillerWordEntry[];
+  /** 2-3 suggestions tied to the specific content and delivery of this speech */
+  contentSuggestions:  string[];
 }
 
 export interface ToneResult {
@@ -157,6 +166,12 @@ const SPEECH_FALLBACK: SpeechAnalysis = {
     'Lead each section with a signpost phrase like "First…", "The key insight here is…", or "In summary…" to guide listeners.',
     'Add one specific number or metric per minute of speech to make abstract claims concrete and memorable.',
   ],
+  fillerWordAnalysis: [],
+  contentSuggestions: [
+    'Your opening could be stronger — try leading with a surprising fact or question related to your topic.',
+    'Consider adding a concrete example or personal story to support your main claim.',
+    'End with a clear call-to-action or memorable closing line that reinforces your main message.',
+  ],
 };
 
 export async function analyzeSpeech(
@@ -169,19 +184,31 @@ export async function analyzeSpeech(
   "clarityScore": <0-100 integer>,
   "confidenceScore": <0-100 integer>,
   "structureScore": <0-100 integer>,
-  "structureFeedback": <1-2 sentence string>,
-  "alternateAnswers": [<rephrasing 1>, <rephrasing 2>],
-  "improvementTips": [<tip 1>, <tip 2>, <tip 3>]
+  "structureFeedback": "<1-2 sentence string>",
+  "alternateAnswers": ["<rephrasing 1>", "<rephrasing 2>"],
+  "improvementTips": ["<tip 1>", "<tip 2>", "<tip 3>"],
+  "fillerWordAnalysis": [
+    { "word": "<filler word as it appears in transcript>", "count": <integer> }
+  ],
+  "contentSuggestions": ["<suggestion 1>", "<suggestion 2>", "<suggestion 3>"]
 }
-Tips must be specific. Alternate answers must preserve the speaker's intent.`;
+
+Rules:
+- fillerWordAnalysis: scan the ACTUAL transcript for filler words (um, uh, like, basically, literally, actually, so, right, okay, well, you know, I mean, kind of, sort of, hmm). Only include words that actually appear. Count every occurrence. Return an empty array [] if none found.
+- contentSuggestions: 2-3 specific suggestions based on the ACTUAL content and delivery of THIS speech — what was said, how it was structured, what examples were used. Do NOT give generic advice. Reference specific phrases or topics from the transcript.
+- improvementTips: specific, actionable tips based on this transcript's weaknesses.
+- alternateAnswers: reworded versions that preserve the speaker's intent.`;
 
   const user = `Mode: ${mode} | Duration: ${durationSecs}s\n\nTranscript:\n${transcript.slice(0, 2500)}`;
 
-  const raw    = await chat(system, user, 800);
+  const raw    = await chat(system, user, 1000);
   const parsed = parseJSON<SpeechAnalysis>(raw, SPEECH_FALLBACK);
   if (typeof parsed.clarityScore !== 'number') {
     throw new Error('AI returned an invalid response — could not parse speech scores');
   }
+  // Ensure new fields always exist even if the model omits them
+  if (!Array.isArray(parsed.fillerWordAnalysis))  parsed.fillerWordAnalysis  = [];
+  if (!Array.isArray(parsed.contentSuggestions))  parsed.contentSuggestions  = SPEECH_FALLBACK.contentSuggestions;
   return parsed;
 }
 

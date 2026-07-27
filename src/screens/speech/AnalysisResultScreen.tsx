@@ -4,7 +4,7 @@ import {
   StatusBar, Platform, Animated, Dimensions, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AnswerEvaluation } from '../../lib/openai';
+import { FillerWordEntry } from '../../lib/openai';
 import { useTheme } from '../../theme/ThemeContext';
 
 const { width: W } = Dimensions.get('window');
@@ -12,9 +12,6 @@ const { width: W } = Dimensions.get('window');
 function formatTime(s:number){ const m=Math.floor(s/60).toString().padStart(2,'0'); const s2=(s%60).toString().padStart(2,'0'); return `${m}:${s2}`; }
 function scoreColor(s:number){ return s>=80?'#10B981':s>=60?'#A78BFA':s>=40?'#F59E0B':'#F43F5E'; }
 function scoreLabel(s:number){ return s>=85?'Excellent':s>=75?'Great':s>=60?'Good':s>=40?'Fair':'Needs Work'; }
-
-// keep the type reference to avoid unused import error
-type _AE = AnswerEvaluation;
 
 export default function AnalysisResultScreen({ navigation, route }:any) {
   const { colors: C, isDark } = useTheme();
@@ -158,6 +155,20 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     structureCard: {backgroundColor:C.success+'14',borderRadius:14,padding:14,marginBottom:16,borderWidth:1,borderColor:C.success+'33'},
     structureTitle:{fontSize:14,fontWeight:'700',color:C.success,marginBottom:6},
     structureText: {fontSize:13,color:C.textSec,lineHeight:20},
+    // LLM filler analysis
+    llmFillerCard:   {backgroundColor:C.error+'0D',borderRadius:14,padding:16,marginBottom:16,borderWidth:1,borderColor:C.error+'33'},
+    llmFillerHeader: {flexDirection:'row',alignItems:'center',gap:8,marginBottom:10},
+    llmFillerTitle:  {fontSize:14,fontWeight:'700',color:C.error,flex:1},
+    llmFillerGrid:   {flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:10},
+    llmFillerChip:   {flexDirection:'row',alignItems:'center',backgroundColor:C.surface,borderRadius:20,paddingLeft:10,paddingRight:4,paddingVertical:4,gap:6,borderWidth:1,borderColor:C.error+'33'},
+    llmFillerWord:   {fontSize:13,fontWeight:'600',color:C.error},
+    llmFillerBadge:  {backgroundColor:C.error,borderRadius:16,paddingHorizontal:8,paddingVertical:2},
+    llmFillerCount:  {fontSize:11,fontWeight:'700',color:'#fff'},
+    llmFillerNote:   {fontSize:12,color:C.textSec,lineHeight:18},
+    // Content suggestions
+    contentSugCard:  {flexDirection:'row',alignItems:'flex-start',gap:12,backgroundColor:C.info+'0D',borderRadius:14,padding:14,marginBottom:10,borderWidth:1,borderColor:C.info+'33'},
+    contentSugIcon:  {width:30,height:30,borderRadius:15,backgroundColor:C.info+'20',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
+    contentSugText:  {flex:1,fontSize:13,color:C.textSec,lineHeight:20},
   });
 
   return (
@@ -250,6 +261,47 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
 
         {aiAnalysis && (
           <>
+            {/* LLM Filler Word Analysis — derived from actual transcript text */}
+            {Array.isArray(aiAnalysis.fillerWordAnalysis) && aiAnalysis.fillerWordAnalysis.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>Filler Words (AI Analysis)</Text>
+                <View style={s.llmFillerCard}>
+                  <View style={s.llmFillerHeader}>
+                    <Ionicons name="warning-outline" size={16} color={C.error} />
+                    <Text style={s.llmFillerTitle}>
+                      {(aiAnalysis.fillerWordAnalysis as FillerWordEntry[]).reduce((sum: number, e: FillerWordEntry) => sum + e.count, 0)} filler words detected in your transcript
+                    </Text>
+                  </View>
+                  <View style={s.llmFillerGrid}>
+                    {(aiAnalysis.fillerWordAnalysis as FillerWordEntry[])
+                      .sort((a: FillerWordEntry, b: FillerWordEntry) => b.count - a.count)
+                      .map((entry: FillerWordEntry) => (
+                        <View key={entry.word} style={s.llmFillerChip}>
+                          <Text style={s.llmFillerWord}>"{entry.word}"</Text>
+                          <View style={s.llmFillerBadge}><Text style={s.llmFillerCount}>{entry.count}x</Text></View>
+                        </View>
+                      ))}
+                  </View>
+                  <Text style={s.llmFillerNote}>These were found by scanning your actual transcript. Replace each filler with a deliberate 1-second pause.</Text>
+                </View>
+              </>
+            )}
+
+            {/* Content-specific suggestions — based on what was actually said */}
+            {Array.isArray(aiAnalysis.contentSuggestions) && aiAnalysis.contentSuggestions.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>Content-Specific Suggestions</Text>
+                {(aiAnalysis.contentSuggestions as string[]).map((suggestion: string, i: number) => (
+                  <View key={i} style={s.contentSugCard}>
+                    <View style={s.contentSugIcon}>
+                      <Ionicons name="arrow-forward-outline" size={16} color={C.info} />
+                    </View>
+                    <Text style={s.contentSugText}>{suggestion}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+
             {aiAnalysis.alternateAnswers?.length > 0 && (
               <>
                 <Text style={s.sectionTitle}>AI-Suggested Rephrasings</Text>

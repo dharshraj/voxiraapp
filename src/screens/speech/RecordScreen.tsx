@@ -30,6 +30,7 @@ export default function RecordScreen({ navigation, route }: any) {
   const [recording, setRecording] = useState<any>(null);
   const [audioUri, setAudioUri]   = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -148,24 +149,46 @@ export default function RecordScreen({ navigation, route }: any) {
   };
   const goToAnalysis = async () => {
     setPhase('transcribing');
-    if (!audioUri) { setStatusMsg('No audio captured — please record first.'); setPhase('done'); return; }
-    setStatusMsg('Uploading to AssemblyAI...');
+    setErrorBanner(null);
+    if (!audioUri) {
+      const msg = 'No audio captured — please record first.';
+      setStatusMsg(msg);
+      setErrorBanner(msg);
+      setPhase('done');
+      return;
+    }
+    setStatusMsg('Uploading to AssemblyAI…');
     let result;
-    try { result = await transcribeAudio(audioUri); } catch (e: any) { setStatusMsg(`Upload error: ${e?.message ?? 'Failed'}`); setPhase('done'); return; }
+    try {
+      result = await transcribeAudio(audioUri);
+    } catch (e: any) {
+      const msg = `Upload error: ${e?.message ?? 'Failed'}`;
+      console.error('[RecordScreen] transcribeAudio threw:', e);
+      setStatusMsg(msg);
+      setErrorBanner(msg);
+      setPhase('done');
+      return;
+    }
     if (result.status === 'completed' && result.text) {
       setStatusMsg('Transcription complete!');
       setTimeout(() => navigation.navigate('Analyzing', { duration, mode, transcript: result.text, fillerWords: result.filler_words }), 600);
     } else {
-      setStatusMsg(result.status === 'no_key'
-        ? 'AssemblyAI API key not set.\n\nAdd EXPO_PUBLIC_ASSEMBLYAI_KEY to your .env file.'
-        : `Transcription failed: ${result.error ?? 'Unknown error'}`);
+      let msg: string;
+      if (result.status === 'no_key') {
+        msg = 'AssemblyAI API key not set.\n\nAdd EXPO_PUBLIC_ASSEMBLYAI_KEY to your .env file.';
+      } else {
+        msg = `Transcription failed: ${result.error ?? 'Unknown error'}`;
+      }
+      console.error('[RecordScreen] Transcription result:', result.status, result.error);
+      setStatusMsg(msg);
+      setErrorBanner(msg);
       setPhase('done');
     }
   };
   const reset = () => {
     if (webStreamRef.current) { webStreamRef.current.getTracks().forEach(t => t.stop()); webStreamRef.current = null; }
     if (audioUri && audioUri.startsWith('blob:')) URL.revokeObjectURL(audioUri);
-    setPhase('ready'); setDuration(0); setRecording(null); setAudioUri(null); setStatusMsg('');
+    setPhase('ready'); setDuration(0); setRecording(null); setAudioUri(null); setStatusMsg(''); setErrorBanner(null);
   };
 
   const micColor =
@@ -192,6 +215,8 @@ export default function RecordScreen({ navigation, route }: any) {
     micBtn:       { width: MIC, height: MIC, borderRadius: MIC / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: C.primary, shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
     micRing:      { position: 'absolute', width: MIC - 16, height: MIC - 16, borderRadius: (MIC - 16) / 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     statsRow:     { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 18, borderWidth: 1, borderColor: C.border, paddingVertical: 16 },
+    errorBannerWrap:  { marginHorizontal: 20, marginBottom: 12, backgroundColor: C.error + '15', borderRadius: 14, borderWidth: 1, borderColor: C.error + '55', padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    errorBannerText:  { flex: 1, fontSize: 13, color: C.error, lineHeight: 19, fontWeight: '500' },
     statBox:      { flex: 1, alignItems: 'center', gap: 4 },
     statDivider:  { width: 1, backgroundColor: C.border },
     statVal:      { fontSize: 15, fontWeight: '700', color: C.text },
@@ -288,6 +313,13 @@ export default function RecordScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </Animated.View>
           </View>
+
+          {errorBanner && (
+            <View style={s.errorBannerWrap}>
+              <Ionicons name="alert-circle-outline" size={18} color={C.error} style={{ marginTop: 1 }} />
+              <Text style={s.errorBannerText}>{errorBanner}</Text>
+            </View>
+          )}
 
           <View style={s.statsRow}>
             <View style={s.statBox}>

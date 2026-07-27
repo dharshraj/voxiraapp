@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, Animated, StatusBar, Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { analyzeSpeech } from '../../lib/openai';
+import { analyzeSpeech, FillerWordEntry } from '../../lib/openai';
 import { useSessionStore } from '../../store/sessionStore';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../theme/ThemeContext';
@@ -18,24 +18,27 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     duration    = 0,
     mode        = 'Free Speech',
     transcript  = '',
-    fillerWords = [],
+    fillerWords = [],   // WordItem[] from AssemblyAI — used as a seed/cross-check
   } = route?.params ?? {};
 
   const userId    = useAuthStore(s => s.user?.id);
   const addSpeech = useSessionStore(s => s.addSpeechSession);
   const savedRef  = useRef(false);
 
+  // Step labels — now 5 steps including the LLM filler analysis
   const STEPS = [
-    { label:'Processing audio',       icon:'cloud-upload-outline', color: C.primary },
-    { label:'Reading transcript',     icon:'mic-outline',          color: C.warning  },
-    { label:'Detecting filler words', icon:'warning-outline',      color: C.error    },
-    { label:'Running AI analysis',    icon:'sparkles-outline',     color: C.success  },
+    { label: 'Processing audio',          icon: 'cloud-upload-outline', color: C.primary  },
+    { label: 'Reading transcript',        icon: 'mic-outline',          color: C.warning   },
+    { label: 'Detecting filler words',    icon: 'warning-outline',      color: C.error     },
+    { label: 'Running AI speech analysis',icon: 'sparkles-outline',     color: C.info      },
+    { label: 'Generating suggestions',    icon: 'bulb-outline',         color: C.success   },
   ];
 
   const [currentStep, setCurrentStep] = useState(0);
   const [done,        setDone]        = useState(false);
   const [statusMsg,   setStatusMsg]   = useState('');
   const [hasError,    setHasError]    = useState<string | null>(null);
+
   const fadeAnim     = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -49,49 +52,80 @@ export default function AnalyzingScreen({ navigation, route }: any) {
   };
 
   const runAnalysis = async () => {
+    // ── Step 0: Processing audio ─────────────────────────────────────────────
     updateStep(0);
-    await delay(700);
+    await delay(600);
 
     if (!transcript || transcript.length < 10) {
       setHasError(
-        'No transcript was captured.\n\nTranscription may have failed — go back and try recording again.'
+        'No transcript was captured.\n\nTranscription may have failed — go back and try recording again.\n\nCheck the browser console for detailed error logs.'
       );
       return;
     }
 
+    // ── Step 1: Reading transcript ───────────────────────────────────────────
     updateStep(1);
-    setStatusMsg(`Transcript: ${transcript.slice(0, 60)}…`);
-    await delay(900);
-
-    updateStep(2);
-    const fillerBreakdown: Record<string, number> = {};
-    for (const w of fillerWords as Array<{ text: string }>) {
-      const word = w.text.toLowerCase().trim();
-      if (word) fillerBreakdown[word] = (fillerBreakdown[word] ?? 0) + 1;
-    }
-    const fillerCount = Object.values(fillerBreakdown).reduce((a, b) => a + b, 0);
-    await delay(600);
-
-    updateStep(3);
-    setStatusMsg('');
-
     const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
     const wpm       = duration > 0 ? Math.round((wordCount / duration) * 60) : 0;
-    const paceScore = wpm > 0
-      ? Math.round(Math.max(40, 100 - Math.abs(wpm - 130) / 1.2))
-      : 65;
+    setStatusMsg(`${wordCount} words · ${wpm > 0 ? wpm + ' WPM' : 'calculating pace…'}`);
+    await delay(700);
+
+    // ── Step 2: Detecting filler words ───────────────────────────────────────
+    // Build a preliminary count from the AssemblyAI word list (fast, no network).
+    // The LLM pass in step 3 will produce the definitive count from the transcript text.
+    updateStep(2);
+    const seedBreakdown: Record<string, number> = {};
+    for (const w of fillerWords as Array<{ text: string }>) {
+      const word = w.text.toLowerCase().trim();
+      if (word) seedBreakdown[word] = (seedBreakdown[word] ?? 0) + 1;
+    }
+    setStatusMsg('');
+    await delay(500);
+
+    // ── Step 3: AI speech analysis ───────────────────────────────────────────
+    updateStep(3);
+    console.log('[AnalyzingScreen] Calling analyzeSpeech, transcript length:', transcript.length);
 
     let aiAnalysis;
     try {
       aiAnalysis = await analyzeSpeech(transcript, duration, mode);
-      console.log('[AnalyzingScreen] AI analysis done:', aiAnalysis.clarityScore);
+      console.log('[AnalyzingScreen] analyzeSpeech done — clarity:', aiAnalysis.clarityScore,
+        '| fillerWordAnalysis entries:', aiAnalysis.fillerWordAnalysis?.length ?? 0);
     } catch (e: any) {
-      console.error('[AnalyzingScreen] AI analysis failed:', e.message);
+      console.error('[AnalyzingScreen] analyzeSpeech failed:', e.message);
       setHasError(
-        `AI analysis failed: ${e.message}\n\nCheck EXPO_PUBLIC_OPENAI_KEY in your .env file.`
+        `AI analysis failed: ${e.message}\n\nCheck EXPO_PUBLIC_OPENAI_KEY in your .env file and the browser console for details.`
       );
       return;
     }
+
+    // ── Step 4: Generating suggestions ──────────────────────────────────────
+    updateStep(4);
+    setStatusMsg('Building your personalised report…');
+
+    // Resolve the definitive filler breakdown:
+    // Prefer the LLM's analysis (which scans the full transcript text) but
+    // merge it with the seed from AssemblyAI word tags as a safety net.
+    const llmFillerBreakdown: Record<string, number> = {};
+    for (const entry of (aiAnalysis.fillerWordAnalysis ?? []) as FillerWordEntry[]) {
+      if (entry.word && entry.count > 0) {
+        llmFillerBreakdown[entry.word.toLowerCase()] = entry.count;
+      }
+    }
+    // Merge seed counts for any fillers AssemblyAI tagged but the LLM missed
+    for (const [word, count] of Object.entries(seedBreakdown)) {
+      if (!llmFillerBreakdown[word]) {
+        llmFillerBreakdown[word] = count;
+      }
+    }
+    const fillerCount = Object.values(llmFillerBreakdown).reduce((a, b) => a + b, 0);
+
+    console.log('[AnalyzingScreen] Final filler breakdown:', llmFillerBreakdown, '| total:', fillerCount);
+
+    // ── Derive numeric scores ────────────────────────────────────────────────
+    const paceScore = wpm > 0
+      ? Math.round(Math.max(40, 100 - Math.abs(wpm - 130) / 1.2))
+      : 65;
 
     const clarity        = aiAnalysis.clarityScore;
     const confidence     = aiAnalysis.confidenceScore;
@@ -113,24 +147,28 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       confidence:    Math.round(confidence),
     };
 
+    // ── Save session ─────────────────────────────────────────────────────────
     if (!savedRef.current && userId) {
       savedRef.current = true;
       addSpeech({
         mode, score, duration, wpm,
         filler_count:     fillerCount,
-        filler_breakdown: fillerBreakdown,
+        filler_breakdown: llmFillerBreakdown,
         transcript,
-        clarity:      details.clarity,
-        pace:         details.pace,
-        pronunciation:details.pronunciation,
-        confidence:   details.confidence,
-      }, userId).catch(console.warn);
+        clarity:       details.clarity,
+        pace:          details.pace,
+        pronunciation: details.pronunciation,
+        confidence:    details.confidence,
+      }, userId).catch(e => console.warn('[AnalyzingScreen] Session save error:', e));
     }
 
+    await delay(400);
     setDone(true);
+
     setTimeout(() => {
       navigation.replace('AnalysisResult', {
-        score, duration, fillerCount, fillerBreakdown,
+        score, duration, fillerCount,
+        fillerBreakdown: llmFillerBreakdown,
         transcript, mode, wpm, details, aiAnalysis,
       });
     }, 600);
@@ -192,7 +230,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
                 <Ionicons name="checkmark-circle" size={64} color={C.success} />
               )}
             </View>
-            <Text style={s.title}>{done ? 'Analysis Complete' : 'Analyzing Your Speech'}</Text>
+            <Text style={s.title}>{done ? 'Analysis Complete' : 'Analysing Your Speech'}</Text>
             <Text style={s.sub}>{done ? 'Your results are ready' : (statusMsg || 'Please wait…')}</Text>
             <View style={s.progressTrack}>
               <Animated.View style={[s.progressFill, { width: progressWidth }]} />
@@ -208,7 +246,11 @@ export default function AnalyzingScreen({ navigation, route }: any) {
                       isDone    && { backgroundColor: C.success },
                       isCurrent && { backgroundColor: step.color },
                     ]}>
-                      {isDone && <Ionicons name="checkmark" size={12} color="#fff" />}
+                      {isDone
+                        ? <Ionicons name="checkmark" size={12} color="#fff" />
+                        : isCurrent
+                          ? <Ionicons name={step.icon as any} size={14} color="#fff" />
+                          : null}
                     </View>
                     <Text style={[
                       s.stepLabel,
