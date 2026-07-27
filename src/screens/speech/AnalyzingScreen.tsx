@@ -2,29 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Animated, StatusBar, Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { analyzeSpeech } from '../../lib/openai';
 import { useSessionStore } from '../../store/sessionStore';
 import { useAuthStore } from '../../store/authStore';
+import { useTheme } from '../../theme/ThemeContext';
 
 const { width: W } = Dimensions.get('window');
-const C = {
-  bg:'#F8F7F4', bgCard:'#FFFFFF', surface:'#ECECEC',
-  primary:'#6C5CE7', accent:'#A29BFE', green:'#00B894', gold:'#FDCB6E', rose:'#E17055',
-  text:'#2D3436', textSec:'#636E72', textHint:'#B2BEC3', border:'#E0DDD8',
-};
-
-const STEPS = [
-  { label:'Processing audio',       icon:'cloud-upload-outline',  color: C.primary },
-  { label:'Reading transcript',     icon:'mic-outline',           color: C.gold    },
-  { label:'Detecting filler words', icon:'warning-outline',       color: C.rose    },
-  { label:'Running AI analysis',    icon:'sparkles-outline',      color: C.green   },
-];
 
 const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 export default function AnalyzingScreen({ navigation, route }: any) {
+  const { colors: C, isDark } = useTheme();
   const {
     duration    = 0,
     mode        = 'Free Speech',
@@ -32,9 +21,16 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     fillerWords = [],
   } = route?.params ?? {};
 
-  const userId       = useAuthStore(s => s.user?.id);
-  const addSpeech    = useSessionStore(s => s.addSpeechSession);
-  const savedRef     = useRef(false);
+  const userId    = useAuthStore(s => s.user?.id);
+  const addSpeech = useSessionStore(s => s.addSpeechSession);
+  const savedRef  = useRef(false);
+
+  const STEPS = [
+    { label:'Processing audio',       icon:'cloud-upload-outline', color: C.primary },
+    { label:'Reading transcript',     icon:'mic-outline',          color: C.warning  },
+    { label:'Detecting filler words', icon:'warning-outline',      color: C.error    },
+    { label:'Running AI analysis',    icon:'sparkles-outline',     color: C.success  },
+  ];
 
   const [currentStep, setCurrentStep] = useState(0);
   const [done,        setDone]        = useState(false);
@@ -63,12 +59,10 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       return;
     }
 
-    // Step 1 — transcript preview
     updateStep(1);
     setStatusMsg(`Transcript: ${transcript.slice(0, 60)}…`);
     await delay(900);
 
-    // Step 2 — filler breakdown from AssemblyAI word data
     updateStep(2);
     const fillerBreakdown: Record<string, number> = {};
     for (const w of fillerWords as Array<{ text: string }>) {
@@ -78,7 +72,6 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     const fillerCount = Object.values(fillerBreakdown).reduce((a, b) => a + b, 0);
     await delay(600);
 
-    // Step 3 — OpenAI analysis on real transcript
     updateStep(3);
     setStatusMsg('');
 
@@ -120,14 +113,10 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       confidence:    Math.round(confidence),
     };
 
-    // Persist session exactly once before navigating away
     if (!savedRef.current && userId) {
       savedRef.current = true;
       addSpeech({
-        mode,
-        score,
-        duration,
-        wpm,
+        mode, score, duration, wpm,
         filler_count:     fillerCount,
         filler_breakdown: fillerBreakdown,
         transcript,
@@ -154,18 +143,38 @@ export default function AnalyzingScreen({ navigation, route }: any) {
 
   const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, W - 80] });
 
+  const s = StyleSheet.create({
+    root:         { flex: 1, backgroundColor: C.bg },
+    content:      { flex: 1, paddingHorizontal: 24, paddingTop: Platform.OS === 'ios' ? 100 : 80, alignItems: 'center' },
+    iconArea:     { height: 120, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+    spinnerOuter: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    title:        { fontSize: 22, fontWeight: '700', color: C.text, marginBottom: 6, textAlign: 'center' },
+    sub:          { fontSize: 14, color: C.textSec, marginBottom: 24, textAlign: 'center', paddingHorizontal: 16 },
+    progressTrack:{ width: '100%', height: 6, backgroundColor: C.surface, borderRadius: 3, overflow: 'hidden', marginBottom: 28 },
+    progressFill: { height: '100%', borderRadius: 3, backgroundColor: C.primary },
+    stepList:     { width: '100%', gap: 14 },
+    stepRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    stepDot:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
+    stepLabel:    { flex: 1, fontSize: 14, color: C.textMuted },
+    errorWrap:    { alignItems: 'center', gap: 16, paddingHorizontal: 8, marginTop: 20 },
+    errorTitle:   { fontSize: 20, fontWeight: '700', color: C.error, textAlign: 'center' },
+    errorMsg:     { fontSize: 13, color: C.textSec, lineHeight: 20, textAlign: 'center' },
+    retryBtn:     { marginTop: 8, backgroundColor: C.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 },
+    retryTxt:     { fontSize: 14, fontWeight: '700', color: '#fff' },
+  });
+
   return (
     <View style={s.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.View style={[s.content, { opacity: fadeAnim }]}>
 
         {hasError ? (
           <View style={s.errorWrap}>
-            <Ionicons name="alert-circle" size={60} color={C.rose} />
+            <Ionicons name="alert-circle" size={60} color={C.error} />
             <Text style={s.errorTitle}>Analysis Failed</Text>
             <Text style={s.errorMsg}>{hasError}</Text>
             <TouchableOpacity style={s.retryBtn} onPress={() => navigation.goBack()}>
-              <Text style={s.retryTxt}>← Go Back & Try Again</Text>
+              <Text style={s.retryTxt}>Go Back & Try Again</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -180,15 +189,13 @@ export default function AnalyzingScreen({ navigation, route }: any) {
                   />
                 </View>
               ) : (
-                <Ionicons name="checkmark-circle" size={64} color={C.green} />
+                <Ionicons name="checkmark-circle" size={64} color={C.success} />
               )}
             </View>
             <Text style={s.title}>{done ? 'Analysis Complete' : 'Analyzing Your Speech'}</Text>
             <Text style={s.sub}>{done ? 'Your results are ready' : (statusMsg || 'Please wait…')}</Text>
             <View style={s.progressTrack}>
-              <Animated.View style={[s.progressFill, { width: progressWidth }]}>
-                <LinearGradient colors={[C.primary, C.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-              </Animated.View>
+              <Animated.View style={[s.progressFill, { width: progressWidth }]} />
             </View>
             <View style={s.stepList}>
               {STEPS.map((step, i) => {
@@ -198,7 +205,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
                   <View key={i} style={s.stepRow}>
                     <View style={[
                       s.stepDot,
-                      isDone    && { backgroundColor: C.green },
+                      isDone    && { backgroundColor: C.success },
                       isCurrent && { backgroundColor: step.color },
                     ]}>
                       {isDone && <Ionicons name="checkmark" size={12} color="#fff" />}
@@ -220,23 +227,3 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: C.bg },
-  content:      { flex: 1, paddingHorizontal: 24, paddingTop: Platform.OS === 'ios' ? 100 : 80, alignItems: 'center' },
-  iconArea:     { height: 120, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  spinnerOuter: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.bgCard, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  title:        { fontSize: 22, fontWeight: '700', color: C.text, marginBottom: 6, textAlign: 'center' },
-  sub:          { fontSize: 14, color: C.textSec, marginBottom: 24, textAlign: 'center', paddingHorizontal: 16 },
-  progressTrack:{ width: '100%', height: 6, backgroundColor: C.surface, borderRadius: 3, overflow: 'hidden', marginBottom: 28 },
-  progressFill: { height: '100%', borderRadius: 3, overflow: 'hidden' },
-  stepList:     { width: '100%', gap: 14 },
-  stepRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepDot:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-  stepLabel:    { flex: 1, fontSize: 14, color: C.textHint },
-  errorWrap:    { alignItems: 'center', gap: 16, paddingHorizontal: 8, marginTop: 20 },
-  errorTitle:   { fontSize: 20, fontWeight: '700', color: C.rose, textAlign: 'center' },
-  errorMsg:     { fontSize: 13, color: C.textSec, lineHeight: 20, textAlign: 'center' },
-  retryBtn:     { marginTop: 8, backgroundColor: C.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 },
-  retryTxt:     { fontSize: 14, fontWeight: '700', color: '#fff' },
-});

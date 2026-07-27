@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from './src/store/authStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { ThemeProvider } from './src/theme/ThemeContext';
 
 // ── CRITICAL: Fix web scrolling ───────────────────────────────────────────────
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -17,7 +18,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
       html, body {
         height: 100%; margin: 0; padding: 0; overflow: hidden;
-        background: #05050F;
+        background: #121316;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       }
@@ -32,11 +33,11 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       }
       .card-3d:hover {
         transform: perspective(900px) rotateX(-3deg) rotateY(2deg) translateZ(10px) translateY(-4px);
-        box-shadow: 0 28px 56px rgba(0,0,0,0.55), 0 0 36px rgba(139,92,246,0.22);
+        box-shadow: 0 28px 56px rgba(0,0,0,0.55), 0 0 36px rgba(79,110,247,0.22);
       }
       @keyframes glowPulse {
-        0%,100% { box-shadow: 0 0 22px rgba(139,92,246,0.35); }
-        50%      { box-shadow: 0 0 44px rgba(139,92,246,0.65); }
+        0%,100% { box-shadow: 0 0 22px rgba(79,110,247,0.35); }
+        50%      { box-shadow: 0 0 44px rgba(79,110,247,0.65); }
       }
       .btn-glow { animation: glowPulse 2.6s ease-in-out infinite; }
       @keyframes fadeSlideIn {
@@ -51,9 +52,9 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       }
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.4); border-radius: 2px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.7); }
-      ::selection { background: rgba(139,92,246,0.38); color: #fff; }
+      ::-webkit-scrollbar-thumb { background: rgba(79,110,247,0.4); border-radius: 2px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(79,110,247,0.7); }
+      ::selection { background: rgba(79,110,247,0.38); color: #fff; }
       .google-btn { transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: pointer; }
       .google-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
       .google-btn:active { transform: translateY(0px); }
@@ -92,7 +93,7 @@ export default function App() {
   if (!ready) {
     return (
       <View style={s.loading}>
-        <ActivityIndicator size="large" color="#6C5CE7" />
+        <ActivityIndicator size="large" color="#4F6EF7" />
       </View>
     );
   }
@@ -100,8 +101,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={s.flex}>
-        <StatusBar style="dark" />
-        <RootNavigator />
+        <ThemeProvider>
+          <StatusBar style="auto" />
+          <RootNavigator />
+        </ThemeProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
@@ -109,5 +112,5 @@ export default function App() {
 
 const s = StyleSheet.create({
   flex:    { flex: 1 },
-  loading: { flex: 1, backgroundColor: '#F8F7F4', alignItems: 'center', justifyContent: 'center' },
+  loading: { flex: 1, backgroundColor: '#121316', alignItems: 'center', justifyContent: 'center' },
 });

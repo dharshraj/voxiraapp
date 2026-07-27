@@ -72,9 +72,7 @@ import AchievementsScreen     from '../screens/profile/AchievementsScreen';
 // ── Settings ──────────────────────────────────────────────────────────────────
 import SettingsScreen             from '../screens/settings/SettingsScreen';
 import NotificationSettingsScreen from '../screens/settings/NotificationSettingsScreen';
-import SubscriptionScreen         from '../screens/settings/SubscriptionScreen';
 import PrivacyPolicyScreen        from '../screens/settings/PrivacyPolicyScreen';
-import HelpScreen                 from '../screens/settings/HelpScreen';
 
 import PlaceholderScreen from './PlaceholderScreen';
 
@@ -192,8 +190,6 @@ function ProfileStack() {
       <Stack.Screen name="Achievements"         component={AchievementsScreen} />
       <Stack.Screen name="Settings"             component={SettingsScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
-      <Stack.Screen name="Subscription"         component={SubscriptionScreen} />
-      <Stack.Screen name="Help"                 component={HelpScreen} />
       <Stack.Screen name="PrivacyPolicy"        component={PrivacyPolicyScreen} />
       <Stack.Screen name="DeleteAccount"        component={DeleteAccountScreen} />
     </Stack.Navigator>
