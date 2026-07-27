@@ -1,11 +1,12 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, TextInput, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/authStore';
+import { useUserStore } from '../../store/userStore';
 
 const C = {
   bg:'#0A1628', bgCard:'#111E30', surface:'#1A2B3C',
@@ -14,206 +15,203 @@ const C = {
   hint:'rgba(240,244,255,0.25)', border:'rgba(255,255,255,0.07)', danger:'#EF4444',
 };
 
-const GOALS = ['Improve public speaking','Ace job interviews','Better workplace communication','Write better emails','Build confidence'];
-const LEVELS= ['Beginner','Intermediate','Advanced','Expert'];
+const GOALS  = ['Improve public speaking','Ace job interviews','Better workplace communication','Write better emails','Build confidence'];
+const LEVELS = ['Beginner','Intermediate','Advanced','Expert'];
 
-export default function EditProfileScreen({ navigation }:any) {
-  const [fullName,  setFullName]  = useState('');
-  const [email,     setEmail]     = useState('');
-  const [bio,       setBio]       = useState('');
-  const [level,     setLevel]     = useState('Beginner');
-  const [goals,     setGoals]     = useState<string[]>([]);
-  const [saving,    setSaving]    = useState(false);
-  const [loading,   setLoading]   = useState(true);
+export default function EditProfileScreen({ navigation }: any) {
+  const user          = useAuthStore(s => s.user);
+  const profile       = useUserStore(s => s.profile);
+  const profileLoading= useUserStore(s => s.loading);
+  const updateProfile = useUserStore(s => s.updateProfile);
 
-  useEffect(()=>{ loadProfile(); },[]);
+  const [fullName, setFullName] = useState('');
+  const [bio,      setBio]      = useState('');
+  const [level,    setLevel]    = useState('Beginner');
+  const [goals,    setGoals]    = useState<string[]>([]);
+  const [saving,   setSaving]   = useState(false);
 
-  const loadProfile = async () => {
-    try {
-      const { data:{ user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setEmail(user.email ?? '');
-      const { data } = await supabase.from('profiles').select('*').eq('id',user.id).single();
-      if (data) {
-        setFullName(data.full_name ?? '');
-        setBio(data.bio ?? '');
-        setLevel(data.level ?? 'Beginner');
-        setGoals(data.goals ?? []);
-      } else {
-        setFullName(user.user_metadata?.full_name ?? '');
-      }
-    } catch {}
-    setLoading(false);
-  };
+  // Populate form from store profile
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name ?? '');
+      setBio(profile.bio ?? '');
+      setLevel(profile.level ?? 'Beginner');
+      setGoals(profile.goals ?? []);
+    } else if (user) {
+      setFullName(user.user_metadata?.full_name ?? '');
+    }
+  }, [profile, user]);
+
+  const email = profile?.email ?? user?.email ?? '';
 
   const save = async () => {
-    if (!fullName.trim()) { Alert.alert('Error','Full name is required.'); return; }
+    if (!fullName.trim()) {
+      Alert.alert('Error', 'Full name is required.');
+      return;
+    }
     setSaving(true);
     try {
-      const { data:{ user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('profiles').upsert({
-          id: user.id, full_name:fullName.trim(),
-          bio:bio.trim(), level, goals, updated_at:new Date().toISOString(),
-        });
-        await supabase.auth.updateUser({ data:{ full_name:fullName.trim() } });
+      const ok = await updateProfile({
+        full_name: fullName.trim(),
+        bio:       bio.trim(),
+        level,
+        goals,
+        email,
+      });
+      if (ok) {
+        Alert.alert('Saved!', 'Your profile has been updated.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        Alert.alert('Error', 'Could not save. Try again.');
       }
-      Alert.alert('Saved!','Your profile has been updated.',[
-        { text:'OK', onPress:()=>navigation.goBack() }
-      ]);
     } catch {
-      Alert.alert('Error','Could not save. Try again.');
+      Alert.alert('Error', 'Could not save. Try again.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-  const toggleGoal = (g:string) => setGoals(prev => prev.includes(g) ? prev.filter(x=>x!==g) : [...prev,g]);
+  const toggleGoal = (g: string) =>
+    setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
 
-  if (loading) return (
-    <View style={[s.root,{alignItems:'center',justifyContent:'center'}]}>
-      <ActivityIndicator size="large" color={C.primary}/>
-    </View>
-  );
+  if (profileLoading && !profile) {
+    return (
+      <View style={[s.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={C.primary} />
+      </View>
+    );
+  }
 
-  const initials = fullName.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2) || 'V';
+  const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'V';
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <LinearGradient colors={['#0F2040',C.bg]} style={s.headerBg}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+      <ScrollView
+        style={Platform.OS === 'web' ? ({ height: '100vh', overflowY: 'scroll' } as any) : undefined}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={s.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={()=>navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color={C.muted}/>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={C.muted} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Edit Profile</Text>
-          <TouchableOpacity onPress={save} disabled={saving}>
+          <TouchableOpacity
+            style={[s.saveBtn, saving && { opacity: 0.6 }]}
+            onPress={save}
+            disabled={saving}
+          >
             {saving
-              ? <ActivityIndicator color={C.primary} size="small"/>
-              : <Text style={s.saveBtn}>Save</Text>
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={s.saveTxt}>Save</Text>
             }
           </TouchableOpacity>
         </View>
 
         {/* Avatar */}
         <View style={s.avatarSection}>
-          <LinearGradient colors={['#1565FF','#7C3AED']} style={s.avatarGrad}>
+          <LinearGradient colors={['#8B5CF6', '#F43F5E']} style={s.avatarGrad}>
             <Text style={s.avatarTxt}>{initials}</Text>
           </LinearGradient>
-          <TouchableOpacity style={s.changePhotoBtn}>
-            <Text style={s.changePhotoTxt}>Change Photo</Text>
-          </TouchableOpacity>
         </View>
-      </LinearGradient>
 
-      <ScrollView style={Platform.OS === 'web' ? ({height: '100vh', overflowY: 'scroll'} as any) : undefined} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Form */}
+        <View style={s.form}>
+          <Text style={s.label}>FULL NAME</Text>
+          <TextInput
+            style={s.input}
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Your full name"
+            placeholderTextColor={C.hint}
+            autoCapitalize="words"
+          />
 
-        {/* Basic info */}
-        <Text style={s.sectionTitle}>Basic Information</Text>
-        <View style={s.card}>
-          <View style={s.fieldWrap}>
-            <Text style={s.label}>FULL NAME</Text>
-            <View style={s.inputWrap}>
-              <Ionicons name="person-outline" size={17} color={C.hint} style={{marginRight:10}}/>
-              <TextInput style={s.input} value={fullName} onChangeText={setFullName}
-                placeholder="Your full name" placeholderTextColor={C.hint} autoCapitalize="words"/>
-            </View>
-          </View>
-          <View style={s.divider}/>
-          <View style={s.fieldWrap}>
-            <Text style={s.label}>EMAIL</Text>
-            <View style={[s.inputWrap,{opacity:0.5}]}>
-              <Ionicons name="mail-outline" size={17} color={C.hint} style={{marginRight:10}}/>
-              <TextInput style={s.input} value={email} editable={false} placeholderTextColor={C.hint}/>
-            </View>
-            <Text style={s.fieldNote}>Email cannot be changed here</Text>
-          </View>
-          <View style={s.divider}/>
-          <View style={s.fieldWrap}>
-            <Text style={s.label}>BIO</Text>
-            <View style={[s.inputWrap,{height:80,alignItems:'flex-start',paddingTop:12}]}>
-              <TextInput style={[s.input,{height:56}]} value={bio} onChangeText={setBio}
-                placeholder="Tell us about yourself..." placeholderTextColor={C.hint}
-                multiline numberOfLines={3} maxLength={150}/>
-            </View>
-            <Text style={s.fieldNote}>{bio.length}/150</Text>
-          </View>
+          <Text style={s.label}>EMAIL</Text>
+          <TextInput
+            style={[s.input, { opacity: 0.5 }]}
+            value={email}
+            editable={false}
+            placeholderTextColor={C.hint}
+          />
+
+          <Text style={s.label}>BIO</Text>
+          <TextInput
+            style={[s.input, { minHeight: 80, textAlignVertical: 'top' }]}
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Tell us about yourself..."
+            placeholderTextColor={C.hint}
+            multiline
+          />
         </View>
 
         {/* Level */}
-        <Text style={s.sectionTitle}>Speaking Level</Text>
+        <Text style={s.sectionTitle}>Skill Level</Text>
         <View style={s.levelRow}>
-          {LEVELS.map(l=>(
-            <TouchableOpacity key={l} style={[s.levelCard, level===l&&s.levelCardActive]} onPress={()=>setLevel(l)}>
-              <Text style={[s.levelTxt, level===l&&s.levelTxtActive]}>{l}</Text>
-              {level===l&&<Ionicons name="checkmark-circle" size={16} color={C.green}/>}
+          {LEVELS.map(l => (
+            <TouchableOpacity
+              key={l}
+              style={[s.levelCard, level === l && s.levelCardActive]}
+              onPress={() => setLevel(l)}
+              activeOpacity={0.8}
+            >
+              <Text style={[s.levelTxt, level === l && s.levelTxtActive]}>{l}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Goals */}
-        <Text style={s.sectionTitle}>My Goals</Text>
+        <Text style={s.sectionTitle}>Learning Goals</Text>
         <View style={s.goalsWrap}>
-          {GOALS.map(g=>{
-            const active = goals.includes(g);
-            return (
-              <TouchableOpacity key={g} style={[s.goalChip, active&&s.goalChipActive]} onPress={()=>toggleGoal(g)}>
-                {active&&<Ionicons name="checkmark" size={13} color={C.primary}/>}
-                <Text style={[s.goalTxt, active&&s.goalTxtActive]}>{g}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {GOALS.map(g => (
+            <TouchableOpacity
+              key={g}
+              style={[s.goalChip, goals.includes(g) && s.goalChipActive]}
+              onPress={() => toggleGoal(g)}
+              activeOpacity={0.8}
+            >
+              {goals.includes(g) && (
+                <Ionicons name="checkmark-circle" size={14} color={C.primary} style={{ marginRight: 4 }} />
+              )}
+              <Text style={[s.goalTxt, goals.includes(g) && s.goalTxtActive]}>{g}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Save button */}
-        <TouchableOpacity style={s.primaryBtn} onPress={save} disabled={saving} activeOpacity={0.85}>
-          <LinearGradient colors={['#1565FF','#0D47A1']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.primaryBtnGrad}>
-            {saving ? <ActivityIndicator color="#fff"/> : (
-              <>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#fff"/>
-                <Text style={s.primaryBtnTxt}>Save Changes</Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <View style={{height:40}}/>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:           {flex:1,backgroundColor:C.bg},
-  headerBg:       {paddingBottom:20},
-  header:         {flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:36,marginBottom:16},
-  backBtn:        {width:42,height:42,borderRadius:13,backgroundColor:'rgba(255,255,255,0.08)',alignItems:'center',justifyContent:'center'},
-  headerTitle:    {fontSize:17,fontWeight:'700',color:C.text},
-  saveBtn:        {fontSize:15,fontWeight:'600',color:C.primary},
-  avatarSection:  {alignItems:'center',gap:10},
-  avatarGrad:     {width:80,height:80,borderRadius:24,alignItems:'center',justifyContent:'center'},
-  avatarTxt:      {fontSize:28,fontWeight:'800',color:'#fff'},
-  changePhotoBtn: {backgroundColor:'rgba(21,101,255,0.15)',borderRadius:12,paddingHorizontal:14,paddingVertical:6},
-  changePhotoTxt: {fontSize:13,color:C.accent,fontWeight:'500'},
-  scroll:         {paddingHorizontal:20,paddingTop:16},
-  sectionTitle:   {fontSize:12,fontWeight:'700',color:C.hint,textTransform:'uppercase',letterSpacing:0.8,marginBottom:10,marginTop:20},
-  card:           {backgroundColor:C.bgCard,borderRadius:18,padding:16,borderWidth:1,borderColor:C.border},
-  fieldWrap:      {gap:8},
-  label:          {fontSize:11,fontWeight:'600',color:C.muted,letterSpacing:0.8},
-  inputWrap:      {flexDirection:'row',alignItems:'center',backgroundColor:C.surface,borderRadius:12,paddingHorizontal:14,height:48,borderWidth:1,borderColor:C.border},
-  input:          {flex:1,color:C.text,fontSize:14},
-  fieldNote:      {fontSize:11,color:C.hint},
-  divider:        {height:1,backgroundColor:C.border,marginVertical:12},
-  levelRow:       {flexDirection:'row',flexWrap:'wrap',gap:8},
-  levelCard:      {paddingHorizontal:16,paddingVertical:10,borderRadius:14,borderWidth:1,borderColor:C.border,backgroundColor:C.bgCard,flexDirection:'row',alignItems:'center',gap:6},
-  levelCardActive:{borderColor:'rgba(34,197,94,0.5)',backgroundColor:'rgba(34,197,94,0.08)'},
-  levelTxt:       {fontSize:13,color:C.muted,fontWeight:'500'},
-  levelTxtActive: {color:C.green},
-  goalsWrap:      {flexDirection:'row',flexWrap:'wrap',gap:8},
-  goalChip:       {flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:14,paddingVertical:9,borderRadius:20,borderWidth:1,borderColor:C.border,backgroundColor:C.bgCard},
-  goalChipActive: {borderColor:'rgba(21,101,255,0.5)',backgroundColor:'rgba(21,101,255,0.10)'},
-  goalTxt:        {fontSize:13,color:C.muted},
-  goalTxtActive:  {color:C.primary,fontWeight:'500'},
-  primaryBtn:     {borderRadius:16,overflow:'hidden',marginTop:24},
-  primaryBtnGrad: {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10,paddingVertical:16},
-  primaryBtnTxt:  {fontSize:16,fontWeight:'700',color:'#fff'},
+  root:          { flex: 1, backgroundColor: C.bg },
+  scroll:        { paddingBottom: 40 },
+  header:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 32, marginBottom: 24, gap: 10 },
+  backBtn:       { width: 42, height: 42, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle:   { flex: 1, fontSize: 17, fontWeight: '700', color: C.text, textAlign: 'center' },
+  saveBtn:       { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
+  saveTxt:       { fontSize: 14, fontWeight: '700', color: '#fff' },
+  avatarSection: { alignItems: 'center', marginBottom: 24 },
+  avatarGrad:    { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  avatarTxt:     { fontSize: 28, fontWeight: '800', color: '#fff' },
+  form:          { paddingHorizontal: 20, marginBottom: 24 },
+  label:         { fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8, marginTop: 16 },
+  input:         { backgroundColor: C.bgCard, borderRadius: 14, padding: 14, color: C.text, fontSize: 14, borderWidth: 1, borderColor: C.border },
+  sectionTitle:  { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 12, paddingHorizontal: 20 },
+  levelRow:      { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 24 },
+  levelCard:     { flex: 1, backgroundColor: C.bgCard, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: C.border },
+  levelCardActive: { borderColor: C.primary, backgroundColor: 'rgba(21,101,255,0.12)' },
+  levelTxt:      { fontSize: 11, fontWeight: '600', color: C.muted },
+  levelTxtActive:{ color: C.primary },
+  goalsWrap:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
+  goalChip:      { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bgCard, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
+  goalChipActive:{ borderColor: 'rgba(21,101,255,0.5)', backgroundColor: 'rgba(21,101,255,0.10)' },
+  goalTxt:       { fontSize: 13, color: C.muted },
+  goalTxtActive: { color: C.text },
 });

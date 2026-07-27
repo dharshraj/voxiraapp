@@ -24,22 +24,39 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ session: null, user: null });
   },
 
-  // Call once at app startup — returns the unsubscribe fn for cleanup.
-  // RootNavigator currently manages auth state itself; call initialize()
-  // from there (or App.tsx) to migrate to this shared store.
+  // Race-condition-safe initialization.
+  // Whichever resolves first (listener or getSession) wins the initial loading→false
+  // transition; the safety timeout unblocks after 5 s on slow networks.
+  // Returns a cleanup function — call it from your root component on unmount.
   initialize: () => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      set({ session, user: session?.user ?? null, loading: false });
-    }).catch(() => {
-      set({ loading: false });
-    });
+    let resolved = false;
 
+    const resolve = (sess: Session | null) => {
+      if (resolved) return;
+      resolved = true;
+      set({ session: sess, user: sess?.user ?? null, loading: false });
+    };
+
+    // 1. Subscribe first — fires INITIAL_SESSION on web if session already exists
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        set({ session, user: session?.user ?? null, loading: false });
+      (_event, sess) => {
+        // Always reflect subsequent auth changes (login / logout / token refresh)
+        set({ session: sess, user: sess?.user ?? null });
+        resolve(sess);
       }
     );
 
-    return () => subscription.unsubscribe();
+    // 2. getSession as a backup — needed when the listener fires late on web
+    supabase.auth.getSession()
+      .then(({ data: { session: sess } }) => resolve(sess))
+      .catch(() => resolve(null));
+
+    // 3. Safety timeout — unblocks the loading state after 5 s regardless
+    const timeout = setTimeout(() => resolve(null), 5_000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   },
 }));

@@ -5,6 +5,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { analyzeSpeech } from '../../lib/openai';
+import { useSessionStore } from '../../store/sessionStore';
+import { useAuthStore } from '../../store/authStore';
 
 const { width: W } = Dimensions.get('window');
 const C = {
@@ -14,10 +16,10 @@ const C = {
 };
 
 const STEPS = [
-  { label:'Processing audio',       icon:'cloud-upload-outline',  color:C.primary },
-  { label:'Reading transcript',     icon:'mic-outline',           color:C.gold    },
-  { label:'Detecting filler words', icon:'warning-outline',       color:C.rose    },
-  { label:'Running AI analysis',    icon:'sparkles-outline',      color:C.green   },
+  { label:'Processing audio',       icon:'cloud-upload-outline',  color: C.primary },
+  { label:'Reading transcript',     icon:'mic-outline',           color: C.gold    },
+  { label:'Detecting filler words', icon:'warning-outline',       color: C.rose    },
+  { label:'Running AI analysis',    icon:'sparkles-outline',      color: C.green   },
 ];
 
 const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -29,6 +31,10 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     transcript  = '',
     fillerWords = [],
   } = route?.params ?? {};
+
+  const userId       = useAuthStore(s => s.user?.id);
+  const addSpeech    = useSessionStore(s => s.addSpeechSession);
+  const savedRef     = useRef(false);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [done,        setDone]        = useState(false);
@@ -50,7 +56,6 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     updateStep(0);
     await delay(700);
 
-    // Guard: should never arrive here without a real transcript
     if (!transcript || transcript.length < 10) {
       setHasError(
         'No transcript was captured.\n\nTranscription may have failed — go back and try recording again.'
@@ -58,12 +63,12 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       return;
     }
 
-    // Step 1 — show real transcript preview
+    // Step 1 — transcript preview
     updateStep(1);
     setStatusMsg(`Transcript: ${transcript.slice(0, 60)}…`);
     await delay(900);
 
-    // Step 2 — compute filler breakdown from AssemblyAI word data
+    // Step 2 — filler breakdown from AssemblyAI word data
     updateStep(2);
     const fillerBreakdown: Record<string, number> = {};
     for (const w of fillerWords as Array<{ text: string }>) {
@@ -73,7 +78,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     const fillerCount = Object.values(fillerBreakdown).reduce((a, b) => a + b, 0);
     await delay(600);
 
-    // Step 3 — run OpenAI analysis on the real transcript
+    // Step 3 — OpenAI analysis on real transcript
     updateStep(3);
     setStatusMsg('');
 
@@ -95,11 +100,9 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       return;
     }
 
-    // All scores come from real AI output
     const clarity        = aiAnalysis.clarityScore;
     const confidence     = aiAnalysis.confidenceScore;
     const structureScore = aiAnalysis.structureScore;
-    // Pronunciation is inferred from clarity (text alone can't measure it)
     const pronunciation  = Math.min(96, Math.round(clarity * 0.93 + 5));
 
     const fillerPenalty = Math.min(25, fillerCount * 2);
@@ -116,6 +119,24 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       pronunciation: Math.round(pronunciation),
       confidence:    Math.round(confidence),
     };
+
+    // Persist session exactly once before navigating away
+    if (!savedRef.current && userId) {
+      savedRef.current = true;
+      addSpeech({
+        mode,
+        score,
+        duration,
+        wpm,
+        filler_count:     fillerCount,
+        filler_breakdown: fillerBreakdown,
+        transcript,
+        clarity:      details.clarity,
+        pace:         details.pace,
+        pronunciation:details.pronunciation,
+        confidence:   details.confidence,
+      }, userId).catch(console.warn);
+    }
 
     setDone(true);
     setTimeout(() => {
@@ -166,12 +187,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
             <Text style={s.sub}>{done ? 'Your results are ready' : (statusMsg || 'Please wait…')}</Text>
             <View style={s.progressTrack}>
               <Animated.View style={[s.progressFill, { width: progressWidth }]}>
-                <LinearGradient
-                  colors={[C.primary, C.accent]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={StyleSheet.absoluteFill}
-                />
+                <LinearGradient colors={[C.primary, C.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
               </Animated.View>
             </View>
             <View style={s.stepList}>

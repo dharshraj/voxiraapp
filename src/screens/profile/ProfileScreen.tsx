@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/authStore';
+import { useUserStore } from '../../store/userStore';
 
 const C = {
   bg:          '#05050F',
@@ -31,17 +32,17 @@ const MENU_SECTIONS = [
   {
     title: 'PROGRESS',
     items: [
-      { label: 'Progress Overview', icon: 'trending-up',       color: '#06B6D4', softBg: 'rgba(6,182,212,0.12)',   screen: 'ProgressOverview' },
-      { label: 'Achievements',      icon: 'trophy',             color: '#F59E0B', softBg: 'rgba(245,158,11,0.12)', screen: 'Achievements'     },
+      { label: 'Progress Overview', icon: 'trending-up',  color: '#06B6D4', softBg: 'rgba(6,182,212,0.12)',   screen: 'ProgressOverview' },
+      { label: 'Achievements',      icon: 'trophy',        color: '#F59E0B', softBg: 'rgba(245,158,11,0.12)', screen: 'Achievements'     },
     ],
   },
   {
     title: 'ACCOUNT',
     items: [
-      { label: 'Edit Profile',          icon: 'person',          color: '#06B6D4', softBg: 'rgba(6,182,212,0.12)',   screen: 'EditProfile'          },
-      { label: 'Subscription',          icon: 'diamond',         color: '#F59E0B', softBg: 'rgba(245,158,11,0.12)', screen: 'Subscription'         },
-      { label: 'Notification Settings', icon: 'notifications',   color: '#10B981', softBg: 'rgba(16,185,129,0.12)', screen: 'NotificationSettings' },
-      { label: 'Settings',              icon: 'settings',        color: 'rgba(241,245,249,0.38)', softBg: 'rgba(255,255,255,0.06)', screen: 'Settings' },
+      { label: 'Edit Profile',          icon: 'person',        color: '#06B6D4', softBg: 'rgba(6,182,212,0.12)',   screen: 'EditProfile'          },
+      { label: 'Subscription',          icon: 'diamond',       color: '#F59E0B', softBg: 'rgba(245,158,11,0.12)', screen: 'Subscription'         },
+      { label: 'Notification Settings', icon: 'notifications', color: '#10B981', softBg: 'rgba(16,185,129,0.12)', screen: 'NotificationSettings' },
+      { label: 'Settings',              icon: 'settings',      color: 'rgba(241,245,249,0.38)', softBg: 'rgba(255,255,255,0.06)', screen: 'Settings' },
     ],
   },
   {
@@ -54,36 +55,19 @@ const MENU_SECTIONS = [
 ];
 
 export default function ProfileScreen({ navigation }: any) {
-  const [profile, setProfile]       = useState<any>(null);
+  const profile    = useUserStore(s => s.profile);
+  const signOut    = useAuthStore(s => s.signOut);
   const [signingOut, setSigningOut] = useState(false);
-  const fade = useRef(new Animated.Value(0)).current;
+  const fade       = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    loadProfile();
   }, []);
 
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      setProfile(data ?? {
-        full_name: user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Voxira User',
-        level: 'Beginner',
-        streak_days: 0,
-        email: user.email,
-      });
-    } catch {
-      setProfile({ full_name: 'Voxira User', level: 'Beginner', streak_days: 0 });
-    }
-  };
-
-  const signOut = async () => {
+  const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) Alert.alert('Sign out failed', error.message);
+      await signOut();
     } catch (e: any) {
       Alert.alert('Sign out failed', e?.message ?? 'Something went wrong.');
     } finally {
@@ -109,11 +93,7 @@ export default function ProfileScreen({ navigation }: any) {
         {/* HEADER */}
         <View style={s.header}>
           <Text style={s.headerTitle}>Profile</Text>
-          <TouchableOpacity
-            style={s.settingsBtn}
-            onPress={() => navigation.navigate('Settings')}
-            activeOpacity={0.75}
-          >
+          <TouchableOpacity style={s.settingsBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.75}>
             <Ionicons name={'settings-outline' as any} size={22} color={C.textMuted} />
           </TouchableOpacity>
         </View>
@@ -124,11 +104,7 @@ export default function ProfileScreen({ navigation }: any) {
             <LinearGradient colors={['#8B5CF6', '#F43F5E']} style={s.avatarGrad}>
               <Text style={s.avatarTxt}>{initials}</Text>
             </LinearGradient>
-            <TouchableOpacity
-              style={s.editBadge}
-              onPress={() => navigation.navigate('EditProfile')}
-              activeOpacity={0.75}
-            >
+            <TouchableOpacity style={s.editBadge} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.75}>
               <Ionicons name={'pencil' as any} size={14} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -146,12 +122,9 @@ export default function ProfileScreen({ navigation }: any) {
             { val: '0',                               lbl: 'Sessions', color: C.cyan    },
             { val: String(profile?.streak_days ?? 0), lbl: 'Streak',   color: C.amber   },
             { val: '—',                               lbl: 'Avg Score',color: C.purple  },
-            { val: profile?.level ?? 'Beg',           lbl: 'Level',    color: C.emerald },
+            { val: profile?.level?.slice(0, 3) ?? 'Beg', lbl: 'Level', color: C.emerald },
           ].map((st, i) => (
-            <View
-              key={i}
-              style={[s.statItem, i < 3 && { borderRightWidth: 1, borderRightColor: C.border }]}
-            >
+            <View key={i} style={[s.statItem, i < 3 && { borderRightWidth: 1, borderRightColor: C.border }]}>
               <Text style={[s.statVal, { color: st.color }]}>{st.val}</Text>
               <Text style={s.statLbl}>{st.lbl}</Text>
             </View>
@@ -159,17 +132,8 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
 
         {/* PRO BANNER */}
-        <TouchableOpacity
-          style={s.proBanner}
-          onPress={() => navigation.navigate('Subscription')}
-          activeOpacity={0.75}
-        >
-          <LinearGradient
-            colors={['#8B5CF6', '#4338CA', '#1D4ED8']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
+        <TouchableOpacity style={s.proBanner} onPress={() => navigation.navigate('Subscription')} activeOpacity={0.75}>
+          <LinearGradient colors={['#8B5CF6', '#4338CA', '#1D4ED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
           <View style={s.proOrb} />
           <View style={s.proIconBox}>
             <Ionicons name={'diamond-outline' as any} size={24} color="#fff" />
@@ -207,7 +171,7 @@ export default function ProfileScreen({ navigation }: any) {
         {/* SIGN OUT */}
         <TouchableOpacity
           style={[s.signOutBtn, signingOut && s.signOutBtnDisabled]}
-          onPress={signOut}
+          onPress={handleSignOut}
           disabled={signingOut}
           activeOpacity={0.75}
         >
@@ -231,88 +195,36 @@ export default function ProfileScreen({ navigation }: any) {
 const s = StyleSheet.create({
   root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100vh' as any, overflow: 'hidden' as any }) },
   scrollContent: { paddingBottom: 100 },
-  header:        {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 20,
-  },
+  header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 20 },
   headerTitle:   { fontSize: 22, fontWeight: '700', color: C.text },
-  settingsBtn:   {
-    width: 42, height: 42, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: C.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  settingsBtn:   { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   avatarSection: { alignItems: 'center', gap: 10, marginBottom: 24 },
   avatarWrap:    { position: 'relative' },
   avatarGrad:    { width: 90, height: 90, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   avatarTxt:     { fontSize: 32, fontWeight: '800', color: '#fff' },
-  editBadge:     {
-    position: 'absolute', bottom: -2, right: -2,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: C.purple, borderWidth: 2, borderColor: C.bg,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  editBadge:     { position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderRadius: 14, backgroundColor: C.purple, borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   profileName:   { fontSize: 22, fontWeight: '700', color: C.text },
   profileEmail:  { fontSize: 13, color: C.textMuted },
-  levelBadge:    {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
-  },
+  levelBadge:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   levelTxt:      { fontSize: 12, color: C.amber, fontWeight: '600' },
-  statsRow:      {
-    flexDirection: 'row', marginHorizontal: 20,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 20, borderWidth: 1, borderColor: C.border,
-    overflow: 'hidden', marginBottom: 20,
-  },
+  statsRow:      { flexDirection: 'row', marginHorizontal: 20, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 20, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
   statItem:      { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statVal:       { fontSize: 16, fontWeight: '800', marginBottom: 2 },
   statLbl:       { fontSize: 10, color: C.textMuted },
-  proBanner:     {
-    marginHorizontal: 20, borderRadius: 20, height: 88,
-    overflow: 'hidden', flexDirection: 'row', alignItems: 'center', padding: 20,
-    borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)',
-    marginBottom: 8,
-  },
-  proOrb:        {
-    position: 'absolute', right: -20, top: -20,
-    width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  proIconBox:    {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-  },
+  proBanner:     { marginHorizontal: 20, borderRadius: 20, height: 88, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', padding: 20, borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)', marginBottom: 8 },
+  proOrb:        { position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.08)' },
+  proIconBox:    { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   proText:       { flex: 1, marginLeft: 14 },
   proTitle:      { fontSize: 14, fontWeight: '700', color: '#fff' },
   proSub:        { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
   section:       { marginTop: 20, paddingHorizontal: 20 },
-  sectionTitle:  {
-    fontSize: 11, fontWeight: '700', color: C.textHint,
-    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
-  },
-  menuCard:      {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: C.border,
-    borderRadius: 20, overflow: 'hidden',
-  },
-  menuRow:       {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14, borderBottomWidth: 1, borderBottomColor: C.border,
-  },
+  sectionTitle:  { fontSize: 11, fontWeight: '700', color: C.textHint, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  menuCard:      { backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.border, borderRadius: 20, overflow: 'hidden' },
+  menuRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderBottomWidth: 1, borderBottomColor: C.border },
   menuRowLast:   { borderBottomWidth: 0 },
   menuIconBox:   { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   menuLabel:     { flex: 1, fontSize: 14, fontWeight: '500', color: C.text },
-  signOutBtn:    {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    marginTop: 24, marginHorizontal: 20,
-    backgroundColor: 'rgba(244,63,94,0.06)',
-    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(244,63,94,0.25)',
-    padding: 18,
-  },
+  signOutBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 24, marginHorizontal: 20, backgroundColor: 'rgba(244,63,94,0.06)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(244,63,94,0.25)', padding: 18 },
   signOutBtnDisabled: { opacity: 0.5 },
   signOutTxt:    { fontSize: 15, fontWeight: '600', color: C.rose },
   version:       { textAlign: 'center', fontSize: 12, color: C.textHint, marginTop: 16 },

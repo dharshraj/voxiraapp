@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
+import { useUserStore } from '../store/userStore';
 
 // ── Auth & Onboarding ─────────────────────────────────────────────────────────
 import SplashScreen         from '../screens/auth/SplashScreen';
@@ -45,7 +45,7 @@ import NewWritingScreen        from '../screens/writing/NewWritingScreen';
 import GrammarResultScreen     from '../screens/writing/GrammarResultScreen';
 import ToneAnalysisScreen      from '../screens/writing/ToneAnalysisScreen';
 import StyleSuggestionsScreen  from '../screens/writing/StyleSuggestionsScreen';
-import RewriteScreen         from '../screens/writing/RewriteViewScreen';
+import RewriteScreen           from '../screens/writing/RewriteViewScreen';
 import WritingHistoryScreen    from '../screens/writing/WritingHistoryScreen';
 import WritingProgressScreen   from '../screens/writing/WritingProgressScreen';
 import EmailTemplateScreen     from '../screens/writing/EmailTemplateScreen';
@@ -82,14 +82,13 @@ const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
 
 const C = {
-  bg:'#05050F', surface:'#0C0C1E',
-  primary:'#8B5CF6', muted:'rgba(241,245,249,0.30)',
-  border:'rgba(255,255,255,0.07)',
+  bg:      '#05050F',
+  surface: '#0C0C1E',
+  primary: '#8B5CF6',
+  muted:   'rgba(241,245,249,0.30)',
+  border:  'rgba(255,255,255,0.07)',
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB BAR HEIGHT — platform-aware so Android gesture bar never overlaps tabs
-// ─────────────────────────────────────────────────────────────────────────────
 function useTabBarHeight() {
   const insets = useSafeAreaInsets();
   if (Platform.OS === 'web') {
@@ -98,7 +97,6 @@ function useTabBarHeight() {
   if (Platform.OS === 'ios') {
     return { height: 64 + insets.bottom, paddingBottom: insets.bottom + 8, paddingTop: 8 };
   }
-  // Android: insets.bottom is 0 on older devices with buttons, up to ~48 on gesture nav
   const androidExtra = insets.bottom > 0 ? insets.bottom : 16;
   return { height: 64 + androidExtra, paddingBottom: androidExtra + 4, paddingTop: 8 };
 }
@@ -239,9 +237,9 @@ function MainTabs() {
                 <View style={{
                   position: 'absolute', width: 36, height: 30, borderRadius: 12,
                   backgroundColor: 'rgba(139,92,246,0.15)',
-                }}/>
+                }} />
               )}
-              <Ionicons name={(focused ? active : inactive) as any} size={size} color={color}/>
+              <Ionicons name={(focused ? active : inactive) as any} size={size} color={color} />
             </View>
           );
         },
@@ -256,9 +254,6 @@ function MainTabs() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LOADING
-// ─────────────────────────────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <View style={st.loading}>
@@ -270,48 +265,22 @@ function LoadingScreen() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROOT — race-condition safe auth check for web + native
-// Problem on web: onAuthStateChange sometimes fires BEFORE getSession resolves,
-// or getSession resolves but the listener never fires → app stuck on loader.
-// Solution: whichever resolves first wins; 5s safety timeout as last resort.
+// ROOT — reads from authStore (initialized in App.tsx) instead of maintaining
+// its own listeners. Also loads the user profile whenever the user changes.
 // ─────────────────────────────────────────────────────────────────────────────
 export function RootNavigator() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const session = useAuthStore(s => s.session);
+  const loading = useAuthStore(s => s.loading);
+  const userId  = useAuthStore(s => s.user?.id);
 
-  // resolved ref prevents double-setting after the first answer arrives
-  const resolvedRef = React.useRef(false);
-
-  const resolve = useCallback((sess: Session | null) => {
-    if (resolvedRef.current) return;
-    resolvedRef.current = true;
-    setSession(sess);
-    setLoading(false);
-  }, []);
-
+  // Load / clear profile whenever the authenticated user changes
   useEffect(() => {
-    // 1. Subscribe to auth changes — fires immediately on web if session exists
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, sess) => {
-        // Always update session on subsequent changes (login / logout)
-        setSession(sess);
-        resolve(sess);
-      }
-    );
-
-    // 2. Also call getSession directly — needed when listener is slow on web
-    supabase.auth.getSession()
-      .then(({ data: { session: sess } }) => resolve(sess))
-      .catch(() => resolve(null));
-
-    // 3. Safety net: unblock after 5 seconds regardless
-    const timeout = setTimeout(() => resolve(null), 5000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
-  }, [resolve]);
+    if (userId) {
+      useUserStore.getState().loadProfile(userId);
+    } else {
+      useUserStore.getState().clearProfile();
+    }
+  }, [userId]);
 
   if (loading) return <LoadingScreen />;
 

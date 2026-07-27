@@ -8,6 +8,8 @@ export interface UserProfile {
   level: 'Beginner' | 'Intermediate' | 'Advanced' | string;
   streak_days: number;
   avatar_url?: string | null;
+  bio?: string | null;
+  goals?: string[] | null;
   created_at?: string;
 }
 
@@ -26,6 +28,8 @@ export const useUserStore = create<UserState>((set, get) => ({
   error: null,
 
   loadProfile: async (userId) => {
+    // Prevent concurrent fetches
+    if (get().loading) return;
     set({ loading: true, error: null });
     try {
       const { data, error } = await supabase
@@ -41,6 +45,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
+  // Uses upsert so it works for both initial profile creation and updates
   updateProfile: async (updates) => {
     const { profile } = get();
     if (!profile) return false;
@@ -49,8 +54,11 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('id', profile.id)
+        .upsert({
+          id: profile.id,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
@@ -63,5 +71,5 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  clearProfile: () => set({ profile: null, error: null }),
+  clearProfile: () => set({ profile: null, error: null, loading: false }),
 }));
