@@ -1,24 +1,26 @@
 /**
- * OpenAI service — Speech Analysis, Writing Coach, Interview Prep
+ * AI service — Speech Analysis (Groq), Writing Coach, Interview Prep (OpenAI proxy)
  *
- * Requests are proxied through the Supabase Edge Function `openai-proxy`
- * so that the API key never lives in the client bundle.
+ * Speech analysis requests (`analyzeSpeech`) are routed through the
+ * `groq-analysis` Supabase Edge Function which calls Groq's API server-side
+ * using llama-3.3-70b-versatile. The GROQ_API_KEY is NEVER in the client bundle.
  *
- * Deployment steps (run once):
- *   supabase functions deploy openai-proxy
- *   supabase secrets set OPENAI_KEY=sk-...
- *   # Then remove EXPO_PUBLIC_OPENAI_KEY from .env
+ * All other features (tone, style, interview) continue to use `openai-proxy`.
  *
- * During local development or before the function is deployed, the service
- * falls back to a direct API call using EXPO_PUBLIC_OPENAI_KEY if present.
+ * Deploy steps (run once):
+ *   supabase functions deploy groq-analysis
+ *   supabase secrets set GROQ_API_KEY=gsk_...
  */
 
 import { supabase } from './supabase';
 
-const DIRECT_KEY = process.env.EXPO_PUBLIC_OPENAI_KEY ?? '';
-const OPENAI_BASE = 'https://api.openai.com/v1';
-const MODEL       = 'gpt-4o-mini';
-const TIMEOUT_MS  = 30_000;
+// Only used by non-speech features (writing, interview) as a dev fallback.
+// Speech analysis has NO client-side key fallback — always goes through the edge function.
+const OPENAI_DIRECT_KEY = process.env.EXPO_PUBLIC_OPENAI_KEY ?? '';
+const OPENAI_BASE       = 'https://api.openai.com/v1';
+const OPENAI_MODEL      = 'gpt-4o-mini';
+const GROQ_MODEL        = 'llama-3.3-70b-versatile';
+const TIMEOUT_MS        = 35_000;
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
@@ -66,8 +68,61 @@ export interface AnswerEvaluation {
   followUpQuestion: string;
 }
 
-// ─── Core Chat Wrapper ────────────────────────────────────────────────────────
+// ─── Core Chat Wrappers ───────────────────────────────────────────────────────
 
+/**
+ * chatGroq — routes through the groq-analysis Edge Function.
+ * The GROQ_API_KEY never touches the client. No direct-key fallback by design.
+ * Throws with a human-readable message on any failure so callers can surface it.
+ */
+async function chatGroq(system: string, user: string, maxTokens = 1000): Promise<string> {
+  const messages = [
+    { role: 'system', content: system },
+    { role: 'user',   content: user   },
+  ];
+
+  console.log('[Groq] Invoking groq-analysis edge function, model:', GROQ_MODEL);
+
+  const controller = new AbortController();
+  const timeout    = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  let data: any;
+  let error: any;
+  try {
+    ({ data, error } = await supabase.functions.invoke('groq-analysis', {
+      body: { messages, model: GROQ_MODEL, max_tokens: maxTokens, temperature: 0.4 },
+    }));
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  // The edge function surfaced an error object
+  if (error) {
+    const msg = error?.message ?? 'groq-analysis edge function returned an error';
+    console.error('[Groq] Edge function error:', msg);
+    throw new Error(msg);
+  }
+
+  // The edge function itself returned a non-2xx and packaged it as { error: string }
+  if (data?.error) {
+    console.error('[Groq] API error from edge function:', data.error);
+    throw new Error(data.error);
+  }
+
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) {
+    console.error('[Groq] Unexpected response shape:', JSON.stringify(data)?.slice(0, 300));
+    throw new Error('Groq returned an empty response — please try again.');
+  }
+
+  console.log('[Groq] Success — tokens:', data.usage?.total_tokens, '| preview:', text.slice(0, 80));
+  return text as string;
+}
+
+/**
+ * chat — routes through the openai-proxy Edge Function (used by writing/interview features).
+ * Falls back to a direct OpenAI call if EXPO_PUBLIC_OPENAI_KEY is set (dev only).
+ */
 async function chat(system: string, user: string, maxTokens = 900): Promise<string> {
   const messages = [
     { role: 'system', content: system },
@@ -80,7 +135,7 @@ async function chat(system: string, user: string, maxTokens = 900): Promise<stri
     const timeout    = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     const { data, error } = await supabase.functions.invoke('openai-proxy', {
-      body: { messages, model: MODEL, max_tokens: maxTokens, temperature: 0.6 },
+      body: { messages, model: OPENAI_MODEL, max_tokens: maxTokens, temperature: 0.6 },
     });
 
     clearTimeout(timeout);
@@ -91,18 +146,17 @@ async function chat(system: string, user: string, maxTokens = 900): Promise<stri
       return text;
     }
 
-    // Edge Function returned an error — fall through to direct call if key available
-    if (!DIRECT_KEY) {
+    if (!OPENAI_DIRECT_KEY) {
       throw new Error(error?.message ?? 'OpenAI proxy returned no content');
     }
     console.warn('[OpenAI/proxy] Edge Function error, falling back to direct call:', error?.message);
   } catch (proxyErr: any) {
-    if (!DIRECT_KEY) throw proxyErr;
+    if (!OPENAI_DIRECT_KEY) throw proxyErr;
     console.warn('[OpenAI/proxy] Proxy unavailable, falling back to direct call:', proxyErr?.message);
   }
 
-  // Fallback: direct API call (used during development / before Edge Function is deployed)
-  console.log('[OpenAI/direct] Request →', MODEL);
+  // Fallback: direct OpenAI call (writing/interview features only, dev mode)
+  console.log('[OpenAI/direct] Request →', OPENAI_MODEL);
   const controller = new AbortController();
   const timeout    = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -111,10 +165,10 @@ async function chat(system: string, user: string, maxTokens = 900): Promise<stri
     res = await fetch(`${OPENAI_BASE}/chat/completions`, {
       method:  'POST',
       headers: {
-        Authorization:  `Bearer ${DIRECT_KEY}`,
+        Authorization:  `Bearer ${OPENAI_DIRECT_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: MODEL, messages, temperature: 0.6, max_tokens: maxTokens }),
+      body: JSON.stringify({ model: OPENAI_MODEL, messages, temperature: 0.6, max_tokens: maxTokens }),
       signal: controller.signal,
     });
   } finally {
@@ -179,7 +233,9 @@ export async function analyzeSpeech(
   durationSecs: number,
   mode: string,
 ): Promise<SpeechAnalysis> {
-  const system = `You are a professional speech coach. Analyze the transcript and return ONLY a JSON object (no markdown, no extra text) with these exact keys:
+  // This prompt is sent to llama-3.3-70b-versatile via the groq-analysis edge function.
+  // The GROQ_API_KEY is server-side only — never in the client bundle.
+  const system = `You are a professional speech coach. Analyze the transcript and return ONLY a valid JSON object (no markdown fences, no extra text before or after the JSON) with these exact keys:
 {
   "clarityScore": <0-100 integer>,
   "confidenceScore": <0-100 integer>,
@@ -188,27 +244,32 @@ export async function analyzeSpeech(
   "alternateAnswers": ["<rephrasing 1>", "<rephrasing 2>"],
   "improvementTips": ["<tip 1>", "<tip 2>", "<tip 3>"],
   "fillerWordAnalysis": [
-    { "word": "<filler word as it appears in transcript>", "count": <integer> }
+    { "word": "<filler word exactly as it appears in transcript>", "count": <integer> }
   ],
   "contentSuggestions": ["<suggestion 1>", "<suggestion 2>", "<suggestion 3>"]
 }
 
-Rules:
-- fillerWordAnalysis: scan the ACTUAL transcript for filler words (um, uh, like, basically, literally, actually, so, right, okay, well, you know, I mean, kind of, sort of, hmm). Only include words that actually appear. Count every occurrence. Return an empty array [] if none found.
-- contentSuggestions: 2-3 specific suggestions based on the ACTUAL content and delivery of THIS speech — what was said, how it was structured, what examples were used. Do NOT give generic advice. Reference specific phrases or topics from the transcript.
-- improvementTips: specific, actionable tips based on this transcript's weaknesses.
-- alternateAnswers: reworded versions that preserve the speaker's intent.`;
+Rules — follow every one precisely:
+1. fillerWordAnalysis: scan the ACTUAL transcript for filler words (um, uh, like, basically, literally, actually, so, right, okay, well, you know, I mean, kind of, sort of, hmm, er). Count every occurrence of each. Return [] if none found.
+2. contentSuggestions: give exactly 2-3 actionable suggestions based on the ACTUAL content, structure, and delivery of THIS specific speech. Reference specific phrases, topics, or patterns from the transcript. Do NOT give generic advice.
+3. improvementTips: specific, actionable tips tied to weaknesses visible in this transcript.
+4. alternateAnswers: reworded versions of the speaker's key points that preserve intent but improve clarity.
+5. All score fields must be integers 0-100. Return raw JSON only — no code blocks.`;
 
   const user = `Mode: ${mode} | Duration: ${durationSecs}s\n\nTranscript:\n${transcript.slice(0, 2500)}`;
 
-  const raw    = await chat(system, user, 1000);
+  // Use Groq (server-side) — throws with a user-readable message on any failure
+  const raw    = await chatGroq(system, user, 1000);
   const parsed = parseJSON<SpeechAnalysis>(raw, SPEECH_FALLBACK);
+
   if (typeof parsed.clarityScore !== 'number') {
-    throw new Error('AI returned an invalid response — could not parse speech scores');
+    throw new Error('The AI returned an unexpected format — please try recording again.');
   }
-  // Ensure new fields always exist even if the model omits them
-  if (!Array.isArray(parsed.fillerWordAnalysis))  parsed.fillerWordAnalysis  = [];
-  if (!Array.isArray(parsed.contentSuggestions))  parsed.contentSuggestions  = SPEECH_FALLBACK.contentSuggestions;
+
+  // Guarantee new fields are always arrays even if the model omits them
+  if (!Array.isArray(parsed.fillerWordAnalysis)) parsed.fillerWordAnalysis = [];
+  if (!Array.isArray(parsed.contentSuggestions)) parsed.contentSuggestions = SPEECH_FALLBACK.contentSuggestions;
+
   return parsed;
 }
 
@@ -393,5 +454,5 @@ Answer: ${answer?.trim() || '(No answer provided)'}`;
 }
 
 export function hasOpenAIKey(): boolean {
-  return !!DIRECT_KEY;
+  return !!OPENAI_DIRECT_KEY;
 }

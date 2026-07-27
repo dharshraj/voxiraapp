@@ -93,9 +93,29 @@ export default function AnalyzingScreen({ navigation, route }: any) {
         '| fillerWordAnalysis entries:', aiAnalysis.fillerWordAnalysis?.length ?? 0);
     } catch (e: any) {
       console.error('[AnalyzingScreen] analyzeSpeech failed:', e.message);
-      setHasError(
-        `AI analysis failed: ${e.message}\n\nCheck EXPO_PUBLIC_OPENAI_KEY in your .env file and the browser console for details.`
-      );
+
+      // Produce a clear, actionable message for every known failure mode
+      let uiMessage: string;
+      const msg = e.message ?? '';
+      if (msg.includes('rate limit') || msg.includes('rate_limit')) {
+        uiMessage = 'Groq rate limit reached.\n\nPlease wait 30–60 seconds and try again.';
+      } else if (msg.includes('quota') || msg.includes('429')) {
+        uiMessage = 'Groq usage quota exceeded.\n\nCheck your account at console.groq.com.';
+      } else if (msg.includes('invalid') && msg.toLowerCase().includes('key')) {
+        uiMessage = 'Groq API key is invalid.\n\nRun: supabase secrets set GROQ_API_KEY=gsk_... then redeploy.';
+      } else if (msg.includes('not configured')) {
+        uiMessage = 'GROQ_API_KEY is not set on the server.\n\nRun: supabase secrets set GROQ_API_KEY=gsk_... then deploy the groq-analysis function.';
+      } else if (msg.includes('timed out') || msg.includes('timeout') || msg.includes('AbortError')) {
+        uiMessage = 'The AI analysis request timed out.\n\nThis can happen with longer recordings — please try again.';
+      } else if (msg.includes('edge function') || msg.includes('Edge Function') || msg.includes('FunctionsFetchError')) {
+        uiMessage = 'Could not reach the groq-analysis function.\n\nMake sure it is deployed: supabase functions deploy groq-analysis';
+      } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
+        uiMessage = 'Network error while calling the AI.\n\nCheck your internet connection and try again.';
+      } else {
+        uiMessage = `AI analysis failed: ${msg}\n\nCheck the browser console for details.`;
+      }
+
+      setHasError(uiMessage);
       return;
     }
 
