@@ -13,23 +13,16 @@ type SearchResult = {
 
 const ALL_CONTENT: SearchResult[] = [
   { id:'f1', category:'feature',   title:'Speech Analysis',           subtitle:'Record and analyse your speech in real-time',         icon:'mic',          color:'#06B6D4', screen:'Speech'    },
-  { id:'f2', category:'feature',   title:'Writing Coach',             subtitle:'Get AI grammar, tone and style feedback',             icon:'create',       color:'#22C55E', screen:'Writing'   },
-  { id:'f3', category:'feature',   title:'Mock Interviews',           subtitle:'Practice with an AI interviewer for any job role',    icon:'people',       color:'#A855F7', screen:'Interview' },
   { id:'f4', category:'feature',   title:'Daily Goals',               subtitle:'Set and track your daily practice targets',           icon:'flag',         color:'#F59E0B', screen:'DailyGoal' },
   { id:'f5', category:'feature',   title:'Progress Overview',         subtitle:'View your improvement over time with charts',         icon:'trending-up',  color:'#06B6D4', screen:'Profile'   },
   { id:'f6', category:'feature',   title:'Achievements',              subtitle:'Unlock badges and track your milestones',             icon:'trophy',       color:'#F59E0B', screen:'Profile'   },
   { id:'f7', category:'feature',   title:'Leaderboard',               subtitle:'See where you rank among all Voxira users',           icon:'podium',       color:'#A855F7', screen:'Profile'   },
   { id:'t1', category:'tip',       title:'How to reduce filler words',subtitle:'Pause instead of saying "um" or "uh"',               icon:'bulb',         color:'#F59E0B'                     },
-  { id:'t2', category:'tip',       title:'The STAR interview method', subtitle:'Structure answers: Situation, Task, Action, Result',  icon:'bulb',         color:'#F59E0B'                     },
-  { id:'t3', category:'tip',       title:'Active vs passive voice',   subtitle:'Use active voice to sound more direct',               icon:'bulb',         color:'#F59E0B'                     },
   { id:'t4', category:'tip',       title:'Controlling speech pace',   subtitle:'Slow down to sound more confident and clear',         icon:'bulb',         color:'#F59E0B'                     },
-  { id:'t5', category:'tip',       title:'Email tone guide',          subtitle:'Match your tone to the reader and context',           icon:'bulb',         color:'#F59E0B'                     },
   { id:'s1', category:'speech',    title:'Speech Session — Yesterday',subtitle:'Clarity: 87 | Filler words: 3 | Duration: 4 min',    icon:'mic-outline',  color:'#06B6D4'                     },
-  { id:'s2', category:'writing',   title:'Email Draft — 2 days ago',  subtitle:'Grammar: 94 | Tone: Professional | Words: 120',      icon:'create-outline',color:'#22C55E'                    },
-  { id:'s3', category:'interview', title:'Software Engineer — 3d ago',subtitle:'Score: 78 | Questions: 5 | Duration: 12 min',        icon:'people-outline',color:'#A855F7'                    },
 ];
 
-const TRENDING = ['Speech clarity','STAR method','Reduce filler words','Interview tips','Email writing','Pronunciation'];
+const TRENDING = ['Speech clarity', 'Reduce filler words', 'Pronunciation', 'Pace control', 'Confidence tips'];
 
 function ResultRow({ item, onPress }: { item:SearchResult; onPress:()=>void }) {
   const { colors: C } = useTheme();
@@ -68,12 +61,10 @@ export default function SearchScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const CATEGORIES = [
-    { key:'all',       label:'All',       icon:'search',  color:C.primary },
-    { key:'feature',   label:'Features',  icon:'apps',    color:C.info    },
-    { key:'speech',    label:'Speech',    icon:'mic',     color:C.info    },
-    { key:'writing',   label:'Writing',   icon:'create',  color:C.success },
-    { key:'interview', label:'Interview', icon:'people',  color:C.primary },
-    { key:'tip',       label:'Tips',      icon:'bulb',    color:C.warning },
+    { key:'all',     label:'All',      icon:'search',  color:C.primary },
+    { key:'feature', label:'Features', icon:'apps',    color:C.info    },
+    { key:'speech',  label:'Speech',   icon:'mic',     color:C.info    },
+    { key:'tip',     label:'Tips',     icon:'bulb',    color:C.warning },
   ];
 
   useEffect(() => {

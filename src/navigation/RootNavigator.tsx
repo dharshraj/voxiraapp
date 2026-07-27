@@ -220,11 +220,9 @@ function MainTabs() {
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 2 },
         tabBarIcon: ({ color, size, focused }) => {
           const map: Record<string, [string, string]> = {
-            Home:      ['home',          'home-outline'],
-            Speech:    ['mic',           'mic-outline'],
-            Writing:   ['create',        'create-outline'],
-            Interview: ['people',        'people-outline'],
-            Profile:   ['person-circle', 'person-circle-outline'],
+            Home:    ['home',          'home-outline'],
+            Speech:  ['mic',           'mic-outline'],
+            Profile: ['person-circle', 'person-circle-outline'],
           };
           const [active, inactive] = map[route.name] ?? ['ellipse', 'ellipse-outline'];
           return (
@@ -241,11 +239,9 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home"      component={HomeStack}      options={{ title: 'Home' }} />
-      <Tab.Screen name="Speech"    component={SpeechStack}    options={{ title: 'Speech' }} />
-      <Tab.Screen name="Writing"   component={WritingStack}   options={{ title: 'Writing' }} />
-      <Tab.Screen name="Interview" component={InterviewStack} options={{ title: 'Interview' }} />
-      <Tab.Screen name="Profile"   component={ProfileStack}   options={{ title: 'Profile' }} />
+      <Tab.Screen name="Home"    component={HomeStack}    options={{ title: 'Home' }} />
+      <Tab.Screen name="Speech"  component={SpeechStack}  options={{ title: 'Speech' }} />
+      <Tab.Screen name="Profile" component={ProfileStack} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 }

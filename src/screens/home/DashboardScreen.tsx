@@ -9,10 +9,8 @@ import { useUserStore } from '../../store/userStore';
 import { useTheme } from '../../theme/ThemeContext';
 
 const ACTIONS = [
-  { label: 'Speech',    sub: 'Voice analysis', icon: 'mic',         screen: 'Speech'    },
-  { label: 'Writing',   sub: 'AI feedback',    icon: 'create',      screen: 'Writing'   },
-  { label: 'Interview', sub: 'Mock sessions',  icon: 'people',      screen: 'Interview' },
-  { label: 'Progress',  sub: 'Your stats',     icon: 'trending-up', screen: 'Profile'   },
+  { label: 'Speech',   sub: 'Voice analysis', icon: 'mic',         screen: 'Speech'   },
+  { label: 'Progress', sub: 'Your stats',     icon: 'trending-up', screen: 'Profile'  },
 ];
 
 export default function DashboardScreen({ navigation }: any) {
@@ -62,7 +60,7 @@ export default function DashboardScreen({ navigation }: any) {
     statLabel:      { fontSize: 10, color: C.textMuted },
     sectionTitle:   { fontSize: 17, fontWeight: '700', color: C.text, paddingHorizontal: 20, marginBottom: 12 },
     grid:           { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20, marginBottom: 8 },
-    actionCard:     { width: '48%', borderRadius: 18, overflow: 'hidden', height: 88, backgroundColor: C.primary, borderWidth: 1, borderColor: C.border },
+    actionCard:     { width: '100%', borderRadius: 18, overflow: 'hidden', height: 88, backgroundColor: C.primary, borderWidth: 1, borderColor: C.border },
     actionInner:    { padding: 14, height: '100%', justifyContent: 'space-between', position: 'relative', flexDirection: 'row', alignItems: 'center', gap: 12 },
     actionIconBox:  { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center' },
     actionBottom:   { flex: 1 },
@@ -99,9 +97,7 @@ export default function DashboardScreen({ navigation }: any) {
   });
 
   const SKILLS = [
-    { skill: 'Public Speaking',     level: 'Beginner', progress: 15, color: C.primary },
-    { skill: 'Writing Quality',     level: 'Beginner', progress: 10, color: C.success },
-    { skill: 'Interview Readiness', level: 'Beginner', progress: 8,  color: C.warning },
+    { skill: 'Public Speaking', level: 'Beginner', progress: 15, color: C.primary },
   ];
 
   const STAT_STRIP = [
