@@ -11,31 +11,98 @@
     <!-- App metadata -->
     <title>Voxira — Communication Coach</title>
     <meta name="description" content="Improve your speech, writing, and interview skills with AI-powered coaching." />
-    <meta name="theme-color" content="#6C5CE7" />
+    <meta name="theme-color" content="#4F6EF7" />
 
-    <!-- Prevent flash of unstyled content on web -->
+    <!-- Inter font — loaded as <link> so it doesn't block the CSS injection path -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!--
+      WEB LAYOUT FIX
+      ═══════════════════════════════════════════════════════════════════════
+      Root cause of the "can't scroll any screen" bug:
+
+      React Navigation nests screen content inside 6-8 <div> layers:
+        #root → SafeAreaProvider → GestureHandlerRootView →
+        NavigationContainer → BottomTabNavigator → StackNavigator →
+        Screen → component root View → ScrollView
+
+      CSS flex items default to `min-height: auto`, which means they REFUSE
+      to shrink below their content height even inside a bounded parent.
+      Without `min-height: 0` on ALL of these divs, the intermediate layers
+      expand to full content height rather than being capped at the viewport,
+      so the inner ScrollView ends up with an unbounded scroll container and
+      never triggers scrolling.
+
+      Fix: `#root div { min-height: 0 }` cascades the fix to every div
+      inside #root regardless of nesting depth. The ScrollView's content
+      wrapper still grows naturally from its children (not from min-height),
+      so content renders at full height inside the scrollable area.
+
+      This file is the single source of truth for web layout CSS.
+      Do NOT add competing rules in App.tsx (they were removed).
+      ═══════════════════════════════════════════════════════════════════════
+    -->
     <style>
       html, body {
         margin: 0;
         padding: 0;
-        background: #05050F;
         height: 100%;
         overflow: hidden;
+        background: #121316;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
+
       #root {
+        height: 100%;
         display: flex;
         flex-direction: column;
-        height: 100%;
         overflow: hidden;
       }
-      /* Let scroll containers inside React Navigation work */
-      #root > div, #root > div > div {
-        overflow: visible !important;
+
+      /*
+        THE KEY FIX — apply min-height:0 to every div inside #root.
+        This allows all intermediate flex containers to shrink to the
+        available viewport space rather than expanding to content height.
+        Without this, ScrollViews have no bounded container and can't scroll.
+      */
+      #root div {
+        min-height: 0;
+      }
+
+      /*
+        Top two wrapper layers (SafeAreaProvider, GestureHandlerRootView)
+        need an explicit flex chain + overflow:hidden so they bound their
+        children to the viewport and prevent page-level scroll.
+        overflow:hidden here does NOT prevent child ScrollViews from
+        scrolling — it only clips content that tries to escape these
+        bounded containers.
+      */
+      #root > div,
+      #root > div > div {
         flex: 1;
         display: flex;
         flex-direction: column;
-        min-height: 0;
+        overflow: hidden;
       }
+
+      /* Global helpers */
+      * {
+        box-sizing: border-box;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Thin scrollbar for web ScrollViews */
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(79, 110, 247, 0.30); border-radius: 2px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(79, 110, 247, 0.60); }
+
+      ::selection { background: rgba(79, 110, 247, 0.18); }
+      input:focus { outline: none; }
     </style>
 
     <!--EXPO-HEAD-->
