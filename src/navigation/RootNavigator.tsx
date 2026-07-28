@@ -24,6 +24,11 @@ import NotificationsScreen from '../screens/home/NotificationsScreen';
 import SearchScreen        from '../screens/home/SearchScreen';
 import TopicDetailScreen   from '../screens/home/TopicDetailScreen';
 
+// Also accessible from HomeStack (for Search navigation — keeps goBack() pointing to Search)
+import SpeechDashboardScreen_H   from '../screens/speech/SpeechDashboardScreen';
+import SpeechHistoryScreen_H     from '../screens/speech/SpeechHistoryScreen';
+import ProgressOverviewScreen_H  from '../screens/profile/ProgressOverviewScreen';
+
 // ── Speech ────────────────────────────────────────────────────────────────────
 import SpeechHomeScreen     from '../screens/speech/SpeechHomeScreen';
 import RecordScreen         from '../screens/speech/RecordScreen';
@@ -92,11 +97,16 @@ function OnboardingStack() {
 function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Dashboard"     component={DashboardScreen} />
-      <Stack.Screen name="DailyGoal"     component={DailyGoalScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="Search"        component={SearchScreen} />
-      <Stack.Screen name="TopicDetail"   component={TopicDetailScreen} />
+      <Stack.Screen name="Dashboard"            component={DashboardScreen} />
+      <Stack.Screen name="DailyGoal"            component={DailyGoalScreen} />
+      <Stack.Screen name="Notifications"        component={NotificationsScreen} />
+      <Stack.Screen name="Search"               component={SearchScreen} />
+      <Stack.Screen name="TopicDetail"          component={TopicDetailScreen} />
+      {/* Registered here so Search can push them directly — goBack() returns to Search */}
+      <Stack.Screen name="SpeechHomeFromSearch"      component={SpeechHomeScreen} />
+      <Stack.Screen name="ProgressOverview"          component={ProgressOverviewScreen_H} />
+      <Stack.Screen name="SpeechDashboardFromSearch" component={SpeechDashboardScreen_H} />
+      <Stack.Screen name="SpeechHistoryFromSearch"   component={SpeechHistoryScreen_H} />
     </Stack.Navigator>
   );
 }

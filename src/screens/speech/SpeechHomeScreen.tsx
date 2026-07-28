@@ -14,10 +14,30 @@ const MODES = [
 ];
 
 const FEATURES = [
-  { icon: 'warning-outline',     color: '#B45309', title: 'Filler Words',   sub: 'um, uh, like — detected and counted' },
-  { icon: 'speedometer-outline', color: '#0369A1', title: 'Pace & WPM',     sub: 'Ideal range: 120–150 WPM'           },
-  { icon: 'volume-high-outline', color: '#15803D', title: 'Pronunciation',  sub: 'Clarity and articulation score'     },
-  { icon: 'trending-up-outline', color: '#92400E', title: 'Confidence',     sub: 'Tone and delivery analysis'         },
+  {
+    icon: 'warning-outline',
+    color: '#B45309',
+    title: 'Filler Words',
+    sub: 'Filler words — "um", "uh", "like", "you know", "basically", "literally" — are spoken habit fillers that appear when your brain is searching for the next idea. Voxira detects and counts every instance. A lower filler count signals stronger fluency and preparation; professional speakers typically average fewer than 3 fillers per minute.',
+  },
+  {
+    icon: 'speedometer-outline',
+    color: '#0369A1',
+    title: 'Pace & WPM',
+    sub: 'Words per minute measures how quickly you speak. Research consistently places the ideal conversational pace between 120 and 150 WPM — fast enough to hold attention, slow enough for listeners to process each idea. Speaking above 180 WPM causes comprehension to drop; below 100 WPM and audiences disengage. Voxira measures your exact WPM after every session.',
+  },
+  {
+    icon: 'volume-high-outline',
+    color: '#15803D',
+    title: 'Pronunciation',
+    sub: 'Pronunciation clarity measures how consistently your words are articulated and correctly formed. The analysis checks whether speech sounds are crisp and fully enunciated versus blurred, dropped, or merged into neighbouring words. Good pronunciation reduces listener effort and ensures your message lands clearly, even in fast-paced delivery.',
+  },
+  {
+    icon: 'trending-up-outline',
+    color: '#92400E',
+    title: 'Confidence',
+    sub: 'The confidence score reflects how assured your delivery sounds based on a combination of factors: steadiness of pace (nervous speakers often rush), filler word frequency, and tonal consistency. High-confidence speech maintains even pace, uses deliberate pauses, and avoids the hesitation patterns that signal uncertainty to listeners.',
+  },
 ];
 
 const BENCHMARKS = [
@@ -66,11 +86,11 @@ export default function SpeechHomeScreen({ navigation }: any) {
 
     // Feature list
     featureCard:   { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
-    featRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.border },
+    featRow:       { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
     featRowLast:   { borderBottomWidth: 0 },
-    featIconBox:   { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    featIconBox:   { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
     featTitle:     { fontSize: 13, fontWeight: '600', color: C.text },
-    featSub:       { fontSize: 11, color: C.textMuted, marginTop: 1 },
+    featSub:       { fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 18 },
 
     // Benchmarks
     benchCard:     { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },

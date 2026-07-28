@@ -244,22 +244,6 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Quick improvement tips — clearly static coaching content */}
-        <Text style={s.sectionLabel}>Coaching Tips</Text>
-        <View style={s.tipsCard}>
-          {[
-            'Replace filler words with a deliberate 1-second pause.',
-            'Record yourself daily for 2 minutes and note one thing to improve.',
-            'Vary your sentence length — mix short punchy sentences with longer ones.',
-            'Breathe from your diaphragm for a steadier, more authoritative voice.',
-          ].map((tip, i, arr) => (
-            <View key={i} style={[s.tipsRow, i === arr.length - 1 && s.tipsRowLast]}>
-              <View style={s.tipsDot} />
-              <Text style={s.tipsTxt}>{tip}</Text>
-            </View>
-          ))}
-        </View>
-
         {/* Trending topics — tap to open full article */}
         <Text style={s.sectionLabel}>Learn</Text>
         <View style={s.topicsRow}>
@@ -279,6 +263,22 @@ export default function DashboardScreen({ navigation }: any) {
               <Ionicons name="book-outline" size={12} color={C.primary} />
               <Text style={s.topicTxt}>{topic}</Text>
             </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Quick improvement tips — clearly static coaching content */}
+        <Text style={s.sectionLabel}>Coaching Tips</Text>
+        <View style={s.tipsCard}>
+          {[
+            'Replace filler words with a deliberate 1-second pause.',
+            'Record yourself daily for 2 minutes and note one thing to improve.',
+            'Vary your sentence length — mix short punchy sentences with longer ones.',
+            'Breathe from your diaphragm for a steadier, more authoritative voice.',
+          ].map((tip, i, arr) => (
+            <View key={i} style={[s.tipsRow, i === arr.length - 1 && s.tipsRowLast]}>
+              <View style={s.tipsDot} />
+              <Text style={s.tipsTxt}>{tip}</Text>
+            </View>
           ))}
         </View>
       </Animated.ScrollView>

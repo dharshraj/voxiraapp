@@ -17,16 +17,14 @@ type SearchResult = {
   screenParams?: Record<string, any>;
 };
 
-// Navigation targets — cross-stack navigation uses navigate(TabName, { screen: ScreenName })
-// Speech screens live in the 'Speech' tab stack
-// Profile screens live in the 'Profile' tab stack
+// Navigation targets — all screens registered in HomeStack so goBack() returns to Search
 const ALL_CONTENT: SearchResult[] = [
-  { id:'f1', category:'feature', title:'Speech Analysis',    subtitle:'Record and analyse your speech in real-time',    icon:'mic',              color:'#0369A1', screen:'Speech',  screenParams:{ screen:'SpeechHome'      } },
-  { id:'f2', category:'feature', title:'Daily Goals',        subtitle:'Set and track your daily practice targets',      icon:'flag-outline',     color:'#B45309', screen:'DailyGoals'                                          },
-  { id:'f3', category:'feature', title:'Progress Overview',  subtitle:'View your improvement over time',                icon:'trending-up',      color:'#15803D', screen:'Profile', screenParams:{ screen:'ProgressOverview'} },
-  { id:'f4', category:'feature', title:'Achievements',       subtitle:'Unlock badges and track your milestones',        icon:'trophy-outline',   color:'#B45309', screen:'Achievements'                                        },
-  { id:'s1', category:'speech',  title:'Speech Dashboard',   subtitle:'Composite scores, WPM, filler breakdown',        icon:'bar-chart-outline',color:'#0369A1', screen:'Speech',  screenParams:{ screen:'SpeechDashboard' } },
-  { id:'s2', category:'speech',  title:'Session History',    subtitle:'All your past speech sessions',                  icon:'time-outline',     color:'#0369A1', screen:'Speech',  screenParams:{ screen:'SpeechHistory'   } },
+  { id:'f1', category:'feature', title:'Speech Analysis',    subtitle:'Record and analyse your speech in real-time',    icon:'mic',              color:'#0369A1', screen:'SpeechHomeFromSearch'                                  },
+  { id:'f2', category:'feature', title:'Daily Goals',        subtitle:'Set and track your daily practice targets',      icon:'flag-outline',     color:'#B45309', screen:'DailyGoals'                                            },
+  { id:'f3', category:'feature', title:'Progress Overview',  subtitle:'View your improvement over time',                icon:'trending-up',      color:'#15803D', screen:'ProgressOverview'                                      },
+  { id:'f4', category:'feature', title:'Achievements',       subtitle:'Unlock badges and track your milestones',        icon:'trophy-outline',   color:'#B45309', screen:'Achievements'                                          },
+  { id:'s1', category:'speech',  title:'Speech Dashboard',   subtitle:'Composite scores, WPM, filler breakdown',        icon:'bar-chart-outline',color:'#0369A1', screen:'SpeechDashboardFromSearch'                             },
+  { id:'s2', category:'speech',  title:'Session History',    subtitle:'All your past speech sessions',                  icon:'time-outline',     color:'#0369A1', screen:'SpeechHistoryFromSearch'                               },
   { id:'s3', category:'speech',  title:'Filler Words Guide', subtitle:'How to detect and reduce filler words',          icon:'warning-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Reduce filler words' } },
   { id:'t1', category:'tip',     title:'Speech Clarity',     subtitle:'Articulation exercises and clarity techniques',  icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Speech clarity'      } },
   { id:'t2', category:'tip',     title:'Reduce Filler Words',subtitle:'Pause instead of "um" or "uh"',                 icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Reduce filler words'  } },
