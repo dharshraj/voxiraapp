@@ -42,35 +42,11 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         -webkit-font-smoothing: antialiased;
         overflow: hidden;
       }
-      /*
-       * THE CORRECT SCROLL FIX
-       *
-       * Root cause of all previous failures:
-       * The CSS was targeting #root > div > div > div > div (4 levels).
-       * React Navigation Tab + Stack renders 7-8 wrapper divs. Any wrapper
-       * beyond level 4 had height:auto (browser default), breaking the
-       * height resolution chain. When the chain breaks, the ScrollView
-       * height:100% resolves to auto -- the ScrollView expands to its full
-       * content height and nothing scrolls.
-       *
-       * This fix: #root div:not([style]) targets EVERY div descendant of
-       * #root that has NO inline style attribute. React Navigation wrapper
-       * divs have no inline styles -- React Native Web content divs do
-       * (RNW sets inline style on every View/Text). So this selector
-       * precisely hits only the navigation wrappers at every depth,
-       * giving them height:100% and keeping the chain unbroken.
-       */
       #root {
         height: 100%;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      /* Navigation wrapper divs: no inline style, give them full height */
-      #root div:not([style]) {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
       }
       ::-webkit-scrollbar { width: 5px; }
       ::-webkit-scrollbar-thumb { background: rgba(146,64,14,0.25); border-radius: 3px; }
@@ -116,8 +92,8 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider style={Platform.OS === 'web' ? { height: '100%' } as any : undefined}>
-      <GestureHandlerRootView style={Platform.OS === 'web' ? { height: '100%' } as any : s.flex}>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={s.flex}>
         <ThemeProvider>
           <StatusBar style="auto" />
           <RootNavigator />
