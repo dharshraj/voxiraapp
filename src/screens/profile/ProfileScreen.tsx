@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity, Image,
   StatusBar, Platform, Animated, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import { useSessionStore, SpeechSession } from '../../store/sessionStore';
@@ -35,15 +36,26 @@ const MENU_SECTIONS = [
 
 export default function ProfileScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
+  const userId      = useAuthStore(s => s.user?.id);
   const profile     = useUserStore(s => s.profile);
+  const loadProfile = useUserStore(s => s.loadProfile);
   const signOut     = useAuthStore(s => s.signOut);
   const sessions    = useSessionStore(s => s.sessions);
+  const loadSessions = useSessionStore(s => s.loadSessions);
   const [signingOut, setSigningOut] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-  }, []);
+  // Re-fetch profile AND sessions on every visit so Edit Profile changes
+  // reflect immediately without an app restart
+  useFocusEffect(
+    useCallback(() => {
+      Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      if (userId) {
+        loadProfile(userId);
+        loadSessions(userId);
+      }
+    }, [userId])
+  );
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -55,7 +67,6 @@ export default function ProfileScreen({ navigation }: any) {
   const initials = (profile?.full_name ?? 'V')
     .split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
-  // Real computed stats
   const speechSessions = sessions.filter(s => s.type === 'speech') as SpeechSession[];
   const sessionCount   = speechSessions.length;
   const avgScore       = sessionCount > 0
@@ -63,7 +74,6 @@ export default function ProfileScreen({ navigation }: any) {
     : null;
   const streakDays = profile?.streak_days ?? 0;
 
-  // Level derived from real score data, not profile field fallback
   const level = sessionCount === 0 ? null
     : avgScore != null && avgScore >= 85 ? 'Advanced'
     : avgScore != null && avgScore >= 65 ? 'Intermediate'
@@ -72,37 +82,30 @@ export default function ProfileScreen({ navigation }: any) {
   const s = StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
     scrollContent: { paddingBottom: 80 },
-
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14 },
     headerTitle:   { fontSize: 22, fontWeight: '700', color: C.text },
     settingsBtn:   { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     divider:       { height: 1, backgroundColor: C.border, marginHorizontal: 20, marginBottom: 20 },
-
-    // Avatar block
     avatarSection: { alignItems: 'center', gap: 6, marginBottom: 20, paddingHorizontal: 20 },
-    avatarCircle:  { width: 72, height: 72, borderRadius: 22, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    avatarCircle:  { width: 72, height: 72, borderRadius: 22, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' },
+    avatarImg:     { width: 72, height: 72, borderRadius: 22 },
     avatarTxt:     { fontSize: 26, fontWeight: '800', color: '#fff' },
     editBadge:     { position: 'absolute', bottom: -3, right: -3, width: 22, height: 22, borderRadius: 11, backgroundColor: C.primary, borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' },
     profileName:   { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 4 },
     profileEmail:  { fontSize: 12, color: C.textMuted },
     levelBadge:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.primaryLight, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.border },
     levelTxt:      { fontSize: 11, color: C.primary, fontWeight: '600' },
-
-    // Compact stats bar
     statsRow:      { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border, marginBottom: 20 },
     statItem:      { flex: 1, alignItems: 'center', paddingVertical: 12 },
     statVal:       { fontSize: 16, fontWeight: '700', color: C.text },
     statLbl:       { fontSize: 10, color: C.textMuted, marginTop: 1 },
     statDivider:   { width: 1, backgroundColor: C.border, marginVertical: 8 },
-
-    // Menu
     sectionLabel:  { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: 20, marginBottom: 8, marginTop: 16 },
     menuCard:      { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, overflow: 'hidden', marginHorizontal: 20 },
     menuRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border },
     menuRowLast:   { borderBottomWidth: 0 },
     menuIconBox:   { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryLight },
     menuLabel:     { flex: 1, fontSize: 13, fontWeight: '500', color: C.text },
-
     signOutBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20, marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.error + '40', paddingVertical: 14 },
     signOutTxt:    { fontSize: 14, fontWeight: '600', color: C.error },
     version:       { textAlign: 'center', fontSize: 11, color: C.textMuted, marginTop: 14 },
@@ -124,10 +127,14 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
         <View style={s.divider} />
 
-        {/* Avatar */}
+        {/* Avatar — shows uploaded photo if available, otherwise initials */}
         <View style={s.avatarSection}>
           <View style={s.avatarCircle}>
-            <Text style={s.avatarTxt}>{initials}</Text>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={s.avatarImg} />
+            ) : (
+              <Text style={s.avatarTxt}>{initials}</Text>
+            )}
             <TouchableOpacity style={s.editBadge} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.75}>
               <Ionicons name="pencil" size={11} color="#fff" />
             </TouchableOpacity>
@@ -142,7 +149,7 @@ export default function ProfileScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* Compact stats — real data only */}
+        {/* Stats */}
         <View style={s.statsRow}>
           <View style={s.statItem}>
             <Text style={s.statVal}>{sessionCount}</Text>
@@ -160,7 +167,7 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Menu sections */}
+        {/* Menu */}
         {MENU_SECTIONS.map((section, si) => (
           <View key={si}>
             <Text style={s.sectionLabel}>{section.title}</Text>
