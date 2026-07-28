@@ -28,18 +28,37 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-      /* Root flex column — must NOT clip overflow so inner ScrollViews work */
       #root {
         height: 100%;
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
-      /* Every React Navigation wrapper div: fill available space, allow scroll children */
+      /*
+       * SCROLL FIX — the root cause of "can't scroll any screen":
+       *
+       * React Navigation nests content 6–8 <div> levels deep inside #root
+       * (NavigationContainer → BottomTabNavigator → StackNavigator → Screen).
+       * CSS flex items default to min-height: auto, which means they refuse to
+       * shrink below their content height even when a parent clips them with
+       * overflow: hidden.  The result: every intermediate div grows to FULL
+       * content height, the parent clips it at viewport height, and the inner
+       * ScrollView has no scroll context because it was also clipped to 0.
+       *
+       * Fix: apply min-height: 0 to EVERY div inside #root so ALL navigation
+       * wrapper divs can shrink to fit the viewport.  The ScrollView's content
+       * div still grows naturally (its height comes from its children, not from
+       * min-height), while the viewport div gets a bounded height and scrolls.
+       */
+      #root div {
+        min-height: 0;
+      }
+      /* Explicitly bound the first two levels and hide overflow so deeper
+         layers cannot accidentally cause page-level scroll. */
       #root > div,
       #root > div > div {
         flex: 1;
-        min-height: 0;       /* ← the key fix: lets flex children shrink below content size */
+        min-height: 0;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -47,9 +66,9 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       * { -webkit-overflow-scrolling: touch; box-sizing: border-box; }
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(146,64,14,0.25); border-radius: 2px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgba(146,64,14,0.45); }
-      ::selection { background: rgba(146,64,14,0.18); }
+      ::-webkit-scrollbar-thumb { background: rgba(79,110,247,0.3); border-radius: 2px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(79,110,247,0.6); }
+      ::selection { background: rgba(79,110,247,0.2); }
       input:focus { outline: none; }
     `;
     document.head.appendChild(style);
