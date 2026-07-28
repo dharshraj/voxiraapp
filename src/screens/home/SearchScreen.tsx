@@ -17,24 +17,22 @@ type SearchResult = {
   screenParams?: Record<string, any>;
 };
 
-// Navigation targets fixed:
-//   Progress Overview → 'ProgressOverview' (direct, not 'Profile')
-//   Achievements      → 'Achievements'     (direct, not 'Profile')
-//   Speech Analysis   → 'SpeechHome'       (Speech stack root)
+// Navigation targets — cross-stack navigation uses navigate(TabName, { screen: ScreenName })
+// Speech screens live in the 'Speech' tab stack
+// Profile screens live in the 'Profile' tab stack
 const ALL_CONTENT: SearchResult[] = [
-  { id:'f1', category:'feature', title:'Speech Analysis',    subtitle:'Record and analyse your speech in real-time',    icon:'mic',          color:'#0369A1', screen:'SpeechHome'       },
-  { id:'f2', category:'feature', title:'Daily Goals',        subtitle:'Set and track your daily practice targets',      icon:'flag-outline',  color:'#B45309', screen:'DailyGoals'       },
-  { id:'f3', category:'feature', title:'Progress Overview',  subtitle:'View your improvement over time',                icon:'trending-up',   color:'#15803D', screen:'ProgressOverview' },
-  { id:'f4', category:'feature', title:'Achievements',       subtitle:'Unlock badges and track your milestones',        icon:'trophy-outline',color:'#B45309', screen:'Achievements'     },
-  { id:'f5', category:'feature', title:'Leaderboard',        subtitle:'See where you rank among all Voxira users',      icon:'podium',        color:'#7C3AED', screen:'Leaderboard'      },
-  { id:'s1', category:'speech',  title:'Speech Dashboard',   subtitle:'Composite scores, WPM, filler breakdown',        icon:'bar-chart-outline', color:'#0369A1', screen:'SpeechDashboard' },
-  { id:'s2', category:'speech',  title:'Session History',    subtitle:'All your past speech sessions',                  icon:'time-outline',  color:'#0369A1', screen:'SpeechHistory'    },
-  { id:'s3', category:'speech',  title:'Filler Words Guide', subtitle:'How to detect and reduce filler words',          icon:'warning-outline',color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Reduce filler words' } },
-  { id:'t1', category:'tip',     title:'Speech Clarity',     subtitle:'Articulation exercises and clarity techniques',  icon:'bulb-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Speech clarity'      } },
-  { id:'t2', category:'tip',     title:'Reduce Filler Words',subtitle:'Pause instead of "um" or "uh"',                 icon:'bulb-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Reduce filler words'  } },
-  { id:'t3', category:'tip',     title:'Pronunciation',      subtitle:'Techniques for clearer pronunciation',           icon:'bulb-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Pronunciation'        } },
-  { id:'t4', category:'tip',     title:'Pace Control',       subtitle:'Ideal WPM ranges and pacing techniques',         icon:'bulb-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Pace control'         } },
-  { id:'t5', category:'tip',     title:'Confidence Tips',    subtitle:'Posture, breathing, and mental preparation',     icon:'bulb-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Confidence tips'      } },
+  { id:'f1', category:'feature', title:'Speech Analysis',    subtitle:'Record and analyse your speech in real-time',    icon:'mic',              color:'#0369A1', screen:'Speech',  screenParams:{ screen:'SpeechHome'      } },
+  { id:'f2', category:'feature', title:'Daily Goals',        subtitle:'Set and track your daily practice targets',      icon:'flag-outline',     color:'#B45309', screen:'DailyGoals'                                          },
+  { id:'f3', category:'feature', title:'Progress Overview',  subtitle:'View your improvement over time',                icon:'trending-up',      color:'#15803D', screen:'Profile', screenParams:{ screen:'ProgressOverview'} },
+  { id:'f4', category:'feature', title:'Achievements',       subtitle:'Unlock badges and track your milestones',        icon:'trophy-outline',   color:'#B45309', screen:'Achievements'                                        },
+  { id:'s1', category:'speech',  title:'Speech Dashboard',   subtitle:'Composite scores, WPM, filler breakdown',        icon:'bar-chart-outline',color:'#0369A1', screen:'Speech',  screenParams:{ screen:'SpeechDashboard' } },
+  { id:'s2', category:'speech',  title:'Session History',    subtitle:'All your past speech sessions',                  icon:'time-outline',     color:'#0369A1', screen:'Speech',  screenParams:{ screen:'SpeechHistory'   } },
+  { id:'s3', category:'speech',  title:'Filler Words Guide', subtitle:'How to detect and reduce filler words',          icon:'warning-outline',  color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Reduce filler words' } },
+  { id:'t1', category:'tip',     title:'Speech Clarity',     subtitle:'Articulation exercises and clarity techniques',  icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Speech clarity'      } },
+  { id:'t2', category:'tip',     title:'Reduce Filler Words',subtitle:'Pause instead of "um" or "uh"',                 icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Reduce filler words'  } },
+  { id:'t3', category:'tip',     title:'Pronunciation',      subtitle:'Techniques for clearer pronunciation',           icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Pronunciation'        } },
+  { id:'t4', category:'tip',     title:'Pace Control',       subtitle:'Ideal WPM ranges and pacing techniques',         icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Pace control'         } },
+  { id:'t5', category:'tip',     title:'Confidence Tips',    subtitle:'Posture, breathing, and mental preparation',     icon:'bulb-outline',     color:'#B45309', screen:'TopicDetail', screenParams:{ query:'Confidence tips'      } },
 ];
 
 const TRENDING = ['Speech clarity','Reduce filler words','Pronunciation','Pace control','Confidence tips'];
@@ -113,7 +111,7 @@ export default function SearchScreen({ navigation }: any) {
     header:     { flexDirection:'row', alignItems:'center', paddingHorizontal:20, paddingTop:Platform.OS==='ios'?56:32, paddingBottom:14, gap:10, borderBottomWidth:1, borderBottomColor:C.border },
     backBtn:    { width:38, height:38, borderRadius:10, backgroundColor:C.surface, borderWidth:1, borderColor:C.border, alignItems:'center', justifyContent:'center' },
     searchBar:  { flex:1, flexDirection:'row', alignItems:'center', backgroundColor:C.surface, borderRadius:14, paddingHorizontal:12, height:44, borderWidth:1.5, borderColor:C.border },
-    searchBarFocused: { borderColor:C.primary+'99', backgroundColor:C.primaryLight },
+    searchBarFocused: { borderColor:C.primary+'99', backgroundColor:'#F5F3F0' },
     searchInput:{ flex:1, color:C.text, fontSize:14 },
     catRow:     { paddingHorizontal:20, paddingVertical:10, gap:8 },
     catChip:    { flexDirection:'row', alignItems:'center', gap:5, paddingHorizontal:12, paddingVertical:6, borderRadius:20, borderWidth:1, borderColor:C.border, backgroundColor:C.surface },

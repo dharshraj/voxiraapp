@@ -119,6 +119,11 @@ export default function DashboardScreen({ navigation }: any) {
     tipsRowLast:    { borderBottomWidth: 0 },
     tipsDot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary, flexShrink: 0 },
     tipsTxt:        { fontSize: 12, color: C.textSec, flex: 1, lineHeight: 18 },
+
+    // Trending topic chips
+    topicsRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
+    topicChip:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
+    topicTxt:       { fontSize: 12, color: C.textSec, fontWeight: '500' },
   });
 
   const TIPS = [
@@ -252,6 +257,28 @@ export default function DashboardScreen({ navigation }: any) {
               <View style={s.tipsDot} />
               <Text style={s.tipsTxt}>{tip}</Text>
             </View>
+          ))}
+        </View>
+
+        {/* Trending topics — tap to open full article */}
+        <Text style={s.sectionLabel}>Learn</Text>
+        <View style={s.topicsRow}>
+          {[
+            'Speech clarity',
+            'Reduce filler words',
+            'Pronunciation',
+            'Pace control',
+            'Confidence tips',
+          ].map((topic, i) => (
+            <TouchableOpacity
+              key={i}
+              style={s.topicChip}
+              onPress={() => navigation.navigate('TopicDetail', { query: topic })}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="book-outline" size={12} color={C.primary} />
+              <Text style={s.topicTxt}>{topic}</Text>
+            </TouchableOpacity>
           ))}
         </View>
       </Animated.ScrollView>
