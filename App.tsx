@@ -40,14 +40,34 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         background: #FAF9F7;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         -webkit-font-smoothing: antialiased;
+        overflow: hidden;
       }
-      /* #root and ALL wrapper divs inside it: full-height flex column.
-         React Navigation adds several nested divs — this covers them all. */
-      #root,
-      #root > div,
-      #root > div > div,
-      #root > div > div > div,
-      #root > div > div > div > div {
+      /*
+       * THE CORRECT SCROLL FIX
+       *
+       * Root cause of all previous failures:
+       * The CSS was targeting #root > div > div > div > div (4 levels).
+       * React Navigation Tab + Stack renders 7-8 wrapper divs. Any wrapper
+       * beyond level 4 had height:auto (browser default), breaking the
+       * height resolution chain. When the chain breaks, the ScrollView
+       * height:100% resolves to auto -- the ScrollView expands to its full
+       * content height and nothing scrolls.
+       *
+       * This fix: #root div:not([style]) targets EVERY div descendant of
+       * #root that has NO inline style attribute. React Navigation wrapper
+       * divs have no inline styles -- React Native Web content divs do
+       * (RNW sets inline style on every View/Text). So this selector
+       * precisely hits only the navigation wrappers at every depth,
+       * giving them height:100% and keeping the chain unbroken.
+       */
+      #root {
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Navigation wrapper divs: no inline style, give them full height */
+      #root div:not([style]) {
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -96,8 +116,8 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={s.flex}>
+    <SafeAreaProvider style={Platform.OS === 'web' ? { height: '100%' } as any : undefined}>
+      <GestureHandlerRootView style={Platform.OS === 'web' ? { height: '100%' } as any : s.flex}>
         <ThemeProvider>
           <StatusBar style="auto" />
           <RootNavigator />
