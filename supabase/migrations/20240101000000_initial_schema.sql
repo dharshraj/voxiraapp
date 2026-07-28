@@ -139,6 +139,7 @@ on conflict (id) do nothing;
 drop policy if exists "Avatar upload for authenticated" on storage.objects;
 drop policy if exists "Avatar public read"              on storage.objects;
 drop policy if exists "Avatar delete own"               on storage.objects;
+drop policy if exists "Avatar update own"               on storage.objects;
 
 create policy "Avatar public read"
   on storage.objects for select
