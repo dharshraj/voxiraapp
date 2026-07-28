@@ -1,223 +1,337 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿/**
+ * AchievementsScreen
+ *
+ * All unlock states are computed from real Supabase data via sessionStore
+ * and userStore. A brand-new user will see every achievement locked at 0.
+ * No hardcoded `done:true` values anywhere.
+ */
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  StatusBar, Platform, Animated, Dimensions,
+  StatusBar, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useAuthStore } from '../../store/authStore';
+import { useSessionStore, SpeechSession } from '../../store/sessionStore';
+import { useUserStore } from '../../store/userStore';
+import { useTheme } from '../../theme/ThemeContext';
 
-const { width: W } = Dimensions.get('window');
-const C = {
-  bg:'#0A1628', bgCard:'#111E30', surface:'#1A2B3C',
-  primary:'#1565FF', accent:'#4FC3F7', green:'#22C55E',
-  gold:'#F59E0B', purple:'#A855F7', danger:'#EF4444',
-  text:'#F0F4FF', muted:'rgba(240,244,255,0.50)',
-  hint:'rgba(240,244,255,0.25)', border:'rgba(255,255,255,0.07)',
-};
+// ── Achievement definitions ───────────────────────────────────────────────────
 
-type Achievement = {
-  id:string; title:string; desc:string; icon:string;
-  color:string; xp:number; done:boolean; progress?:number; total?:number;
-  category:'speech'|'writing'|'interview'|'streak'|'milestone';
-};
+type AchCat = 'speech' | 'streak' | 'milestone';
 
-const ACHIEVEMENTS: Achievement[] = [
+interface AchDef {
+  id:       string;
+  title:    string;
+  desc:     string;
+  icon:     string;
+  xp:       number;
+  category: AchCat;
+  /** Returns { done, progress, total } given live data */
+  compute: (d: LiveData) => { done: boolean; progress: number; total: number };
+}
+
+interface LiveData {
+  speechCount:    number;
+  bestScore:      number;
+  fillerFreeCount: number;
+  longCount:      number;   // sessions ≥ 10 min
+  streakDays:     number;
+  avgScore:       number;
+}
+
+const ACHIEVEMENTS: AchDef[] = [
   // Speech
-  { id:'s1', title:'First Words',         desc:'Complete your first speech session',              icon:'mic',            color:C.accent,  xp:50,  done:true,  category:'speech'    },
-  { id:'s2', title:'Smooth Talker',        desc:'Score 90+ in a speech session',                  icon:'star',           color:C.gold,    xp:100, done:true,  category:'speech'    },
-  { id:'s3', title:'Filler-Free',          desc:'Complete a session with zero filler words',       icon:'shield-checkmark',color:C.green,  xp:150, done:false, progress:0, total:1,  category:'speech'    },
-  { id:'s4', title:'Marathon Speaker',     desc:'Record a speech longer than 10 minutes',         icon:'timer',          color:C.purple,  xp:200, done:false, progress:0, total:1,  category:'speech'    },
-  { id:'s5', title:'10 Sessions',          desc:'Complete 10 speech sessions',                    icon:'mic-circle',     color:C.accent,  xp:150, done:true,  category:'speech'    },
-  { id:'s6', title:'25 Sessions',          desc:'Complete 25 speech sessions',                    icon:'mic-circle',     color:C.gold,    xp:250, done:false, progress:12, total:25, category:'speech'    },
-  // Writing
-  { id:'w1', title:'First Draft',          desc:'Submit your first writing session',               icon:'create',         color:C.green,   xp:50,  done:true,  category:'writing'   },
-  { id:'w2', title:'Grammar Guru',         desc:'Achieve a grammar score of 95+',                 icon:'checkmark-circle',color:C.green,  xp:100, done:true,  category:'writing'   },
-  { id:'w3', title:'Wordsmith',            desc:'Write more than 5000 words total',               icon:'document-text',  color:C.accent,  xp:200, done:false, progress:4200, total:5000, category:'writing' },
-  { id:'w4', title:'Template Master',      desc:'Use 5 different writing templates',              icon:'copy',           color:C.purple,  xp:100, done:false, progress:2, total:5, category:'writing'   },
-  // Interview
-  { id:'i1', title:'First Interview',      desc:'Complete your first mock interview',              icon:'people',         color:C.purple,  xp:50,  done:true,  category:'interview' },
-  { id:'i2', title:'Ace It',               desc:'Score 90+ in a mock interview',                  icon:'trophy',         color:C.gold,    xp:200, done:false, progress:82, total:90, category:'interview' },
-  { id:'i3', title:'Multi-Role',           desc:'Practice 3 different job roles',                 icon:'briefcase',      color:C.accent,  xp:150, done:true,  category:'interview' },
-  { id:'i4', title:'STAR Method Pro',      desc:'Complete 10 behavioral interviews',              icon:'git-branch',     color:C.green,   xp:200, done:false, progress:4, total:10, category:'interview' },
+  {
+    id: 's1', title: 'First Words', xp: 50, category: 'speech',
+    icon: 'mic-outline',
+    desc: 'Complete your first speech session.',
+    compute: d => ({ done: d.speechCount >= 1,  progress: Math.min(d.speechCount, 1),  total: 1  }),
+  },
+  {
+    id: 's2', title: 'Consistent Speaker', xp: 100, category: 'speech',
+    icon: 'mic-circle-outline',
+    desc: 'Complete 5 speech sessions.',
+    compute: d => ({ done: d.speechCount >= 5,  progress: Math.min(d.speechCount, 5),  total: 5  }),
+  },
+  {
+    id: 's3', title: '10 Sessions', xp: 150, category: 'speech',
+    icon: 'mic-circle-outline',
+    desc: 'Complete 10 speech sessions.',
+    compute: d => ({ done: d.speechCount >= 10, progress: Math.min(d.speechCount, 10), total: 10 }),
+  },
+  {
+    id: 's4', title: '25 Sessions', xp: 250, category: 'speech',
+    icon: 'mic-circle-outline',
+    desc: 'Complete 25 speech sessions.',
+    compute: d => ({ done: d.speechCount >= 25, progress: Math.min(d.speechCount, 25), total: 25 }),
+  },
+  {
+    id: 's5', title: 'Smooth Talker', xp: 100, category: 'speech',
+    icon: 'star-outline',
+    desc: 'Score 80 or above in a session.',
+    compute: d => ({ done: d.bestScore >= 80,   progress: Math.min(d.bestScore, 80),   total: 80 }),
+  },
+  {
+    id: 's6', title: 'High Achiever', xp: 200, category: 'speech',
+    icon: 'trophy-outline',
+    desc: 'Score 90 or above in a session.',
+    compute: d => ({ done: d.bestScore >= 90,   progress: Math.min(d.bestScore, 90),   total: 90 }),
+  },
+  {
+    id: 's7', title: 'Filler-Free', xp: 150, category: 'speech',
+    icon: 'shield-checkmark-outline',
+    desc: 'Complete a session with zero filler words.',
+    compute: d => ({ done: d.fillerFreeCount >= 1, progress: Math.min(d.fillerFreeCount, 1), total: 1 }),
+  },
+  {
+    id: 's8', title: 'Marathon Speaker', xp: 200, category: 'speech',
+    icon: 'timer-outline',
+    desc: 'Record a speech longer than 10 minutes.',
+    compute: d => ({ done: d.longCount >= 1,    progress: Math.min(d.longCount, 1),    total: 1  }),
+  },
   // Streaks
-  { id:'st1', title:'3-Day Streak',        desc:'Practice 3 days in a row',                      icon:'flame',          color:C.danger,  xp:75,  done:true,  category:'streak'    },
-  { id:'st2', title:'7-Day Streak',        desc:'Practice 7 days in a row',                      icon:'flame',          color:C.danger,  xp:150, done:false, progress:4, total:7,  category:'streak'    },
-  { id:'st3', title:'30-Day Streak',       desc:'Practice 30 days in a row',                     icon:'flame',          color:C.gold,    xp:500, done:false, progress:4, total:30, category:'streak'    },
+  {
+    id: 'st1', title: '3-Day Streak', xp: 75, category: 'streak',
+    icon: 'flame-outline',
+    desc: 'Practice 3 days in a row.',
+    compute: d => ({ done: d.streakDays >= 3,   progress: Math.min(d.streakDays, 3),   total: 3  }),
+  },
+  {
+    id: 'st2', title: '7-Day Streak', xp: 150, category: 'streak',
+    icon: 'flame-outline',
+    desc: 'Practice 7 days in a row.',
+    compute: d => ({ done: d.streakDays >= 7,   progress: Math.min(d.streakDays, 7),   total: 7  }),
+  },
+  {
+    id: 'st3', title: '30-Day Streak', xp: 500, category: 'streak',
+    icon: 'flame-outline',
+    desc: 'Practice 30 days in a row.',
+    compute: d => ({ done: d.streakDays >= 30,  progress: Math.min(d.streakDays, 30),  total: 30 }),
+  },
   // Milestones
-  { id:'m1', title:'Rising Star',          desc:'Reach an overall score of 75',                   icon:'star-half',      color:C.gold,    xp:100, done:true,  category:'milestone' },
-  { id:'m2', title:'Communication Pro',    desc:'Reach an overall score of 85',                   icon:'star',           color:C.gold,    xp:200, done:false, progress:84, total:85, category:'milestone' },
-  { id:'m3', title:'Top 10%',             desc:'Rank in the top 10% of all users',               icon:'podium',         color:C.purple,  xp:300, done:false, progress:0, total:1, category:'milestone' },
+  {
+    id: 'm1', title: 'Rising Star', xp: 100, category: 'milestone',
+    icon: 'trending-up-outline',
+    desc: 'Reach an average score of 70 across all sessions.',
+    compute: d => ({ done: d.avgScore >= 70,    progress: Math.min(Math.round(d.avgScore), 70),  total: 70  }),
+  },
+  {
+    id: 'm2', title: 'Communication Pro', xp: 200, category: 'milestone',
+    icon: 'ribbon-outline',
+    desc: 'Reach an average score of 85 across all sessions.',
+    compute: d => ({ done: d.avgScore >= 85,    progress: Math.min(Math.round(d.avgScore), 85),  total: 85  }),
+  },
 ];
 
-const FILTERS = ['All','Speech','Writing','Interview','Streak','Milestone'];
-const FILTER_MAP: Record<string,string> = {
-  'Speech':'speech','Writing':'writing','Interview':'interview',
-  'Streak':'streak','Milestone':'milestone',
-};
+const FILTERS: { label: string; cat: AchCat | 'all' }[] = [
+  { label: 'All',       cat: 'all'       },
+  { label: 'Speech',    cat: 'speech'    },
+  { label: 'Streaks',   cat: 'streak'    },
+  { label: 'Milestones',cat: 'milestone' },
+];
 
-export default function AchievementsScreen({ navigation }:any) {
-  const [filter, setFilter] = useState('All');
+// ── AchCard component ─────────────────────────────────────────────────────────
+
+function AchCard({
+  def, done, progress, total, accent, C,
+}: {
+  def: AchDef; done: boolean; progress: number; total: number; accent: string; C: any;
+}) {
+  const pct = total > 0 ? Math.min(100, Math.round((progress / total) * 100)) : 0;
+  const s = StyleSheet.create({
+    card:     { backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: done ? accent + '55' : C.border, padding: 14, marginBottom: 10 },
+    top:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: done || pct > 0 ? 10 : 0 },
+    iconBox:  { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? accent + '18' : C.surfaceAlt },
+    meta:     { flex: 1 },
+    title:    { fontSize: 13, fontWeight: '700', color: done ? C.text : C.textSec },
+    desc:     { fontSize: 12, color: C.textMuted, marginTop: 2, lineHeight: 17 },
+    xpRow:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+    xpTxt:    { fontSize: 11, fontWeight: '600', color: done ? accent : C.textMuted },
+    check:    { width: 22, height: 22, borderRadius: 11, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' },
+    barBg:    { height: 4, backgroundColor: C.border, borderRadius: 2, overflow: 'hidden' },
+    barFill:  { height: '100%' as any, borderRadius: 2, backgroundColor: accent },
+    progTxt:  { fontSize: 11, color: C.textMuted, marginTop: 4 },
+  });
+  return (
+    <View style={s.card}>
+      <View style={s.top}>
+        <View style={s.iconBox}>
+          <Ionicons name={def.icon as any} size={20} color={done ? accent : C.textMuted} />
+        </View>
+        <View style={s.meta}>
+          <Text style={s.title}>{def.title}</Text>
+          <Text style={s.desc}>{def.desc}</Text>
+          <View style={s.xpRow}>
+            <Ionicons name="star-outline" size={11} color={done ? accent : C.textMuted} />
+            <Text style={s.xpTxt}>{def.xp} XP</Text>
+          </View>
+        </View>
+        {done && (
+          <View style={s.check}>
+            <Ionicons name="checkmark" size={13} color="#fff" />
+          </View>
+        )}
+      </View>
+      {!done && total > 1 && (
+        <>
+          <View style={s.barBg}>
+            <View style={[s.barFill, { width: `${pct}%` as any }]} />
+          </View>
+          <Text style={s.progTxt}>{progress} / {total}</Text>
+        </>
+      )}
+    </View>
+  );
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+
+export default function AchievementsScreen({ navigation }: any) {
+  const { colors: C, isDark } = useTheme();
+  const userId      = useAuthStore(s => s.user?.id);
+  const sessions    = useSessionStore(s => s.sessions);
+  const loadSessions= useSessionStore(s => s.loadSessions);
+  const profile     = useUserStore(s => s.profile);
+  const [filter, setFilter] = useState<AchCat | 'all'>('all');
   const fade = useRef(new Animated.Value(0)).current;
 
-  useEffect(()=>{
-    Animated.timing(fade,{toValue:1,duration:500,useNativeDriver:true}).start();
-  },[]);
+  useEffect(() => {
+    Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    if (userId) loadSessions(userId);
+  }, [userId]);
 
-  const filtered = ACHIEVEMENTS.filter(a =>
-    filter==='All' || a.category===FILTER_MAP[filter]
-  );
-  const done   = ACHIEVEMENTS.filter(a=>a.done).length;
-  const total  = ACHIEVEMENTS.length;
-  const totalXP= ACHIEVEMENTS.filter(a=>a.done).reduce((s,a)=>s+a.xp,0);
+  // ── Compute live data from real sessions ──────────────────────────────────
+  const speechSessions = sessions.filter(s => s.type === 'speech') as SpeechSession[];
+  const speechCount    = speechSessions.length;
+  const bestScore      = speechCount > 0 ? Math.max(...speechSessions.map(s => s.score)) : 0;
+  const avgScore       = speechCount > 0
+    ? speechSessions.reduce((a, s) => a + s.score, 0) / speechCount
+    : 0;
+  const fillerFreeCount = speechSessions.filter(s => s.filler_count === 0).length;
+  const longCount       = speechSessions.filter(s => s.duration >= 600).length;
+  const streakDays      = profile?.streak_days ?? 0;
+
+  const liveData: LiveData = { speechCount, bestScore, fillerFreeCount, longCount, streakDays, avgScore };
+
+  // ── Evaluate achievements ─────────────────────────────────────────────────
+  const evaluated = ACHIEVEMENTS.map(def => ({ def, ...def.compute(liveData) }));
+  const filtered  = evaluated.filter(a => filter === 'all' || a.def.category === filter);
+  const unlockedAll = evaluated.filter(a => a.done);
+  const totalXP     = unlockedAll.reduce((s, a) => s + a.def.xp, 0);
+
+  const ACCENT = C.primary;
+
+  const s = StyleSheet.create({
+    root:         { flex: 1, backgroundColor: C.bg },
+    scrollContent:{ paddingBottom: 80 },
+
+    header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14, gap: 10 },
+    backBtn:      { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    headerTitle:  { flex: 1, fontSize: 18, fontWeight: '700', color: C.text },
+    divider:      { height: 1, backgroundColor: C.border, marginHorizontal: 20, marginBottom: 16 },
+
+    // Summary strip
+    summaryRow:   { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 16 },
+    sumCard:      { flex: 1, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border, paddingVertical: 12, alignItems: 'center', gap: 3 },
+    sumVal:       { fontSize: 18, fontWeight: '700', color: C.text },
+    sumLbl:       { fontSize: 10, color: C.textMuted },
+
+    // Overall progress bar
+    barWrap:      { paddingHorizontal: 20, marginBottom: 16 },
+    barBg:        { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
+    barFill:      { height: '100%' as any, borderRadius: 3, backgroundColor: ACCENT },
+
+    // Filter chips
+    filterRow:    { paddingHorizontal: 20, gap: 8, flexDirection: 'row', marginBottom: 16 },
+    chip:         { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    chipActive:   { backgroundColor: ACCENT, borderColor: ACCENT },
+    chipTxt:      { fontSize: 12, color: C.textMuted, fontWeight: '500' },
+    chipTxtActive:{ color: '#fff', fontWeight: '700' },
+
+    sectionLabel: { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: 20, marginBottom: 10, marginTop: 4 },
+    listWrap:     { paddingHorizontal: 20 },
+  });
+
+  const pct = Math.round((unlockedAll.length / ACHIEVEMENTS.length) * 100);
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <LinearGradient colors={['#0F2040',C.bg]} style={s.headerBg}>
-        <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={()=>navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color={C.muted}/>
-          </TouchableOpacity>
-          <Text style={s.headerTitle}>Achievements</Text>
-          <View style={{width:42}}/>
-        </View>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <View style={s.header}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
+          <Ionicons name="arrow-back" size={18} color={C.textMuted} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Achievements</Text>
+      </View>
+      <View style={s.divider} />
 
+      <Animated.ScrollView
+        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'scroll' } as any)]}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Summary */}
         <View style={s.summaryRow}>
-          <View style={s.summaryCard}>
-            <LinearGradient colors={['rgba(245,158,11,0.20)','rgba(245,158,11,0.05)']} style={[StyleSheet.absoluteFill,{borderRadius:18}]}/>
-            <Ionicons name="trophy" size={28} color={C.gold}/>
-            <Text style={s.summaryNum}>{done}/{total}</Text>
-            <Text style={s.summaryLbl}>Unlocked</Text>
+          <View style={s.sumCard}>
+            <Text style={s.sumVal}>{unlockedAll.length}/{ACHIEVEMENTS.length}</Text>
+            <Text style={s.sumLbl}>Unlocked</Text>
           </View>
-          <View style={s.summaryCard}>
-            <LinearGradient colors={['rgba(21,101,255,0.20)','rgba(21,101,255,0.05)']} style={[StyleSheet.absoluteFill,{borderRadius:18}]}/>
-            <Ionicons name="star" size={28} color={C.accent}/>
-            <Text style={s.summaryNum}>{totalXP}</Text>
-            <Text style={s.summaryLbl}>XP Earned</Text>
+          <View style={s.sumCard}>
+            <Text style={s.sumVal}>{totalXP}</Text>
+            <Text style={s.sumLbl}>XP Earned</Text>
           </View>
-          <View style={s.summaryCard}>
-            <LinearGradient colors={['rgba(34,197,94,0.20)','rgba(34,197,94,0.05)']} style={[StyleSheet.absoluteFill,{borderRadius:18}]}/>
-            <Ionicons name="trending-up" size={28} color={C.green}/>
-            <Text style={s.summaryNum}>{Math.round((done/total)*100)}%</Text>
-            <Text style={s.summaryLbl}>Complete</Text>
+          <View style={s.sumCard}>
+            <Text style={s.sumVal}>{pct}%</Text>
+            <Text style={s.sumLbl}>Complete</Text>
           </View>
         </View>
 
-        {/* Overall progress bar */}
-        <View style={s.overallBar}>
-          <View style={s.overallBarBg}>
-            <LinearGradient colors={[C.gold,'#D97706']} start={{x:0,y:0}} end={{x:1,y:0}}
-              style={[s.overallBarFill,{width:`${(done/total)*100}%` as any}]}/>
+        {/* Overall bar */}
+        <View style={s.barWrap}>
+          <View style={s.barBg}>
+            <View style={[s.barFill, { width: `${pct}%` as any }]} />
           </View>
         </View>
 
-        {/* Filters */}
+        {/* Filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
-          {FILTERS.map(f=>(
-            <TouchableOpacity key={f} style={[s.chip, filter===f&&s.chipActive]} onPress={()=>setFilter(f)}>
-              <Text style={[s.chipTxt, filter===f&&s.chipTxtActive]}>{f}</Text>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f.cat}
+              style={[s.chip, filter === f.cat && s.chipActive]}
+              onPress={() => setFilter(f.cat)}
+              activeOpacity={0.75}
+            >
+              <Text style={[s.chipTxt, filter === f.cat && s.chipTxtActive]}>{f.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Done */}
-        {filtered.some(a=>a.done) && (
+        {/* Unlocked */}
+        {filtered.some(a => a.done) && (
           <>
-            <Text style={s.groupLbl}>UNLOCKED ✓</Text>
-            <View style={s.achGrid}>
-              {filtered.filter(a=>a.done).map(a=>(
-                <AchCard key={a.id} a={a}/>
+            <Text style={s.sectionLabel}>Unlocked</Text>
+            <View style={s.listWrap}>
+              {filtered.filter(a => a.done).map(a => (
+                <AchCard key={a.def.id} def={a.def} done={a.done} progress={a.progress} total={a.total} accent={ACCENT} C={C} />
               ))}
             </View>
           </>
         )}
 
-        {/* Locked */}
-        {filtered.some(a=>!a.done) && (
+        {/* Locked / in progress */}
+        {filtered.some(a => !a.done) && (
           <>
-            <Text style={s.groupLbl}>IN PROGRESS</Text>
-            <View style={s.achGrid}>
-              {filtered.filter(a=>!a.done).map(a=>(
-                <AchCard key={a.id} a={a}/>
+            <Text style={s.sectionLabel}>{speechCount === 0 ? 'Locked — Complete a session to start' : 'In Progress'}</Text>
+            <View style={s.listWrap}>
+              {filtered.filter(a => !a.done).map(a => (
+                <AchCard key={a.def.id} def={a.def} done={a.done} progress={a.progress} total={a.total} accent={ACCENT} C={C} />
               ))}
             </View>
           </>
         )}
-
-        <View style={{height:40}}/>
       </Animated.ScrollView>
     </View>
   );
 }
-
-function AchCard({ a }:{ a:Achievement }) {
-  const hasProgress = a.progress !== undefined && a.total !== undefined;
-  const pct = hasProgress ? Math.round((a.progress!/a.total!)*100) : 0;
-
-  return (
-    <View style={[ac.card, !a.done && ac.cardLocked]}>
-      <View style={[ac.iconWrap,{backgroundColor: a.done ? `${a.color}22` : 'rgba(255,255,255,0.06)'}]}>
-        <Ionicons name={a.icon as any} size={28} color={a.done ? a.color : C.hint}/>
-        {a.done && <View style={ac.doneCheck}><Ionicons name="checkmark" size={10} color="#fff"/></View>}
-      </View>
-      <Text style={[ac.title, !a.done && ac.titleLocked]}>{a.title}</Text>
-      <Text style={ac.desc} numberOfLines={2}>{a.desc}</Text>
-      {hasProgress && !a.done && (
-        <>
-          <View style={ac.progBg}>
-            <View style={[ac.progFill,{width:`${pct}%` as any,backgroundColor:a.color}]}/>
-          </View>
-          <Text style={ac.progTxt}>{a.progress}/{a.total}</Text>
-        </>
-      )}
-      <View style={[ac.xpBadge,{backgroundColor: a.done ? `${C.gold}20` : 'rgba(255,255,255,0.05)'}]}>
-        <Ionicons name="star" size={11} color={a.done ? C.gold : C.hint}/>
-        <Text style={[ac.xpTxt,{color: a.done ? C.gold : C.hint}]}>{a.xp} XP</Text>
-      </View>
-    </View>
-  );
-}
-
-const CARD_W = (W-52)/2;
-const ac = StyleSheet.create({
-  card:       {width:CARD_W,backgroundColor:C.bgCard,borderRadius:18,padding:14,borderWidth:1,borderColor:C.border,gap:8,alignItems:'center'},
-  cardLocked: {opacity:0.65},
-  iconWrap:   {width:60,height:60,borderRadius:18,alignItems:'center',justifyContent:'center',position:'relative'},
-  doneCheck:  {position:'absolute',bottom:-2,right:-2,width:18,height:18,borderRadius:9,backgroundColor:C.green,borderWidth:1.5,borderColor:C.bgCard,alignItems:'center',justifyContent:'center'},
-  title:      {fontSize:13,fontWeight:'700',color:C.text,textAlign:'center'},
-  titleLocked:{color:C.muted},
-  desc:       {fontSize:11,color:C.hint,textAlign:'center',lineHeight:16},
-  progBg:     {width:'100%',height:4,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:2,overflow:'hidden'},
-  progFill:   {height:'100%',borderRadius:2},
-  progTxt:    {fontSize:10,color:C.hint},
-  xpBadge:   {flexDirection:'row',alignItems:'center',gap:4,paddingHorizontal:10,paddingVertical:4,borderRadius:20},
-  xpTxt:      {fontSize:11,fontWeight:'600'},
-});
-
-const s = StyleSheet.create({
-  root:        {flex:1,backgroundColor:C.bg},
-  headerBg:    {paddingBottom:12},
-  header:      {flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:36,marginBottom:16},
-  backBtn:     {width:42,height:42,borderRadius:13,backgroundColor:'rgba(255,255,255,0.08)',alignItems:'center',justifyContent:'center'},
-  headerTitle: {fontSize:17,fontWeight:'700',color:C.text},
-  summaryRow:  {flexDirection:'row',gap:10,paddingHorizontal:20,marginBottom:12},
-  summaryCard: {flex:1,borderRadius:18,padding:12,borderWidth:1,borderColor:C.border,overflow:'hidden',alignItems:'center',gap:4},
-  summaryNum:  {fontSize:20,fontWeight:'800',color:C.text},
-  summaryLbl:  {fontSize:10,color:C.muted},
-  overallBar:  {paddingHorizontal:20,marginBottom:14},
-  overallBarBg:{height:6,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:3,overflow:'hidden'},
-  overallBarFill:{height:'100%',borderRadius:3},
-  filterRow:   {paddingHorizontal:20,gap:8,paddingBottom:4},
-  chip:        {paddingHorizontal:14,paddingVertical:7,borderRadius:20,borderWidth:1,borderColor:C.border,backgroundColor:C.surface},
-  chipActive:  {backgroundColor:C.primary,borderColor:C.primary},
-  chipTxt:     {fontSize:12,color:C.muted,fontWeight:'500'},
-  chipTxtActive:{color:'#fff'},
-  scroll:      {paddingHorizontal:20,paddingTop:16},
-  groupLbl:    {fontSize:11,fontWeight:'700',color:C.hint,letterSpacing:1,textTransform:'uppercase',marginBottom:12,marginTop:8},
-  achGrid:     {flexDirection:'row',flexWrap:'wrap',gap:10,marginBottom:8},
-});
-

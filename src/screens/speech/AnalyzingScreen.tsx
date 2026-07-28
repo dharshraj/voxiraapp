@@ -170,16 +170,29 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     // ── Save session ─────────────────────────────────────────────────────────
     if (!savedRef.current && userId) {
       savedRef.current = true;
-      addSpeech({
-        mode, score, duration, wpm,
-        filler_count:     fillerCount,
-        filler_breakdown: llmFillerBreakdown,
-        transcript,
-        clarity:       details.clarity,
-        pace:          details.pace,
-        pronunciation: details.pronunciation,
-        confidence:    details.confidence,
-      }, userId).catch(e => console.warn('[AnalyzingScreen] Session save error:', e));
+      try {
+        await addSpeech({
+          mode, score, duration, wpm,
+          filler_count:     fillerCount,
+          filler_breakdown: llmFillerBreakdown,
+          transcript,
+          clarity:       details.clarity,
+          pace:          details.pace,
+          pronunciation: details.pronunciation,
+          confidence:    details.confidence,
+        }, userId);
+
+        // addSpeechSession re-fetches from Supabase on success, so Speech
+        // Dashboard / Progress Overview are immediately up to date.
+        const saveErr = useSessionStore.getState().saveError;
+        if (saveErr) {
+          // Non-fatal — the result still shows; warn but don't block navigation.
+          console.warn('[AnalyzingScreen] Session saved to local store but Supabase write failed:', saveErr);
+        }
+      } catch (saveEx: any) {
+        // Should not throw (store handles internally), but guard anyway.
+        console.error('[AnalyzingScreen] Unexpected save exception:', saveEx?.message);
+      }
     }
 
     await delay(400);
