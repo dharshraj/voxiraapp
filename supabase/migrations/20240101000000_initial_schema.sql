@@ -198,6 +198,7 @@ create table if not exists public.user_preferences (
   notif_achievements   boolean     not null default true,
   notif_weekly         boolean     not null default false,
   notif_remind_time    text        not null default '9:00 AM',
+  speech_daily_target  integer     not null default 2,
   updated_at           timestamptz not null default now()
 );
 

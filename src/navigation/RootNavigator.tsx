@@ -22,6 +22,7 @@ import DashboardScreen     from '../screens/home/DashboardScreen';
 import DailyGoalScreen     from '../screens/home/DailyGoalScreen';
 import NotificationsScreen from '../screens/home/NotificationsScreen';
 import SearchScreen        from '../screens/home/SearchScreen';
+import TopicDetailScreen   from '../screens/home/TopicDetailScreen';
 
 // ── Speech ────────────────────────────────────────────────────────────────────
 import SpeechHomeScreen     from '../screens/speech/SpeechHomeScreen';
@@ -95,6 +96,24 @@ function HomeStack() {
       <Stack.Screen name="DailyGoal"     component={DailyGoalScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Search"        component={SearchScreen} />
+      <Stack.Screen name="TopicDetail"   component={TopicDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function DailyGoalsStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="DailyGoalMain" component={DailyGoalScreen} />
+      <Stack.Screen name="TopicDetail"   component={TopicDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function AchievementsTabStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AchievementsMain" component={AchievementsScreen} />
     </Stack.Navigator>
   );
 }
@@ -158,9 +177,11 @@ function MainTabs() {
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 2 },
         tabBarIcon: ({ color, size, focused }) => {
           const map: Record<string, [string, string]> = {
-            Home:    ['home',          'home-outline'],
-            Speech:  ['mic',           'mic-outline'],
-            Profile: ['person-circle', 'person-circle-outline'],
+            Home:         ['home',          'home-outline'],
+            Speech:       ['mic',           'mic-outline'],
+            DailyGoals:   ['flag',          'flag-outline'],
+            Achievements: ['trophy',        'trophy-outline'],
+            Profile:      ['person-circle', 'person-circle-outline'],
           };
           const [active, inactive] = map[route.name] ?? ['ellipse', 'ellipse-outline'];
           return (
@@ -177,9 +198,11 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home"    component={HomeStack}    options={{ title: 'Home' }} />
-      <Tab.Screen name="Speech"  component={SpeechStack}  options={{ title: 'Speech' }} />
-      <Tab.Screen name="Profile" component={ProfileStack} options={{ title: 'Profile' }} />
+      <Tab.Screen name="Home"         component={HomeStack}           options={{ title: 'Home' }} />
+      <Tab.Screen name="Speech"       component={SpeechStack}         options={{ title: 'Speech' }} />
+      <Tab.Screen name="DailyGoals"   component={DailyGoalsStack}     options={{ title: 'Goals' }} />
+      <Tab.Screen name="Achievements" component={AchievementsTabStack} options={{ title: 'Earn' }} />
+      <Tab.Screen name="Profile"      component={ProfileStack}        options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 }
