@@ -15,8 +15,6 @@ const SECTIONS = [
     content: [
       { heading: 'Account Information', body: 'When you register, we collect your name, email address, and password (stored securely via Supabase Auth). We never store plain-text passwords.' },
       { heading: 'Speech Data', body: 'When you record a speech session, the audio is sent to our AI provider for transcription and analysis. We do not store raw audio files. Only the analysed results (score, transcript text, filler word count, duration) are saved to your account.' },
-      { heading: 'Writing Data', body: 'Text you submit for writing analysis is sent to our AI provider. We store the original text, corrections, and scores in your account for your history and progress tracking.' },
-      { heading: 'Interview Data', body: 'Your spoken or typed answers during mock interviews are processed by AI. We store question–answer pairs and scores for your review and progress tracking.' },
       { heading: 'Usage Data', body: 'We collect anonymised usage analytics such as which features are used, session frequency, and app performance data. This data cannot identify you personally.' },
     ],
   },

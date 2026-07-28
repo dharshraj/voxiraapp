@@ -32,16 +32,8 @@ const FAQS = [
     a:'Basic features work offline on Pro. Speech recording and AI analysis require an internet connection. Offline mode (Pro) lets you record and syncs the analysis when you reconnect.',
   },
   {
-    q:'How is my interview score calculated?',
-    a:'The AI evaluates 4 factors: Content (relevance of your answer), Clarity (how clearly you communicated), Structure (did you use STAR?), and Confidence (tone, pace, fluency). Each is weighted equally.',
-  },
-  {
     q:'Can I cancel my Pro subscription?',
     a:'Yes, anytime. Go to Settings → Subscription → Cancel. On iOS, manage through App Store subscriptions. On Android, through Google Play. Your Pro access continues until the billing period ends.',
-  },
-  {
-    q:'Why is the writing feature not saving?',
-    a:'Make sure you are connected to the internet and have a valid account. Writing sessions are saved automatically after analysis. If the issue persists, try logging out and back in.',
   },
   {
     q:'How do I reset my streak?',

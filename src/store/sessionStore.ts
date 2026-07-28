@@ -1,5 +1,5 @@
 /**
- * sessionStore — Zustand store for speech and interview sessions
+ * sessionStore — Zustand store for speech sessions
  *
  * SAVE FLOW (addSpeechSession):
  *  1. Optimistic insert into local state so UI responds immediately.
@@ -46,33 +46,17 @@ export interface SpeechSession {
   created_at?:       string;
 }
 
-// ── Interview session ─────────────────────────────────────────────────────────
-
-export interface InterviewSession {
-  id?:            string;
-  type:           'interview';
-  role:           string;
-  difficulty:     string;
-  interview_type: string;
-  avg_score:      number;
-  question_count: number;
-  created_at?:    string;
-}
-
-export type AppSession = SpeechSession | InterviewSession;
-
 // ── Store interface ───────────────────────────────────────────────────────────
 
 interface SessionState {
-  sessions:  AppSession[];
+  sessions:  SpeechSession[];
   loading:   boolean;
   saveError: string | null;   // exposed so UI can surface it
 
-  addSpeechSession:    (data: Omit<SpeechSession, 'type'>,    userId: string) => Promise<void>;
-  addInterviewSession: (data: Omit<InterviewSession, 'type'>, userId: string) => Promise<void>;
-  loadSessions:        (userId: string) => Promise<void>;
-  clearSaveError:      () => void;
-  clearSessions:       () => void;
+  addSpeechSession: (data: Omit<SpeechSession, 'type'>, userId: string) => Promise<void>;
+  loadSessions:     (userId: string) => Promise<void>;
+  clearSaveError:   () => void;
+  clearSessions:    () => void;
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -136,71 +120,26 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     await get().loadSessions(userId);
   },
 
-  // ── addInterviewSession ─────────────────────────────────────────────────────
-  addInterviewSession: async (data, userId) => {
-    const optimistic: InterviewSession = { ...data, type: 'interview' };
-    set(state => ({ sessions: [optimistic, ...state.sessions], saveError: null }));
-
-    console.log('[sessionStore] Saving interview session, user_id:', userId);
-
-    const { error } = await supabase.from('interview_sessions').insert({
-      user_id:        userId,
-      role:           data.role,
-      difficulty:     data.difficulty,
-      interview_type: data.interview_type,
-      avg_score:      data.avg_score,
-      question_count: data.question_count,
-    });
-
-    if (error) {
-      console.error('[sessionStore] interview_sessions insert failed:', error.message, error.code);
-      set({ saveError: error.message });
-      return;
-    }
-
-    await get().loadSessions(userId);
-  },
-
   // ── loadSessions ────────────────────────────────────────────────────────────
   loadSessions: async (userId) => {
     set({ loading: true });
     try {
-      const [speechRes, interviewRes] = await Promise.all([
-        supabase
-          .from('speech_sessions')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        supabase
-          .from('interview_sessions')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(50),
-      ]);
+      const { data, error } = await supabase
+        .from('speech_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (speechRes.error) {
-        console.error('[sessionStore] loadSessions speech error:', speechRes.error.message);
-      }
-      if (interviewRes.error) {
-        console.error('[sessionStore] loadSessions interview error:', interviewRes.error.message);
+      if (error) {
+        console.error('[sessionStore] loadSessions error:', error.message);
       }
 
-      const speechSessions: SpeechSession[] = (speechRes.data ?? []).map(
+      const sessions: SpeechSession[] = (data ?? []).map(
         (s: any) => ({ ...s, type: 'speech' as const })
       );
-      const interviewSessions: InterviewSession[] = (interviewRes.data ?? []).map(
-        (s: any) => ({ ...s, type: 'interview' as const })
-      );
 
-      const merged = [...speechSessions, ...interviewSessions].sort((a, b) => {
-        const tA = new Date(a.created_at ?? 0).getTime();
-        const tB = new Date(b.created_at ?? 0).getTime();
-        return tB - tA;
-      });
-
-      set({ sessions: merged, loading: false });
+      set({ sessions, loading: false });
     } catch (err: any) {
       console.error('[sessionStore] loadSessions threw:', err?.message);
       set({ loading: false });

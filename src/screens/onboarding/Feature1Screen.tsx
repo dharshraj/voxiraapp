@@ -171,9 +171,9 @@ export default function Feature1Screen({ navigation }: any) {
           <Text style={s.skipTxt}>Skip</Text>
         </TouchableOpacity>
         <View style={s.progressTrack}>
-          <View style={[s.progressFill, { width: '33%' }]} />
+          <View style={[s.progressFill, { width: '100%' }]} />
         </View>
-        <Text style={s.stepTxt}>1 / 3</Text>
+        <Text style={s.stepTxt}>1 / 1</Text>
       </View>
 
       <ScrollView
@@ -236,9 +236,9 @@ export default function Feature1Screen({ navigation }: any) {
           <TouchableOpacity
             style={s.nextBtn}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('Feature2')}
+            onPress={() => navigation.navigate('Register')}
           >
-            <Text style={s.nextTxt}>Next</Text>
+            <Text style={s.nextTxt}>Get Started</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
         </View>

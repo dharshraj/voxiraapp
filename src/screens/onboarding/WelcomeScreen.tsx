@@ -105,14 +105,12 @@ export default function WelcomeScreen({ navigation }: any) {
         </Text>
 
         <Text style={s.subline}>
-          AI-powered coaching for speech, writing, and interviews.
+          AI-powered speech coaching.
         </Text>
 
         <View style={s.featureRow}>
           {[
-            { icon: 'mic-outline',    label: 'Speech Analysis' },
-            { icon: 'create-outline', label: 'Writing Coach'   },
-            { icon: 'people-outline', label: 'Interview Prep'  },
+            { icon: 'mic-outline', label: 'Speech Analysis' },
           ].map((f, i) => (
             <View key={i} style={s.featurePill}>
               <Ionicons name={f.icon as any} size={14} color={C.primary} />

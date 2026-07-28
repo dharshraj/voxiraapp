@@ -12,8 +12,6 @@ import { useUserStore } from '../store/userStore';
 import SplashScreen         from '../screens/auth/SplashScreen';
 import WelcomeScreen        from '../screens/onboarding/WelcomeScreen';
 import Feature1Screen       from '../screens/onboarding/Feature1Screen';
-import Feature2Screen       from '../screens/onboarding/Feature2Screen';
-import Feature3Screen       from '../screens/onboarding/Feature3Screen';
 import LoginScreen          from '../screens/auth/LoginScreen';
 import RegisterScreen       from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
@@ -83,8 +81,6 @@ function OnboardingStack() {
       <Stack.Screen name="Splash"         component={SplashScreen} />
       <Stack.Screen name="Welcome"        component={WelcomeScreen} />
       <Stack.Screen name="Feature1"       component={Feature1Screen} />
-      <Stack.Screen name="Feature2"       component={Feature2Screen} />
-      <Stack.Screen name="Feature3"       component={Feature3Screen} />
       <Stack.Screen name="Register"       component={RegisterScreen} />
       <Stack.Screen name="Login"          component={LoginScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />

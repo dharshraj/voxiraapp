@@ -15,10 +15,10 @@ const C = {
 };
 
 const FREE_FEATURES = [
-  '5 speech sessions per day','Basic grammar checker','5 mock interviews per month','Standard AI feedback','Progress tracking',
+  '5 speech sessions per day','Standard AI feedback','Progress tracking',
 ];
 const PRO_FEATURES = [
-  'Unlimited speech sessions','Advanced AI writing coach','Unlimited mock interviews','Real-time pronunciation scoring','Priority AI feedback','Custom interview roles','Offline mode','Ad-free experience','Export reports as PDF','Priority support',
+  'Unlimited speech sessions','Real-time pronunciation scoring','Priority AI feedback','Offline mode','Ad-free experience','Export reports as PDF','Priority support',
 ];
 
 const PLANS = [
