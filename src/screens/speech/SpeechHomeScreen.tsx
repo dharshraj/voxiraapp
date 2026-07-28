@@ -48,6 +48,9 @@ const BENCHMARKS = [
 
 export default function SpeechHomeScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
+  // Show a back button only when this screen has been pushed onto a stack
+  // (e.g. navigated from Search) rather than accessed via the Speech tab root.
+  const canGoBack = navigation.canGoBack();
 
   const s = StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
@@ -115,7 +118,12 @@ export default function SpeechHomeScreen({ navigation }: any) {
         {...(Platform.OS === 'web' ? ({ style: { height: '100%', overflowY: 'auto' } } as any) : {})}
       >
         <View style={s.header}>
-          <View style={s.headerLeft}>
+          {canGoBack && (
+            <TouchableOpacity style={s.histBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
+              <Ionicons name="arrow-back" size={18} color={C.textMuted} />
+            </TouchableOpacity>
+          )}
+          <View style={[s.headerLeft, { flex: 1 }]}>
             <Text style={s.headerTitle}>Speech</Text>
             <Text style={s.headerSub}>AI-powered voice coaching</Text>
           </View>

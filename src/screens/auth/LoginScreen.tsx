@@ -65,11 +65,23 @@ export default function LoginScreen({ navigation, route }: any) {
         password: data.password,
       });
       if (error) {
-        setFormError(
-          error.message.toLowerCase().includes('invalid')
-            ? 'Incorrect email or password. Please try again.'
-            : error.message
-        );
+        const msg = error.message.toLowerCase();
+        if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials')) {
+          setFormError('Incorrect email or password. Please try again.');
+        } else if (msg.includes('not confirmed') || msg.includes('email not confirmed') || msg.includes('verified')) {
+          // Account exists but email_confirmed_at is null — created before
+          // email confirmation was disabled in Supabase.
+          // Fix: run in Supabase SQL Editor:
+          //   update auth.users set email_confirmed_at = now()
+          //   where email = 'your_email@example.com';
+          setFormError(
+            'Your account email is not verified. ' +
+            'To fix this, go to Supabase Dashboard → Authentication → Users → find your account → click "Send confirmation email", or ask the admin to run: ' +
+            "update auth.users set email_confirmed_at = now() where email = '" + data.email.trim().toLowerCase() + "';"
+          );
+        } else {
+          setFormError(error.message);
+        }
       }
     } catch (e: any) {
       setFormError(e?.message ?? 'Something went wrong. Please try again.');

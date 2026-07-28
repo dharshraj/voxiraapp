@@ -234,3 +234,16 @@ create policy "Users manage own notifications"
   on public.notifications
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ── Fix "email not verified" for existing accounts ────────────────────────────
+-- Accounts created BEFORE "Confirm email" was disabled in Supabase Auth settings
+-- may still have email_confirmed_at = NULL. This marks all existing users as
+-- confirmed so they can sign in without a verification email.
+--
+-- Run this once after disabling email confirmation in:
+--   Supabase Dashboard → Authentication → Providers → Email → Confirm email OFF
+--
+-- Safe to re-run — only updates rows where email_confirmed_at is currently null.
+update auth.users
+set    email_confirmed_at = now()
+where  email_confirmed_at is null;
