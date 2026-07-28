@@ -41,8 +41,13 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      /* #root and every wrapper div inside it: full-height flex column */
-      #root, #root > div, #root > div > div {
+      /* #root and ALL wrapper divs inside it: full-height flex column.
+         React Navigation adds several nested divs — this covers them all. */
+      #root,
+      #root > div,
+      #root > div > div,
+      #root > div > div > div,
+      #root > div > div > div > div {
         height: 100%;
         display: flex;
         flex-direction: column;
