@@ -16,16 +16,14 @@ const STREAKS = [
 
 export default function DailyGoalScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
-  const [goals, setGoals]     = useState<Record<string,number>>({ speech:2, writing:1, interview:1 });
+  const [goals, setGoals] = useState<Record<string,number>>({ speech: 2 });
   const [reminder, setReminder] = useState('09:00 AM');
   const [notifOn,  setNotifOn]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const GOAL_OPTIONS = [
-    { id:'speech',    label:'Speech Sessions',  icon:'mic',    color:C.info,    options:[1,2,3,5] },
-    { id:'writing',   label:'Writing Sessions', icon:'create', color:C.success, options:[1,2,3,5] },
-    { id:'interview', label:'Mock Interviews',  icon:'people', color:C.primary, options:[1,2,3,5] },
+    { id:'speech', label:'Speech Sessions', icon:'mic', color:C.info, options:[1,2,3,5] },
   ];
 
   useEffect(() => {
@@ -247,17 +245,14 @@ export default function DailyGoalScreen({ navigation }: any) {
         </View>
 
         <View style={s.motivCard}>
-          <Text style={s.motivEmoji}>
-            {totalSessions <= 2 ? '😌' : totalSessions <= 4 ? '💪' : '🔥'}
-          </Text>
           <View style={{flex:1}}>
             <Text style={s.motivTitle}>
-              {totalSessions <= 2 ? 'Relaxed Pace' : totalSessions <= 4 ? 'Balanced Grind' : 'Beast Mode!'}
+              {goals.speech <= 2 ? 'Relaxed Pace' : goals.speech <= 4 ? 'Balanced Grind' : 'High Intensity'}
             </Text>
             <Text style={s.motivSub}>
-              {totalSessions <= 2
+              {goals.speech <= 2
                 ? 'Great for beginners. Consistency is key!'
-                : totalSessions <= 4
+                : goals.speech <= 4
                 ? 'Perfect balance of practice and rest.'
                 : 'Serious commitment. Results will show fast!'}
             </Text>

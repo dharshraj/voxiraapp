@@ -182,8 +182,6 @@ export default function SplashScreen({ navigation }: any) {
         <View style={s.pillRow}>
           {[
             { label: '🎤 Speech AI', anim: { opacity: pill1Opacity, transform: [{ translateY: pill1Translate }] } },
-            { label: '✍️ Writing',   anim: { opacity: pill2Opacity, transform: [{ translateY: pill2Translate }] } },
-            { label: '🤝 Interviews',anim: { opacity: pill3Opacity, transform: [{ translateY: pill3Translate }] } },
           ].map((p, i) => (
             <Animated.View key={i} style={[s.pill, p.anim]}>
               <Text style={s.pillTxt}>{p.label}</Text>

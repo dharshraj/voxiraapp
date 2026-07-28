@@ -37,32 +37,8 @@ import DailyChallengeScreen from '../screens/speech/DailyChallengeScreen';
 import SpeechHistoryScreen  from '../screens/speech/SpeechHistoryScreen';
 import ShareResultScreen    from '../screens/speech/ShareResultScreen';
 import PronunciationScreen  from '../screens/speech/PronunciationScreen';
-import PaceAndClarityScreen     from '../screens/speech/PaceAndClarityScreen';
-import SpeechDashboardScreen    from '../screens/speech/SpeechDashboardScreen';
-
-// ── Writing ───────────────────────────────────────────────────────────────────
-import WritingHomeScreen       from '../screens/writing/WritingHomeScreen';
-import NewWritingScreen        from '../screens/writing/NewWritingScreen';
-import GrammarResultScreen     from '../screens/writing/GrammarResultScreen';
-import ToneAnalysisScreen      from '../screens/writing/ToneAnalysisScreen';
-import StyleSuggestionsScreen  from '../screens/writing/StyleSuggestionsScreen';
-import RewriteScreen           from '../screens/writing/RewriteViewScreen';
-import WritingHistoryScreen    from '../screens/writing/WritingHistoryScreen';
-import WritingProgressScreen   from '../screens/writing/WritingProgressScreen';
-import EmailTemplateScreen     from '../screens/writing/EmailTemplateScreen';
-import TemplatesLibraryScreen  from '../screens/writing/TemplatesLibraryScreen';
-
-// ── Interview ─────────────────────────────────────────────────────────────────
-import InterviewHomeScreen    from '../screens/interview/InterviewHomeScreen';
-import ChooseRoleScreen       from '../screens/interview/ChooseRoleScreen';
-import InterviewSetupScreen   from '../screens/interview/InterviewSetupScreen';
-import LiveInterviewScreen    from '../screens/interview/LiveInterviewScreen';
-import ThinkingScreen         from '../screens/interview/ThinkingScreen';
-import FeedbackScreen         from '../screens/interview/FeedbackScreen';
-import ScoreBreakdownScreen   from '../screens/interview/ScoreBreakdownScreen';
-import InterviewHistoryScreen from '../screens/interview/InterviewHistoryScreen';
-import QuestionBankScreen     from '../screens/interview/QuestionBankScreen';
-import InterviewTipsScreen    from '../screens/interview/InterviewTipsScreen';
+import PaceAndClarityScreen  from '../screens/speech/PaceAndClarityScreen';
+import SpeechDashboardScreen from '../screens/speech/SpeechDashboardScreen';
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 import ProfileScreen          from '../screens/profile/ProfileScreen';
@@ -74,8 +50,6 @@ import AchievementsScreen     from '../screens/profile/AchievementsScreen';
 import SettingsScreen             from '../screens/settings/SettingsScreen';
 import NotificationSettingsScreen from '../screens/settings/NotificationSettingsScreen';
 import PrivacyPolicyScreen        from '../screens/settings/PrivacyPolicyScreen';
-
-import PlaceholderScreen from './PlaceholderScreen';
 
 const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -145,40 +119,6 @@ function SpeechStack() {
       <Stack.Screen name="Pronunciation"  component={PronunciationScreen} />
       <Stack.Screen name="PaceAndClarity"     component={PaceAndClarityScreen} />
       <Stack.Screen name="SpeechDashboard"   component={SpeechDashboardScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function WritingStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="WritingHome"            component={WritingHomeScreen} />
-      <Stack.Screen name="NewWritingScreen"       component={NewWritingScreen} />
-      <Stack.Screen name="GrammarResultScreen"    component={GrammarResultScreen} />
-      <Stack.Screen name="ToneAnalysisScreen"     component={ToneAnalysisScreen} />
-      <Stack.Screen name="StyleSuggestionsScreen" component={StyleSuggestionsScreen} />
-      <Stack.Screen name="RewriteScreen"          component={RewriteScreen} />
-      <Stack.Screen name="WritingHistoryScreen"   component={WritingHistoryScreen} />
-      <Stack.Screen name="WritingProgressScreen"  component={WritingProgressScreen} />
-      <Stack.Screen name="EmailTemplateScreen"    component={EmailTemplateScreen} />
-      <Stack.Screen name="TemplatesLibraryScreen" component={TemplatesLibraryScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function InterviewStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="InterviewHome"    component={InterviewHomeScreen} />
-      <Stack.Screen name="ChooseRole"       component={ChooseRoleScreen} />
-      <Stack.Screen name="InterviewSetup"   component={InterviewSetupScreen} />
-      <Stack.Screen name="LiveInterview"    component={LiveInterviewScreen} />
-      <Stack.Screen name="Thinking"         component={ThinkingScreen} />
-      <Stack.Screen name="Feedback"         component={FeedbackScreen} />
-      <Stack.Screen name="ScoreBreakdown"   component={ScoreBreakdownScreen} />
-      <Stack.Screen name="InterviewHistory" component={InterviewHistoryScreen} />
-      <Stack.Screen name="QuestionBank"     component={QuestionBankScreen} />
-      <Stack.Screen name="InterviewTips"    component={InterviewTipsScreen} />
     </Stack.Navigator>
   );
 }

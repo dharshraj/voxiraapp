@@ -46,7 +46,7 @@ function getStrength(p: string): { score: number; label: string; color: string }
   return { score, ...map[score] };
 }
 
-const PILLS = ['🎤 Speech AI', '✍️ Writing', '🤝 Interviews'];
+const PILLS = ['🎤 Speech AI'];
 
 export default function RegisterScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();

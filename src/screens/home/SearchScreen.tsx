@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeContext';
 
 type SearchResult = {
-  id:string; category:'speech'|'writing'|'interview'|'tip'|'feature';
+  id:string; category:'speech'|'tip'|'feature';
   title:string; subtitle:string; icon:string; color:string; screen?:string;
 };
 

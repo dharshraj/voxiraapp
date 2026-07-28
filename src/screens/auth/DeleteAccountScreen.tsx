@@ -10,8 +10,6 @@ import { useTheme } from '../../theme/ThemeContext';
 const WHAT_GETS_DELETED = [
   { icon: 'person-outline',           label: 'Your profile and personal information' },
   { icon: 'mic-outline',              label: 'All speech sessions and recordings'    },
-  { icon: 'create-outline',           label: 'All writing sessions and history'      },
-  { icon: 'people-outline',           label: 'All interview sessions and feedback'   },
   { icon: 'trophy-outline',           label: 'All achievements and XP earned'        },
   { icon: 'trending-up-outline',      label: 'All progress data and streaks'         },
   { icon: 'card-outline',             label: 'Your subscription (no refund)'         },
@@ -59,8 +57,6 @@ export default function DeleteAccountScreen({ navigation }: any) {
       if (signInErr) { setStep('confirm'); setError('Incorrect password. Please try again.'); return; }
       await supabase.from('profiles').delete().eq('id', user.id);
       await supabase.from('speech_sessions').delete().eq('user_id', user.id);
-      await supabase.from('writing_sessions').delete().eq('user_id', user.id);
-      await supabase.from('interview_sessions').delete().eq('user_id', user.id);
       await supabase.auth.signOut();
       setStep('deleted');
     } catch {
