@@ -79,7 +79,7 @@ export default function SubscriptionScreen({ navigation }:any) {
         </Animated.View>
       </LinearGradient>
 
-      <ScrollView style={Platform.OS === 'web' ? ({ flex: 1, overflowY: 'auto' } as any) : undefined} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : undefined} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Plan selector */}
         <Text style={s.sectionTitle}>Choose Your Plan</Text>

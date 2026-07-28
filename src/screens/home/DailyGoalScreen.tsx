@@ -16,14 +16,16 @@ const STREAKS = [
 
 export default function DailyGoalScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
-  const [goals, setGoals]     = useState<Record<string,number>>({ speech:2 });
+  const [goals, setGoals]     = useState<Record<string,number>>({ speech:2, writing:1, interview:1 });
   const [reminder, setReminder] = useState('09:00 AM');
   const [notifOn,  setNotifOn]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const GOAL_OPTIONS = [
-    { id:'speech', label:'Speech Sessions', icon:'mic', color:C.info, options:[1,2,3,5] },
+    { id:'speech',    label:'Speech Sessions',  icon:'mic',    color:C.info,    options:[1,2,3,5] },
+    { id:'writing',   label:'Writing Sessions', icon:'create', color:C.success, options:[1,2,3,5] },
+    { id:'interview', label:'Mock Interviews',  icon:'people', color:C.primary, options:[1,2,3,5] },
   ];
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function DailyGoalScreen({ navigation }: any) {
   };
 
   const s = StyleSheet.create({
-    root:        { flex:1, backgroundColor:C.bg },
+    root:        { flex:1, backgroundColor:C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
     headerBg:    { backgroundColor:C.surface, paddingBottom:16, borderBottomWidth:1, borderBottomColor:C.border },
     header:      { flexDirection:'row', alignItems:'center', paddingHorizontal:20, paddingTop:Platform.OS==='ios'?56:32, gap:12 },
     backBtn:     { width:42, height:42, borderRadius:13, backgroundColor:C.bg, borderWidth:1, borderColor:C.border, alignItems:'center', justifyContent:'center' },
@@ -126,7 +128,7 @@ export default function DailyGoalScreen({ navigation }: any) {
       </View>
 
       <Animated.ScrollView
-        style={[{opacity:fadeAnim}, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
+        style={[{opacity:fadeAnim}, Platform.OS === 'web' && ({height: '100%', overflowY: 'auto'} as any)]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >
@@ -261,6 +263,7 @@ export default function DailyGoalScreen({ navigation }: any) {
             </Text>
           </View>
         </View>
+        
 
         <TouchableOpacity style={s.saveBtn} onPress={saveGoals} disabled={saving} activeOpacity={0.85}>
           <View style={s.saveBtnInner}>

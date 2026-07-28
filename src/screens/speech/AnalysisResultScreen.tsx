@@ -212,7 +212,7 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     <View style={s.root}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[{opacity:fadeAnim},Platform.OS==='web'&&({ flex: 1, overflowY: 'auto' } as any)]}
+        style={[{opacity:fadeAnim},Platform.OS==='web'&&({ height: '100%', overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

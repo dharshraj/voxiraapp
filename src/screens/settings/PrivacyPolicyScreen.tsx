@@ -141,7 +141,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
       <View style={s.divider} />
 
       <Animated.ScrollView
-        style={[{ opacity: fade }, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
+        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >

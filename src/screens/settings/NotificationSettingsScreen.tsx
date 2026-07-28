@@ -57,7 +57,7 @@ export default function NotificationSettingsScreen({ navigation }:any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Master toggle */}
         <View style={s.masterCard}>

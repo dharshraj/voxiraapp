@@ -121,7 +121,7 @@ const WritingProgressScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView style={Platform.OS === 'web' ? ({ flex: 1, overflowY: 'auto' } as any) : undefined} showsVerticalScrollIndicator={false}>
+      <ScrollView style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : undefined} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>

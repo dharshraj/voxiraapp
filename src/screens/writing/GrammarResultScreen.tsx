@@ -194,7 +194,7 @@ const GrammarResultScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content"/>
       <ScrollView showsVerticalScrollIndicator={false}
-        {...(Platform.OS==='web'?{style:{overflowY:'auto'} as any}:{})}
+        {...(Platform.OS==='web'?{style:{height:'100%',overflowY:'auto'} as any}:{})}
       >
         {/* Header */}
         <Animated.View style={[styles.header,{opacity:fadeAnim}]}>

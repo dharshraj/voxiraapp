@@ -162,7 +162,7 @@ export default function LiveInterviewScreen({ navigation, route }: any) {
       </View>
 
       <Animated.ScrollView
-        style={[s.body, { opacity: fadeAnim }, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
+        style={[s.body, { opacity: fadeAnim }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
         contentContainerStyle={s.bodyContent}
         showsVerticalScrollIndicator={false}
       >
@@ -277,7 +277,7 @@ export default function LiveInterviewScreen({ navigation, route }: any) {
 }
 
 const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { flex: 1 as any }) },
+  root:         { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
   header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 12, gap: 10 },
   endBtn:       { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)', backgroundColor: 'rgba(239,68,68,0.1)' },
   endBtnTxt:    { fontSize: 13, color: '#EF4444', fontWeight: '600' },

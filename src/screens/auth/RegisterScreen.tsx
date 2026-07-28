@@ -196,7 +196,7 @@ export default function RegisterScreen({ navigation }: any) {
     footerLink: { color: C.primary, fontSize: 14, fontWeight: '600' },
   });
 
-  const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ flex: 1 } as any)];
+  const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ height: '100%' } as any)];
   const Wrapper = Platform.OS === 'web'
     ? ({ children }: any) => <View style={wrapperStyle}>{children}</View>
     : ({ children }: any) => <KeyboardAvoidingView style={wrapperStyle} behavior="padding">{children}</KeyboardAvoidingView>;
@@ -209,7 +209,7 @@ export default function RegisterScreen({ navigation }: any) {
       <Animated.View pointerEvents="none" style={[s.orb2, { transform: [{ translateX: orb2TX }, { translateY: orb2TY }] }]} />
 
       <ScrollView
-        style={Platform.OS === 'web' ? ({ flex: 1, overflowY: 'auto' } as any) : s.flex}
+        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : s.flex}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

@@ -60,7 +60,7 @@ export default function DashboardScreen({ navigation }: any) {
   }
 
   const s = StyleSheet.create({
-    root:           { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { flex: 1 as any }) },
+    root:           { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
     scrollContent:  { paddingBottom: 80 },
 
     // Header
@@ -134,7 +134,7 @@ export default function DashboardScreen({ navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[{ opacity: fadeAnim }, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
+        style={[{ opacity: fadeAnim }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
         refreshControl={

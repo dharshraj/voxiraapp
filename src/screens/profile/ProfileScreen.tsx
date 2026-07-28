@@ -70,7 +70,7 @@ export default function ProfileScreen({ navigation }: any) {
     : 'Beginner';
 
   const s = StyleSheet.create({
-    root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { flex: 1 as any }) },
+    root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
     scrollContent: { paddingBottom: 80 },
 
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14 },
@@ -112,7 +112,7 @@ export default function ProfileScreen({ navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[{ opacity: fade }, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
+        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
       >

@@ -143,7 +143,7 @@ export default function NotificationsScreen({ navigation }: any) {
     ]);
 
   const s = StyleSheet.create({
-    root:         { flex:1, backgroundColor:C.bg },
+    root:         { flex:1, backgroundColor:C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
     headerBg:     { backgroundColor:C.surface, paddingBottom:16, borderBottomWidth:1, borderBottomColor:C.border },
     header:       { flexDirection:'row', alignItems:'center', paddingHorizontal:20, paddingTop:Platform.OS==='ios'?56:32, marginBottom:14, gap:10 },
     backBtn:      { width:42, height:42, borderRadius:13, backgroundColor:C.bg, borderWidth:1, borderColor:C.border, alignItems:'center', justifyContent:'center' },
@@ -205,7 +205,7 @@ export default function NotificationsScreen({ navigation }: any) {
         </View>
       ) : (
         <Animated.ScrollView
-          style={[{ flex:1, opacity:fadeAnim }, Platform.OS==='web' && ({ overflowY:'auto' } as any)]}
+          style={[{ opacity:fadeAnim }, Platform.OS==='web' && ({ height:'100%', overflowY:'auto' } as any)]}
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
         >

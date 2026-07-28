@@ -124,7 +124,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        {...(Platform.OS === 'web' ? ({ style: { flex: 1, overflowY: 'auto' } } as any) : {})}
+        {...(Platform.OS === 'web' ? ({ style: { height: '100%', overflowY: 'auto' } } as any) : {})}
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 

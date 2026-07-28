@@ -90,7 +90,7 @@ export default function LeaderboardScreen({ navigation }:any) {
       </LinearGradient>
 
       <Animated.ScrollView style={{opacity:fade}} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}
-        {...(Platform.OS==='web'?{style:{opacity:1,overflowY:'auto'} as any}:{})}
+        {...(Platform.OS==='web'?{style:{height:'100%',opacity:1,overflowY:'auto'} as any}:{})}
       >
         {/* Podium */}
         <View style={s.podium}>

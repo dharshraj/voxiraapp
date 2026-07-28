@@ -236,7 +236,7 @@ export default function RecordScreen({ navigation, route }: any) {
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
-        style={isWeb ? ({ flex: 1, overflowY: 'auto' } as any) : undefined}
+        style={isWeb ? ({ height: '100%', overflowY: 'auto' } as any) : undefined}
       >
         <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
           <View style={s.header}>

@@ -177,7 +177,7 @@ export default function LoginScreen({ navigation, route }: any) {
     footerLink: { color: C.primary, fontSize: 14, fontWeight: '600' },
   });
 
-  const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ flex: 1 } as any)];
+  const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ height: '100%' } as any)];
   const Wrapper = Platform.OS === 'web'
     ? ({ children }: any) => <View style={wrapperStyle}>{children}</View>
     : ({ children }: any) => (
@@ -194,7 +194,7 @@ export default function LoginScreen({ navigation, route }: any) {
       <Animated.View pointerEvents="none" style={[s.orb2, { transform: [{ translateX: orb2X }, { translateY: orb2Y }] }]} />
 
       <ScrollView
-        style={Platform.OS === 'web' ? ({ flex: 1, overflowY: 'auto' } as any) : s.flex}
+        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : s.flex}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

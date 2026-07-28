@@ -75,7 +75,7 @@ export default function InterviewTipsScreen({ navigation }:any){
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.tipsList}>
           {tips.map((tip,i)=>(
             <View key={i} style={[s.tipCard,i===tips.length-1&&{borderBottomWidth:0}]}>
