@@ -16,16 +16,14 @@ const STREAKS = [
 
 export default function DailyGoalScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
-  const [goals, setGoals]     = useState<Record<string,number>>({ speech:2, writing:1, interview:1 });
+  const [goals, setGoals]     = useState<Record<string,number>>({ speech:2 });
   const [reminder, setReminder] = useState('09:00 AM');
   const [notifOn,  setNotifOn]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const GOAL_OPTIONS = [
-    { id:'speech',    label:'Speech Sessions',  icon:'mic',    color:C.info,    options:[1,2,3,5] },
-    { id:'writing',   label:'Writing Sessions', icon:'create', color:C.success, options:[1,2,3,5] },
-    { id:'interview', label:'Mock Interviews',  icon:'people', color:C.primary, options:[1,2,3,5] },
+    { id:'speech', label:'Speech Sessions', icon:'mic', color:C.info, options:[1,2,3,5] },
   ];
 
   useEffect(() => {

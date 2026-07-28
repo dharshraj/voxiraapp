@@ -20,6 +20,7 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     mode='Free Speech', wpm=0, transcript='',
     details={ clarity:0, pace:0, pronunciation:0, confidence:0 },
     aiAnalysis=null,
+    persistError='',
   } = route?.params ?? {};
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -203,6 +204,8 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
     primBtn:       {flex:2,borderRadius:12,overflow:'hidden',backgroundColor:C.primary},
     primBtnInner:  {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:14},
     primBtnTxt:    {fontSize:14,fontWeight:'700',color:'#fff'},
+    warnBanner:    {flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.warning+'18',borderRadius:12,padding:12,marginBottom:12,borderWidth:1,borderColor:C.warning+'44'},
+    warnTxt:       {flex:1,fontSize:12,color:C.warning,lineHeight:18},
   });
 
   return (
@@ -222,6 +225,13 @@ export default function AnalysisResultScreen({ navigation, route }:any) {
             <Ionicons name="share-outline" size={22} color={C.textSec}/>
           </TouchableOpacity>
         </View>
+
+        {!!persistError && (
+          <View style={s.warnBanner}>
+            <Ionicons name="warning-outline" size={16} color={C.warning}/>
+            <Text style={s.warnTxt}>Result shown but not saved — {persistError}</Text>
+          </View>
+        )}
 
         <View style={s.scoreCard}>
           <Text style={s.modeTag}>{mode}</Text>

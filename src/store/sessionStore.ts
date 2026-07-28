@@ -117,6 +117,20 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     console.log('[sessionStore] Speech session saved successfully.');
 
+    // Best-effort: insert a notification for the completed session
+    // (fire-and-forget — table may not exist until migration is run)
+    supabase.from('notifications').insert({
+      user_id: userId,
+      type:    'score',
+      title:   'Speech Session Complete',
+      body:    `You scored ${data.score}/100 on your ${data.mode} session.`,
+      icon:    'mic',
+      color:   '#4F6EF7',
+      read:    false,
+    }).then(({ error: ne }) => {
+      if (ne) console.log('[sessionStore] notification insert skipped:', ne.message);
+    });
+
     // 3. Re-fetch from Supabase — replaces the optimistic row with the real one
     //    (includes server-generated id, created_at, etc.)
     await get().loadSessions(userId);

@@ -168,6 +168,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     };
 
     // ── Save session ─────────────────────────────────────────────────────────
+    let persistError: string | undefined;
     if (!savedRef.current && userId) {
       savedRef.current = true;
       try {
@@ -182,16 +183,13 @@ export default function AnalyzingScreen({ navigation, route }: any) {
           confidence:    details.confidence,
         }, userId);
 
-        // addSpeechSession re-fetches from Supabase on success, so Speech
-        // Dashboard / Progress Overview are immediately up to date.
-        const saveErr = useSessionStore.getState().saveError;
-        if (saveErr) {
-          // Non-fatal — the result still shows; warn but don't block navigation.
-          console.warn('[AnalyzingScreen] Session saved to local store but Supabase write failed:', saveErr);
+        persistError = useSessionStore.getState().saveError ?? undefined;
+        if (persistError) {
+          console.error('[AnalyzingScreen] Supabase write failed:', persistError);
         }
       } catch (saveEx: any) {
-        // Should not throw (store handles internally), but guard anyway.
-        console.error('[AnalyzingScreen] Unexpected save exception:', saveEx?.message);
+        persistError = saveEx?.message ?? 'Unknown save error';
+        console.error('[AnalyzingScreen] Unexpected save exception:', persistError);
       }
     }
 
@@ -203,6 +201,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
         score, duration, fillerCount,
         fillerBreakdown: llmFillerBreakdown,
         transcript, mode, wpm, details, aiAnalysis,
+        persistError,
       });
     }, 600);
   };
