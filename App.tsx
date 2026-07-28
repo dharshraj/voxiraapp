@@ -8,59 +8,51 @@ import { useAuthStore } from './src/store/authStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/theme/ThemeContext';
 
-// ── CRITICAL: Fix web scrolling ───────────────────────────────────────────────
+// ── Web scroll / layout fix ───────────────────────────────────────────────────
+// Root cause of the scroll bug: overflow:hidden on every ancestor div clips the
+// React Native Web ScrollView so content below the fold is unreachable.
+// Fix: body/html keep overflow:hidden (prevents page-level scroll, tab bar
+// stays fixed), but inner containers use min-height:0 so ScrollViews can grow.
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const injectCSS = () => {
     if (document.getElementById('voxira-web-fix')) return;
-    const s = document.createElement('style');
-    s.id = 'voxira-web-fix';
-    s.textContent = `
+    const style = document.createElement('style');
+    style.id = 'voxira-web-fix';
+    style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
       html, body {
-        height: 100%; margin: 0; padding: 0; overflow: hidden;
-        background: #121316;
+        height: 100%; margin: 0; padding: 0;
+        overflow: hidden;
+        background: #FAF9F7;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      #root { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-      #root > div, #root > div > div {
-        flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+      /* Root flex column — must NOT clip overflow so inner ScrollViews work */
+      #root {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
-      * { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; box-sizing: border-box; }
-      .card-3d {
-        transition: transform 0.35s cubic-bezier(0.23,1,0.32,1), box-shadow 0.35s cubic-bezier(0.23,1,0.32,1);
-        will-change: transform;
+      /* Every React Navigation wrapper div: fill available space, allow scroll children */
+      #root > div,
+      #root > div > div {
+        flex: 1;
+        min-height: 0;       /* ← the key fix: lets flex children shrink below content size */
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
-      .card-3d:hover {
-        transform: perspective(900px) rotateX(-3deg) rotateY(2deg) translateZ(10px) translateY(-4px);
-        box-shadow: 0 28px 56px rgba(0,0,0,0.55), 0 0 36px rgba(79,110,247,0.22);
-      }
-      @keyframes glowPulse {
-        0%,100% { box-shadow: 0 0 22px rgba(79,110,247,0.35); }
-        50%      { box-shadow: 0 0 44px rgba(79,110,247,0.65); }
-      }
-      .btn-glow { animation: glowPulse 2.6s ease-in-out infinite; }
-      @keyframes fadeSlideIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      .page-enter { animation: fadeSlideIn 0.55s cubic-bezier(0.23,1,0.32,1) both; }
-      body::after {
-        content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-        opacity: 0.025;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      }
+      * { -webkit-overflow-scrolling: touch; box-sizing: border-box; }
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(79,110,247,0.4); border-radius: 2px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgba(79,110,247,0.7); }
-      ::selection { background: rgba(79,110,247,0.38); color: #fff; }
-      .google-btn { transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: pointer; }
-      .google-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
-      .google-btn:active { transform: translateY(0px); }
+      ::-webkit-scrollbar-thumb { background: rgba(146,64,14,0.25); border-radius: 2px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(146,64,14,0.45); }
+      ::selection { background: rgba(146,64,14,0.18); }
       input:focus { outline: none; }
     `;
-    document.head.appendChild(s);
+    document.head.appendChild(style);
   };
   injectCSS();
   if (document.readyState === 'loading') {
@@ -112,5 +104,5 @@ export default function App() {
 
 const s = StyleSheet.create({
   flex:    { flex: 1 },
-  loading: { flex: 1, backgroundColor: '#121316', alignItems: 'center', justifyContent: 'center' },
+  loading: { flex: 1, backgroundColor: '#FAF9F7', alignItems: 'center', justifyContent: 'center' },
 });

@@ -86,27 +86,61 @@ export default function EditProfileScreen({ navigation }: any) {
     if (!user?.id) return;
     setUploading(true);
     try {
-      // Fetch the image as a blob (works on both web and native)
-      const response = await fetch(localUri);
-      const blob     = await response.blob();
-      const ext      = localUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-      const path     = `${user.id}/avatar.${ext}`;
+      // On web, ImagePicker returns a blob: or data: URI.
+      // fetch() on a blob: URI works in browser but NOT in the Expo web
+      // runtime on some environments. Use base64 instead — universally safe.
+      let base64Data: string;
+      let mimeType = 'image/jpeg';
+
+      if (localUri.startsWith('data:')) {
+        // data URI — split header from data
+        const [header, data] = localUri.split(',');
+        base64Data = data;
+        const mimeMatch = header.match(/data:([^;]+)/);
+        if (mimeMatch) mimeType = mimeMatch[1];
+      } else {
+        // blob: or file: URI — use ImagePicker's base64 field when available,
+        // otherwise re-launch with base64:true. For now fetch as blob then
+        // convert to base64 via FileReader (works reliably in browsers).
+        const res = await fetch(localUri);
+        if (!res.ok) throw new Error(`Could not read image (HTTP ${res.status})`);
+        const blob = await res.blob();
+        mimeType = blob.type || 'image/jpeg';
+        base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload  = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = () => reject(new Error('FileReader failed'));
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      const ext  = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+      const path = `${user.id}/avatar.${ext}`;
+
+      // Decode base64 → Uint8Array for the Supabase storage upload
+      const byteChars = atob(base64Data);
+      const byteNums  = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, blob, { contentType: `image/${ext}`, upsert: true });
+        .upload(path, byteNums, { contentType: mimeType, upsert: true });
 
       if (uploadError) {
         console.error('[EditProfile] Avatar upload error:', uploadError.message);
+        // If bucket doesn't exist yet, give an actionable message
+        const msg = uploadError.message.includes('Bucket not found') || uploadError.message.includes('bucket')
+          ? 'Storage bucket "avatars" not found. Run the migration SQL in your Supabase dashboard first.'
+          : `Photo upload failed: ${uploadError.message}`;
         setSaveStatus('error');
-        setSaveMsg(`Photo upload failed: ${uploadError.message}`);
+        setSaveMsg(msg);
         setUploading(false);
         return;
       }
 
       const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(path);
       const url = publicData?.publicUrl ?? null;
-      console.log('[EditProfile] Avatar uploaded:', url);
+      console.log('[EditProfile] Avatar uploaded, public URL:', url);
       setAvatarUrl(url);
     } catch (err: any) {
       console.error('[EditProfile] Avatar upload threw:', err?.message);

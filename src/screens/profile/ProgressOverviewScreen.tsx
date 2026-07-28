@@ -1,9 +1,10 @@
-﻿import React, { useRef, useEffect } from 'react';
+﻿import React, { useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useSessionStore, SpeechSession } from '../../store/sessionStore';
 import { useTheme } from '../../theme/ThemeContext';
@@ -35,10 +36,17 @@ export default function ProgressOverviewScreen({ navigation }: any) {
   const loadSessions = useSessionStore(s => s.loadSessions);
   const fade = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-    if (userId) loadSessions(userId);
-  }, [userId]);
+  // Re-fetch every time the screen comes into focus (not just on first mount)
+  // so new sessions appear immediately after completing a speech session
+  useFocusEffect(
+    useCallback(() => {
+      Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      if (userId) {
+        console.log('[ProgressOverview] screen focused — loading sessions for', userId);
+        loadSessions(userId);
+      }
+    }, [userId])
+  );
 
   // All real data — no fakes
   const speechSessions = sessions.filter(s => s.type === 'speech') as SpeechSession[];

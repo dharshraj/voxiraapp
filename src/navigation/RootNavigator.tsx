@@ -81,11 +81,11 @@ const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
 
 const C = {
-  bg:      '#05050F',
-  surface: '#0C0C1E',
-  primary: '#8B5CF6',
-  muted:   'rgba(241,245,249,0.30)',
-  border:  'rgba(255,255,255,0.07)',
+  bg:      '#FAF9F7',   // cream background — matches lightColors.bg
+  surface: '#FFFFFF',   // white surface
+  primary: '#92400E',   // amber-brown accent — matches lightColors.primary
+  muted:   '#A8A29E',   // warm muted text
+  border:  '#E8E4DF',   // warm border
 };
 
 function useTabBarHeight() {
@@ -209,16 +209,16 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0C0C1E',
-          borderTopColor: 'rgba(255,255,255,0.07)',
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E8E4DF',
           borderTopWidth: 1,
           height: tabBarSize.height,
           paddingBottom: tabBarSize.paddingBottom,
           paddingTop: tabBarSize.paddingTop,
           ...(Platform.OS === 'web' && { position: 'fixed' as any, bottom: 0, left: 0, right: 0 }),
         },
-        tabBarActiveTintColor: '#8B5CF6',
-        tabBarInactiveTintColor: 'rgba(241,245,249,0.30)',
+        tabBarActiveTintColor: '#92400E',
+        tabBarInactiveTintColor: '#A8A29E',
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 2 },
         tabBarIcon: ({ color, size, focused }) => {
           const map: Record<string, [string, string]> = {
@@ -232,7 +232,7 @@ function MainTabs() {
               {focused && (
                 <View style={{
                   position: 'absolute', width: 36, height: 30, borderRadius: 12,
-                  backgroundColor: 'rgba(139,92,246,0.15)',
+                  backgroundColor: 'rgba(146,64,14,0.10)',
                 }} />
               )}
               <Ionicons name={(focused ? active : inactive) as any} size={size} color={color} />
@@ -252,7 +252,7 @@ function LoadingScreen() {
   return (
     <View style={st.loading}>
       <View style={st.box}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color="#92400E" />
       </View>
     </View>
   );
@@ -288,7 +288,7 @@ export function RootNavigator() {
 const st = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: '#FAF9F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -296,9 +296,9 @@ const st = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: '#0C0C1E',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(139,92,246,0.25)',
+    borderColor: 'rgba(146,64,14,0.20)',
     alignItems: 'center',
     justifyContent: 'center',
   },
