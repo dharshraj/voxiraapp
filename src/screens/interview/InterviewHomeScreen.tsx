@@ -40,7 +40,7 @@ export default function InterviewHomeScreen({ navigation }: any) {
   }, []);
 
   const s = StyleSheet.create({
-    root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100vh' as any, overflow: 'hidden' as any }) },
+    root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { flex: 1 as any }) },
     scrollContent: { paddingBottom: 100 },
     header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 36, paddingBottom: 16 },
     headerTitle:   { fontSize: 22, fontWeight: '800', color: C.text },
@@ -78,7 +78,7 @@ export default function InterviewHomeScreen({ navigation }: any) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
-        {...(Platform.OS === 'web' ? ({ style: { height: '100vh', overflowY: 'auto' } } as any) : {})}
+        {...(Platform.OS === 'web' ? ({ style: { flex: 1, overflowY: 'auto' } } as any) : {})}
       >
         <View style={s.header}>
           <View>

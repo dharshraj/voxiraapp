@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -96,7 +96,7 @@ const RewriteScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView style={Platform.OS === 'web' ? ({height: '100vh', overflowY: 'scroll'} as any) : undefined} showsVerticalScrollIndicator={false}>
+      <ScrollView style={Platform.OS === 'web' ? ({ flex: 1, overflowY: 'auto' } as any) : undefined} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>

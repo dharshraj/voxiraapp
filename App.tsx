@@ -85,7 +85,7 @@ export default function App() {
   if (!ready) {
     return (
       <View style={s.loading}>
-        <ActivityIndicator size="large" color="#4F6EF7" />
+        <ActivityIndicator size="large" color="#92400E" />
       </View>
     );
   }

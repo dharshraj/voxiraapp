@@ -175,7 +175,7 @@ export default function SpeechDashboardScreen({ navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'auto' } as any)]}
+        style={[{ opacity: fade }, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >

@@ -1,4 +1,4 @@
-﻿import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, Linking,
@@ -141,7 +141,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
       <View style={s.divider} />
 
       <Animated.ScrollView
-        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'scroll' } as any)]}
+        style={[{ opacity: fade }, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >

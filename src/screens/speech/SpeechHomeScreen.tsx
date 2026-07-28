@@ -30,7 +30,7 @@ export default function SpeechHomeScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
 
   const s = StyleSheet.create({
-    root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100vh' as any, overflow: 'hidden' as any }) },
+    root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { flex: 1 as any }) },
     scrollContent: { paddingBottom: 80 },
 
     header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14 },
@@ -92,7 +92,7 @@ export default function SpeechHomeScreen({ navigation }: any) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
-        {...(Platform.OS === 'web' ? ({ style: { height: '100vh', overflowY: 'auto' } } as any) : {})}
+        {...(Platform.OS === 'web' ? ({ style: { flex: 1, overflowY: 'auto' } } as any) : {})}
       >
         <View style={s.header}>
           <View style={s.headerLeft}>

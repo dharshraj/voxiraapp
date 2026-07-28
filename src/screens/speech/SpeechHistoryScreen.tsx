@@ -205,7 +205,7 @@ export default function SpeechHistoryScreen({ navigation }: any) {
       </View>
 
       <Animated.ScrollView
-        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'scroll' } as any)]}
+        style={[{ opacity: fade }, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

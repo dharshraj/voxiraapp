@@ -128,7 +128,7 @@ export default function DailyGoalScreen({ navigation }: any) {
       </View>
 
       <Animated.ScrollView
-        style={[{opacity:fadeAnim}, Platform.OS === 'web' && ({height: '100vh', overflowY: 'scroll'} as any)]}
+        style={[{opacity:fadeAnim}, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

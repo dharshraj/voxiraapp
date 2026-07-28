@@ -79,7 +79,7 @@ export default function WelcomeScreen({ navigation }: any) {
       <View style={s.glowBottom} />
 
       <ScrollView
-        style={[s.scroll, Platform.OS === 'web' && ({ height: '100vh', overflowY: 'auto' } as any)]}
+        style={[s.scroll, Platform.OS === 'web' && ({ flex: 1, overflowY: 'auto' } as any)]}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >

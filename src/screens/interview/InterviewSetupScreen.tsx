@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Platform, Animated, ActivityIndicator, Alert,
@@ -71,7 +71,7 @@ export default function InterviewSetupScreen({ navigation, route }:any) {
       <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
 
       <Animated.ScrollView
-        style={[{opacity:fade}, Platform.OS==='web' && ({height:'100vh',overflowY:'auto'} as any)]}
+        style={[{opacity:fade}, Platform.OS==='web' && ({ flex: 1, overflowY: 'auto' } as any)]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >
