@@ -266,6 +266,15 @@ export default function AchievementsScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={18} color={C.textMuted} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Achievements</Text>
+        {/* Quick links to related gamification screens */}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.navigate('StreakCalendar')} activeOpacity={0.75}>
+            <Ionicons name="calendar-outline" size={16} color={C.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.navigate('Rewards')} activeOpacity={0.75}>
+            <Ionicons name="ellipse-outline" size={16} color={C.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={s.divider} />
 

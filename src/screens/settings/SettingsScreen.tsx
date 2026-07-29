@@ -317,6 +317,29 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        {/* SUPPORT */}
+        <Text style={s.sectionTitle}>SUPPORT</Text>
+        <View style={s.card}>
+          {[
+            { label: 'FAQ',           icon: 'help-circle-outline', screen: 'FAQ'       },
+            { label: 'Tutorial',      icon: 'play-circle-outline',  screen: 'Tutorial'  },
+            { label: "What's New",    icon: 'sparkles-outline',     screen: 'WhatsNew'  },
+          ].map((item, i, arr) => (
+            <TouchableOpacity
+              key={item.screen}
+              style={[s.row, i === arr.length - 1 && s.rowLast]}
+              onPress={() => navigation.navigate(item.screen as any)}
+              activeOpacity={0.75}
+            >
+              <View style={[s.rowIcon, { backgroundColor: C.primaryLight }]}>
+                <Ionicons name={item.icon as any} size={19} color={C.primary} />
+              </View>
+              <Text style={s.rowLabel}>{item.label}</Text>
+              <Ionicons name={'chevron-forward' as any} size={16} color={C.textMuted} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* SIGN OUT */}
         <TouchableOpacity
           style={[s.signOutBtn, signingOut && s.signOutBtnDisabled]}

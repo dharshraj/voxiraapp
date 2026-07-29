@@ -159,6 +159,28 @@ export default function SpeechHomeScreen({ navigation }: any) {
           <Ionicons name="chevron-forward" size={14} color={C.textMuted} />
         </TouchableOpacity>
 
+        {/* Speech extras row */}
+        <Text style={s.sectionLabel}>Explore</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 }}>
+          {[
+            { label: 'Weekly Report',   icon: 'calendar-outline',   screen: 'WeeklyReport'      },
+            { label: 'Compare',         icon: 'git-compare-outline', screen: 'CompareSessions'  },
+            { label: 'Confidence',      icon: 'trending-up-outline', screen: 'ConfidenceScore'  },
+            { label: 'Tone',            icon: 'radio-outline',       screen: 'ToneAnalysis'     },
+            { label: 'Vocabulary',      icon: 'book-outline',        screen: 'VocabularyBuilder'},
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.screen}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border }}
+              onPress={() => navigation.navigate(item.screen as any)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name={item.icon as any} size={14} color={C.primary} />
+              <Text style={{ fontSize: 12, color: C.textSec, fontWeight: '500' }}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Mode picker */}
         <Text style={s.sectionLabel}>Choose Mode</Text>
         <View style={s.grid}>

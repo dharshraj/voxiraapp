@@ -32,6 +32,10 @@ import TopicDetailScreen   from '../screens/home/TopicDetailScreen';
 // ── Profile ───────────────────────────────────────────────────────────────────
 import ProfileScreen          from '../screens/profile/ProfileScreen';
 import EditProfileScreen      from '../screens/profile/EditProfileScreen';
+import ProgressOverviewScreen from '../screens/profile/ProgressOverviewScreen';
+import AchievementsScreen     from '../screens/profile/AchievementsScreen';
+
+// Also accessible from HomeStack (for Search navigation)
 import SpeechDashboardScreen_H   from '../screens/speech/SpeechDashboardScreen';
 import SpeechHistoryScreen_H     from '../screens/speech/SpeechHistoryScreen';
 import ProgressOverviewScreen_H  from '../screens/profile/ProgressOverviewScreen';
@@ -76,9 +80,6 @@ import LevelUpScreen        from '../screens/gamification/LevelUpScreen';
 import FAQScreen      from '../screens/support/FAQScreen';
 import TutorialScreen from '../screens/support/TutorialScreen';
 import WhatsNewScreen from '../screens/support/WhatsNewScreen';
-import EditProfileScreen      from '../screens/profile/EditProfileScreen';
-import ProgressOverviewScreen from '../screens/profile/ProgressOverviewScreen';
-import AchievementsScreen     from '../screens/profile/AchievementsScreen';
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 import SettingsScreen             from '../screens/settings/SettingsScreen';
@@ -114,12 +115,17 @@ function useTabBarHeight() {
 function OnboardingStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Splash"         component={SplashScreen} />
-      <Stack.Screen name="Welcome"        component={WelcomeScreen} />
-      <Stack.Screen name="Feature1"       component={Feature1Screen} />
-      <Stack.Screen name="Register"       component={RegisterScreen} />
-      <Stack.Screen name="Login"          component={LoginScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="Splash"           component={SplashScreen} />
+      <Stack.Screen name="Welcome"          component={WelcomeScreen} />
+      <Stack.Screen name="Feature1"         component={Feature1Screen} />
+      <Stack.Screen name="Feature2"         component={Feature2Screen} />
+      <Stack.Screen name="Feature3"         component={Feature3Screen} />
+      <Stack.Screen name="GoalSelection"    component={GoalSelectionScreen} />
+      <Stack.Screen name="ExperienceLevel"  component={ExperienceLevelScreen} />
+      <Stack.Screen name="Permissions"      component={PermissionsScreen} />
+      <Stack.Screen name="Register"         component={RegisterScreen} />
+      <Stack.Screen name="Login"            component={LoginScreen} />
+      <Stack.Screen name="ForgotPassword"   component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
@@ -154,6 +160,9 @@ function AchievementsTabStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="AchievementsMain" component={AchievementsScreen} />
+      <Stack.Screen name="Rewards"          component={RewardsScreen} />
+      <Stack.Screen name="StreakCalendar"   component={StreakCalendarScreen} />
+      <Stack.Screen name="LevelUp"          component={LevelUpScreen} />
     </Stack.Navigator>
   );
 }
@@ -182,7 +191,33 @@ function SpeechStack() {
       <Stack.Screen name="ShareResult"    component={ShareResultScreen} />
       <Stack.Screen name="Pronunciation"  component={PronunciationScreen} />
       <Stack.Screen name="PaceAndClarity"     component={PaceAndClarityScreen} />
-      <Stack.Screen name="SpeechDashboard"   component={SpeechDashboardScreen} />
+      <Stack.Screen name="SpeechDashboard"      component={SpeechDashboardScreen} />
+      {/* Speech extras */}
+      <Stack.Screen name="VocabularyBuilder"   component={VocabularyBuilderScreen} />
+      <Stack.Screen name="ToneAnalysis"        component={ToneAnalysisScreen} />
+      <Stack.Screen name="ConfidenceScore"     component={ConfidenceScoreScreen} />
+      <Stack.Screen name="WeeklyReport"        component={WeeklyReportScreen} />
+      <Stack.Screen name="CompareSessions"     component={CompareSessionsScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function GamificationStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Rewards"         component={RewardsScreen} />
+      <Stack.Screen name="StreakCalendar"  component={StreakCalendarScreen} />
+      <Stack.Screen name="LevelUp"         component={LevelUpScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function SupportStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="FAQ"        component={FAQScreen} />
+      <Stack.Screen name="Tutorial"   component={TutorialScreen} />
+      <Stack.Screen name="WhatsNew"   component={WhatsNewScreen} />
     </Stack.Navigator>
   );
 }
@@ -198,6 +233,10 @@ function ProfileStack() {
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="PrivacyPolicy"        component={PrivacyPolicyScreen} />
       <Stack.Screen name="DeleteAccount"        component={DeleteAccountScreen} />
+      {/* Support screens accessible from Settings */}
+      <Stack.Screen name="FAQ"               component={FAQScreen} />
+      <Stack.Screen name="Tutorial"          component={TutorialScreen} />
+      <Stack.Screen name="WhatsNew"          component={WhatsNewScreen} />
     </Stack.Navigator>
   );
 }
