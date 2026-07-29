@@ -73,12 +73,12 @@ export default function SpeechHomeScreen({ navigation }: any) {
     recordTitle:   { fontSize: 15, fontWeight: '700', color: '#fff' },
     recordSub:     { fontSize: 12, color: 'rgba(255,255,255,0.70)', marginTop: 1 },
 
-    // Dashboard link
-    dashCard:      { marginHorizontal: 20, marginBottom: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
-    dashIconBox:   { width: 32, height: 32, borderRadius: 8, backgroundColor: C.primaryLight, alignItems: 'center', justifyContent: 'center' },
+    // Dashboard link — visually prominent with primary border
+    dashCard:      { marginHorizontal: 20, marginBottom: 20, backgroundColor: C.primaryLight, borderRadius: 14, borderWidth: 1.5, borderColor: C.primary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+    dashIconBox:   { width: 36, height: 36, borderRadius: 10, backgroundColor: C.primary + '20', alignItems: 'center', justifyContent: 'center' },
     dashText:      { flex: 1 },
-    dashTitle:     { fontSize: 13, fontWeight: '600', color: C.text },
-    dashSub:       { fontSize: 11, color: C.textMuted },
+    dashTitle:     { fontSize: 15, fontWeight: '700', color: C.primary },
+    dashSub:       { fontSize: 12, color: C.warning, marginTop: 1 },
 
     // Mode grid — 2-up compact
     grid:          { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
@@ -159,24 +159,29 @@ export default function SpeechHomeScreen({ navigation }: any) {
           <Ionicons name="chevron-forward" size={14} color={C.textMuted} />
         </TouchableOpacity>
 
-        {/* Speech extras row */}
+        {/* Speech extras — larger, primary-accented buttons */}
         <Text style={s.sectionLabel}>Explore</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20, marginBottom: 20 }}>
           {[
-            { label: 'Weekly Report',   icon: 'calendar-outline',   screen: 'WeeklyReport'      },
-            { label: 'Compare',         icon: 'git-compare-outline', screen: 'CompareSessions'  },
-            { label: 'Confidence',      icon: 'trending-up-outline', screen: 'ConfidenceScore'  },
-            { label: 'Tone',            icon: 'radio-outline',       screen: 'ToneAnalysis'     },
-            { label: 'Vocabulary',      icon: 'book-outline',        screen: 'VocabularyBuilder'},
+            { label: 'Weekly Report',    icon: 'calendar-outline',    screen: 'WeeklyReport'     },
+            { label: 'Compare Sessions', icon: 'git-compare-outline', screen: 'CompareSessions'  },
+            { label: 'Confidence Score', icon: 'trending-up-outline', screen: 'ConfidenceScore'  },
+            { label: 'Tone Analysis',    icon: 'radio-outline',       screen: 'ToneAnalysis'     },
+            { label: 'Vocabulary',       icon: 'book-outline',        screen: 'VocabularyBuilder'},
           ].map((item) => (
             <TouchableOpacity
               key={item.screen}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border }}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 8,
+                backgroundColor: C.primaryLight,
+                borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+                borderWidth: 1.5, borderColor: C.primary,
+              }}
               onPress={() => navigation.navigate(item.screen as any)}
               activeOpacity={0.75}
             >
-              <Ionicons name={item.icon as any} size={14} color={C.primary} />
-              <Text style={{ fontSize: 12, color: C.textSec, fontWeight: '500' }}>{item.label}</Text>
+              <Ionicons name={item.icon as any} size={18} color={C.primary} />
+              <Text style={{ fontSize: 14, color: C.primary, fontWeight: '600' }}>{item.label}</Text>
             </TouchableOpacity>
           ))}
         </View>

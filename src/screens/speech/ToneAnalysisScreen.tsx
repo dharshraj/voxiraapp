@@ -10,7 +10,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useSessionStore, SpeechSession } from '../../store/sessionStore';
 import { useTheme } from '../../theme/ThemeContext';
-import { fetchToneAnalysis } from '../../services/mockData';
 
 export default function ToneAnalysisScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
@@ -18,12 +17,10 @@ export default function ToneAnalysisScreen({ navigation }: any) {
   const sessions     = useSessionStore(s => s.sessions);
   const loading      = useSessionStore(s => s.loading);
   const loadSessions = useSessionStore(s => s.loadSessions);
-  const [analysing, setAnalysing] = useState(false);
-
-  useFocusEffect(useCallback(() => { if (userId) loadSessions(userId); }, [userId]));
-
   const speech  = sessions.filter(s => s.type === 'speech') as SpeechSession[];
   const latest  = speech[0];
+
+  useFocusEffect(useCallback(() => { if (userId) loadSessions(userId); }, [userId]));
 
   const TONE_DIMS = [
     { label: 'Confidence',  icon: 'trending-up-outline',  color: '#8B5CF6', value: latest ? Math.min(100, latest.confidence + 5) : null },
@@ -79,13 +76,7 @@ export default function ToneAnalysisScreen({ navigation }: any) {
           </View>
         ) : (
           <>
-            <View style={s.todoBanner}>
-              <Ionicons name="information-circle-outline" size={16} color={C.warning} />
-              <Text style={s.todoTxt}>
-                Warmth dimension requires the AI tone endpoint (see src/services/mockData.ts → fetchToneAnalysis). Other dimensions are derived from your existing session scores.
-              </Text>
-            </View>
-            <Text style={s.lbl}>Latest Session — {latest?.mode}</Text>
+            <Text style={s.lbl}>Latest Session — Speech</Text>
             {TONE_DIMS.map((dim, i) => (
               <View key={i} style={s.dimCard}>
                 <View style={s.dimTop}>

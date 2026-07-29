@@ -123,17 +123,20 @@ export default function ConfidenceScoreScreen({ navigation }: any) {
 
             <Text style={s.lbl}>Session History</Text>
             <View style={s.card}>
-              {speech.slice(0, 8).map((sess, i) => (
-                <View key={sess.id ?? i} style={[s.sessionRow, i === Math.min(speech.length, 8) - 1 && s.sessionRowLast]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.sessionMode}>{sess.mode}</Text>
-                    <Text style={s.sessionSub}>{sess.created_at ? new Date(sess.created_at).toLocaleDateString() : ''}</Text>
+              {speech.slice(0, 8).map((sess, i) => {
+                const sessNum = speech.length - i;
+                return (
+                  <View key={sess.id ?? i} style={[s.sessionRow, i === Math.min(speech.length, 8) - 1 && s.sessionRowLast]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.sessionMode}>Session {sessNum}</Text>
+                      <Text style={s.sessionSub}>{sess.created_at ? new Date(sess.created_at).toLocaleDateString() : ''}</Text>
+                    </View>
+                    <Text style={[s.sessionScore, { color: sess.confidence >= 80 ? C.success : sess.confidence >= 60 ? C.warning : C.error }]}>
+                      {sess.confidence}
+                    </Text>
                   </View>
-                  <Text style={[s.sessionScore, { color: sess.confidence >= 80 ? C.success : sess.confidence >= 60 ? C.warning : C.error }]}>
-                    {sess.confidence}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </>
         )}

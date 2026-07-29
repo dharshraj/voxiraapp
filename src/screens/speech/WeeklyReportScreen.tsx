@@ -144,15 +144,20 @@ export default function WeeklyReportScreen({ navigation }: any) {
               <>
                 <Text style={s.lbl}>Sessions This Week</Text>
                 <View style={s.card}>
-                  {week.map((sess, i) => (
-                    <View key={sess.id ?? i} style={[s.sessRow, i===week.length-1 && s.sessRowLast]}>
-                      <View style={{ flex:1 }}>
-                        <Text style={s.sessMode}>{sess.mode}</Text>
-                        <Text style={s.sessSub}>{sess.created_at ? new Date(sess.created_at).toLocaleDateString() : ''} · {sess.wpm > 0 ? `${sess.wpm} WPM` : ''}</Text>
+                  {week.map((sess, i) => {
+                    // Session number: position in the full speech list (oldest = 1)
+                    const globalIdx = speech.indexOf(sess);
+                    const sessNum   = speech.length - globalIdx;
+                    return (
+                      <View key={sess.id ?? i} style={[s.sessRow, i===week.length-1 && s.sessRowLast]}>
+                        <View style={{ flex:1 }}>
+                          <Text style={s.sessMode}>Session {sessNum}</Text>
+                          <Text style={s.sessSub}>{sess.created_at ? new Date(sess.created_at).toLocaleDateString() : ''} · {sess.wpm > 0 ? `${sess.wpm} WPM` : ''}</Text>
+                        </View>
+                        <Text style={s.sessScore}>{sess.score}</Text>
                       </View>
-                      <Text style={s.sessScore}>{sess.score}</Text>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               </>
             )}

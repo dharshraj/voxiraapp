@@ -84,7 +84,8 @@ export default function SpeechHistoryScreen({ navigation }: any) {
     headerCenter:  { flex: 1 },
     headerTitle:   { fontSize: 17, fontWeight: '700', color: C.text },
     headerSub:     { fontSize: 12, color: C.textMuted, marginTop: 2 },
-    sortBtn:       { width: 42, height: 42, borderRadius: 13, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    sortBtn:       { height: 42, borderRadius: 13, backgroundColor: C.primaryLight, borderWidth: 1.5, borderColor: C.primary, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    sortBtnTxt:    { fontSize: 13, fontWeight: '700', color: C.primary },
     sortDropdown:  { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 10 },
     sortOption:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
     sortOptionActive: { backgroundColor: C.primaryLight },
@@ -145,7 +146,8 @@ export default function SpeechHistoryScreen({ navigation }: any) {
             <Text style={s.headerSub}>{filtered.length} sessions</Text>
           </View>
           <TouchableOpacity style={s.sortBtn} onPress={() => setShowSort(!showSort)}>
-            <Ionicons name="funnel-outline" size={20} color={C.textMuted} />
+            <Ionicons name="funnel-outline" size={18} color={C.primary} />
+            <Text style={s.sortBtnTxt}>Sort</Text>
           </TouchableOpacity>
         </View>
 
@@ -266,9 +268,11 @@ export default function SpeechHistoryScreen({ navigation }: any) {
             <Text style={s.listLabel}>ALL SESSIONS</Text>
             <View style={s.sessionList}>
               {filtered.map((ss, i) => {
-                const col  = scoreColor(ss.score);
-                const icon = modeIcon(ss.mode);
-                const iclr = modeColor(ss.mode);
+                const col      = scoreColor(ss.score);
+                const icon     = modeIcon(ss.mode);
+                const iclr     = modeColor(ss.mode);
+                // Session number: total sessions minus position (most recent = highest number)
+                const sessNum  = sessions.length - sessions.indexOf(ss as any);
                 return (
                   <TouchableOpacity
                     key={ss.id}
@@ -283,7 +287,7 @@ export default function SpeechHistoryScreen({ navigation }: any) {
                       <Ionicons name={icon as any} size={20} color={iclr} />
                     </View>
                     <View style={s.sessionMeta}>
-                      <Text style={s.sessionMode}>{ss.mode}</Text>
+                      <Text style={s.sessionMode}>Session {sessNum}</Text>
                       <View style={s.sessionSubRow}>
                         <Ionicons name="time-outline" size={11} color={C.textMuted} />
                         <Text style={s.sessionSub}>{formatDate(ss.created_at)}</Text>

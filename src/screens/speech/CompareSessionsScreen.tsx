@@ -119,10 +119,11 @@ export default function CompareSessionsScreen({ navigation }: any) {
           {(['A','B'] as const).map(slot => {
             const idx  = slot === 'A' ? idxA : idxB;
             const sess = speech[idx];
+            const sessNum = speech.length - idx;
             return (
               <View key={slot} style={s.pickCard}>
                 <Text style={s.pickLabel}>SESSION {slot}</Text>
-                <Text style={s.pickMode}>{sess?.mode}</Text>
+                <Text style={s.pickMode}>Session {sessNum}</Text>
                 <Text style={s.pickSub}>{timeAgo(sess?.created_at)}</Text>
                 <Text style={s.pickScore}>{sess?.score}</Text>
                 <View style={s.pickBtns}>
