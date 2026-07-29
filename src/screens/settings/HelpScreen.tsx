@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity,
   StatusBar, Platform, Animated, TextInput, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,7 +85,7 @@ export default function HelpScreen({ navigation }:any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, {flex:1}]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Contact options */}
         {!search && (

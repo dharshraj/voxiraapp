@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity,
   StatusBar, Platform, Animated, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -126,7 +126,7 @@ export default function DailyChallengeScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, {flex:1}]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <Text style={s.sectionTitle}>Today's Challenges</Text>
 

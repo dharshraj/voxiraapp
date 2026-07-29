@@ -170,10 +170,7 @@ export default function DeleteAccountScreen({ navigation }: any) {
       </View>
 
       <Animated.ScrollView
-        style={[
-          Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : { flex: 1 },
-          { opacity: fade },
-        ]}
+        style={[{ flex: 1 }, { opacity: fade }]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

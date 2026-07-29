@@ -276,7 +276,7 @@ export default function EditProfileScreen({ navigation }: any) {
       <View style={s.divider} />
 
       <ScrollView
-        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : undefined}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"

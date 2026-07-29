@@ -177,7 +177,7 @@ export default function Feature1Screen({ navigation }: any) {
       </View>
 
       <ScrollView
-        style={[s.scroll, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
+        style={[s.scroll, { flex: 1 }]}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

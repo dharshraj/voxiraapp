@@ -112,7 +112,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     ghostText: { color: C.textMuted, fontSize: 14 },
   });
 
-  const rootStyle: any[] = [s.root, Platform.OS === 'web' && ({ minHeight: '100vh' } as any)];
+  const rootStyle = s.root;
 
   return (
     <KeyboardAvoidingView style={rootStyle} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -121,7 +121,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       <Animated.View pointerEvents="none" style={[s.orb, { transform: [{ translateX: orbTranslateX }, { translateY: orbTranslateY }] }]} />
 
       <ScrollView
-        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : { flex: 1 }}
+        style={{ flex: 1 }}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

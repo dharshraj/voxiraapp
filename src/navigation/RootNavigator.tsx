@@ -9,13 +9,18 @@ import { useAuthStore } from '../store/authStore';
 import { useUserStore } from '../store/userStore';
 
 // ── Auth & Onboarding ─────────────────────────────────────────────────────────
-import SplashScreen         from '../screens/auth/SplashScreen';
-import WelcomeScreen        from '../screens/onboarding/WelcomeScreen';
-import Feature1Screen       from '../screens/onboarding/Feature1Screen';
-import LoginScreen          from '../screens/auth/LoginScreen';
-import RegisterScreen       from '../screens/auth/RegisterScreen';
-import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
-import DeleteAccountScreen  from '../screens/auth/DeleteAccountScreen';
+import SplashScreen           from '../screens/auth/SplashScreen';
+import WelcomeScreen          from '../screens/onboarding/WelcomeScreen';
+import Feature1Screen         from '../screens/onboarding/Feature1Screen';
+import Feature2Screen         from '../screens/onboarding/Feature2Screen';
+import Feature3Screen         from '../screens/onboarding/Feature3Screen';
+import GoalSelectionScreen    from '../screens/onboarding/GoalSelectionScreen';
+import ExperienceLevelScreen  from '../screens/onboarding/ExperienceLevelScreen';
+import PermissionsScreen      from '../screens/onboarding/PermissionsScreen';
+import LoginScreen            from '../screens/auth/LoginScreen';
+import RegisterScreen         from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen   from '../screens/auth/ForgotPasswordScreen';
+import DeleteAccountScreen    from '../screens/auth/DeleteAccountScreen';
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 import DashboardScreen     from '../screens/home/DashboardScreen';
@@ -24,7 +29,9 @@ import NotificationsScreen from '../screens/home/NotificationsScreen';
 import SearchScreen        from '../screens/home/SearchScreen';
 import TopicDetailScreen   from '../screens/home/TopicDetailScreen';
 
-// Also accessible from HomeStack (for Search navigation — keeps goBack() pointing to Search)
+// ── Profile ───────────────────────────────────────────────────────────────────
+import ProfileScreen          from '../screens/profile/ProfileScreen';
+import EditProfileScreen      from '../screens/profile/EditProfileScreen';
 import SpeechDashboardScreen_H   from '../screens/speech/SpeechDashboardScreen';
 import SpeechHistoryScreen_H     from '../screens/speech/SpeechHistoryScreen';
 import ProgressOverviewScreen_H  from '../screens/profile/ProgressOverviewScreen';
@@ -53,8 +60,22 @@ import PronunciationScreen  from '../screens/speech/PronunciationScreen';
 import PaceAndClarityScreen  from '../screens/speech/PaceAndClarityScreen';
 import SpeechDashboardScreen from '../screens/speech/SpeechDashboardScreen';
 
-// ── Profile ───────────────────────────────────────────────────────────────────
-import ProfileScreen          from '../screens/profile/ProfileScreen';
+// ── Speech extras ─────────────────────────────────────────────────────────────
+import VocabularyBuilderScreen from '../screens/speech/VocabularyBuilderScreen';
+import ToneAnalysisScreen      from '../screens/speech/ToneAnalysisScreen';
+import ConfidenceScoreScreen   from '../screens/speech/ConfidenceScoreScreen';
+import WeeklyReportScreen      from '../screens/speech/WeeklyReportScreen';
+import CompareSessionsScreen   from '../screens/speech/CompareSessionsScreen';
+
+// ── Gamification ──────────────────────────────────────────────────────────────
+import RewardsScreen        from '../screens/gamification/RewardsScreen';
+import StreakCalendarScreen  from '../screens/gamification/StreakCalendarScreen';
+import LevelUpScreen        from '../screens/gamification/LevelUpScreen';
+
+// ── Support ───────────────────────────────────────────────────────────────────
+import FAQScreen      from '../screens/support/FAQScreen';
+import TutorialScreen from '../screens/support/TutorialScreen';
+import WhatsNewScreen from '../screens/support/WhatsNewScreen';
 import EditProfileScreen      from '../screens/profile/EditProfileScreen';
 import ProgressOverviewScreen from '../screens/profile/ProgressOverviewScreen';
 import AchievementsScreen     from '../screens/profile/AchievementsScreen';

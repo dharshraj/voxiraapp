@@ -206,7 +206,7 @@ export default function LoginScreen({ navigation, route }: any) {
       <Animated.View pointerEvents="none" style={[s.orb2, { transform: [{ translateX: orb2X }, { translateY: orb2Y }] }]} />
 
       <ScrollView
-        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : s.flex}
+        style={s.flex}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

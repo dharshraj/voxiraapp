@@ -103,7 +103,7 @@ export default function SessionDetailScreen({ navigation, route }: any) {
       </View>
 
       <Animated.ScrollView
-        style={[{opacity:fade}, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
+        style={[{opacity:fade}, {flex:1}]}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

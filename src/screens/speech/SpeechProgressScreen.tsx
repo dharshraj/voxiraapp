@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity,
   StatusBar, Platform, Animated, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,7 +78,7 @@ export default function SpeechProgressScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView style={[{opacity:fade}, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[{opacity:fade}, {flex:1}]} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Score chart ──────────────────────────────────────────────── */}
         <View style={s.card}>

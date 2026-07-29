@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView,
+  View, Text, TouchableOpacity,
   StyleSheet, StatusBar, Platform, Animated, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -139,7 +139,7 @@ export default function DashboardScreen({ navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[{ opacity: fadeAnim }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
+        style={[{ opacity: fadeAnim }, { flex: 1 }]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
         refreshControl={

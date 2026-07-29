@@ -164,7 +164,7 @@ export default function SplashScreen({ navigation }: any) {
       <Animated.View style={[s.orb, s.orb3, { transform: [{ translateX: orb3TranslateX }, { translateY: orb3TranslateY }] }]} />
 
       <ScrollView
-        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : { flex: 1 }}
+        style={{ flex: 1 }}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >

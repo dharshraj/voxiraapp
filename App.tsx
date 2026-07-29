@@ -8,23 +8,8 @@ import { useAuthStore } from './src/store/authStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/theme/ThemeContext';
 
-// ── Web layout — injected once before React mounts ───────────────────────────
-//
-// The scroll fix works like this:
-//
-//   html (height:100%)
-//   └── body (height:100%, NO overflow:hidden)
-//       └── #root (height:100%, flex column)
-//           └── GestureHandler / SafeArea / Nav divs (height:100%, flex column)
-//               └── Screen root View (height:100%)
-//                   └── ScrollView (height:100%, overflow-y:auto)  ← SCROLLS
-//
-// Every level must have a defined height — if any ancestor uses flex:1 WITHOUT
-// a defined height, the chain breaks and the ScrollView cannot calculate its
-// own height, so it doesn't scroll.
-//
-// We do NOT set overflow:hidden anywhere in this chain — that clips children.
-// The fixed tab bar (position:fixed) handles its own layering.
+// ── Web layout — fonts + scrollbar polish injected once ──────────────────────
+// Structural layout CSS (height chain, overflow, flex) lives in web/index.html.
 //
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const inject = () => {

@@ -205,7 +205,7 @@ export default function NotificationsScreen({ navigation }: any) {
         </View>
       ) : (
         <Animated.ScrollView
-          style={[{ opacity:fadeAnim }, Platform.OS==='web' && ({ height:'100%', overflowY:'auto' } as any)]}
+          style={[{ opacity:fadeAnim }, { flex: 1 }]}
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
         >

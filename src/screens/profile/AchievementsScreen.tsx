@@ -270,7 +270,7 @@ export default function AchievementsScreen({ navigation }: any) {
       <View style={s.divider} />
 
       <Animated.ScrollView
-        style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
+        style={[{ opacity: fade }, { flex: 1 }]}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >

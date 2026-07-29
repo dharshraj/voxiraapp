@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  StatusBar, Platform, Animated, ScrollView,
+  StatusBar, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeContext';
@@ -68,7 +68,7 @@ export default function TopicDetailScreen({ navigation, route }: any) {
         </View>
       ) : (
         <Animated.ScrollView
-          style={[{ opacity: fade }, Platform.OS === 'web' && ({ height: '100%', overflowY: 'auto' } as any)]}
+          style={[{ opacity: fade }, { flex: 1 }]}
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
         >
