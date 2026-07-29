@@ -92,10 +92,6 @@ export default function VocabularyBuilderScreen({ navigation }: any) {
           </View>
         ) : (
           <>
-            <View style={s.todoBanner}>
-              <Ionicons name="information-circle-outline" size={16} color={C.warning} />
-              <Text style={s.todoTxt}>Word frequency is computed from your transcripts. AI vocabulary suggestions are stubbed — see src/services/mockData.ts → fetchVocabularyInsights.</Text>
-            </View>
             <Text style={s.lbl}>Vocabulary Stats</Text>
             <View style={s.statRow}>
               <View style={s.stat}><Text style={s.statVal}>{stats.unique}</Text><Text style={s.statLbl}>Unique Words</Text></View>

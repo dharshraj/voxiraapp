@@ -273,15 +273,7 @@ function MainTabs() {
           };
           const [active, inactive] = map[route.name] ?? ['ellipse', 'ellipse-outline'];
           return (
-            <View style={{ alignItems: 'center', justifyContent: 'center', width: size + 16, height: size + 12 }}>
-              {focused && (
-                <View style={{
-                  position: 'absolute', width: 36, height: 30, borderRadius: 12,
-                  backgroundColor: 'rgba(146,64,14,0.10)',
-                }} />
-              )}
-              <Ionicons name={(focused ? active : inactive) as any} size={size} color={color} />
-            </View>
+            <Ionicons name={(focused ? active : inactive) as any} size={size} color={color} />
           );
         },
       })}

@@ -23,10 +23,9 @@ export default function ToneAnalysisScreen({ navigation }: any) {
   useFocusEffect(useCallback(() => { if (userId) loadSessions(userId); }, [userId]));
 
   const TONE_DIMS = [
-    { label: 'Confidence',  icon: 'trending-up-outline',  color: '#8B5CF6', value: latest ? Math.min(100, latest.confidence + 5) : null },
-    { label: 'Clarity',     icon: 'eye-outline',           color: '#06B6D4', value: latest ? latest.clarity : null },
-    { label: 'Energy',      icon: 'flash-outline',         color: '#F59E0B', value: latest ? Math.min(100, Math.round((latest.pace + latest.confidence) / 2)) : null },
-    { label: 'Warmth',      icon: 'heart-outline',         color: '#EC4899', value: null }, // TODO: requires tone AI endpoint
+    { label: 'Confidence', icon: 'trending-up-outline', color: '#8B5CF6', value: latest ? Math.min(100, latest.confidence + 5) : null },
+    { label: 'Clarity',    icon: 'eye-outline',          color: '#06B6D4', value: latest ? latest.clarity : null },
+    { label: 'Energy',     icon: 'flash-outline',        color: '#F59E0B', value: latest ? Math.min(100, Math.round((latest.pace + latest.confidence) / 2)) : null },
   ];
 
   const s = StyleSheet.create({
