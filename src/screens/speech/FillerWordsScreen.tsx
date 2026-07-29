@@ -104,7 +104,7 @@ export default function FillerWordsScreen({ navigation, route }: any) {
       </LinearGradient>
 
       <Animated.ScrollView
-        style={[{ opacity:fade, transform:[{ translateY:slide , flex: 1}, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)] }, { flex: 1 }]}
+        style={{ opacity: fade, transform: [{ translateY: slide }], flex: 1 }}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

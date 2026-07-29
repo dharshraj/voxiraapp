@@ -78,7 +78,7 @@ export default function LevelUpScreen({ navigation }: any) {
         <Text style={s.title}>Level Up</Text>
       </View>
       <View style={s.divider} />
-      <ScrollView style={[{ flex: 1 }, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
+      <ScrollView style={{ flex: 1 }}
         contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <Text style={s.lbl}>Current Level</Text>
         <View style={[s.curCard, { backgroundColor: currentLevel.color }]}>

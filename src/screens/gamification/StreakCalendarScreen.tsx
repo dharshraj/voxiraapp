@@ -88,7 +88,7 @@ export default function StreakCalendarScreen({ navigation }: any) {
         <Text style={s.title}>Streak Calendar</Text>
       </View>
       <View style={s.divider} />
-      <ScrollView style={[{ flex: 1 }, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
+      <ScrollView style={{ flex: 1 }}
         contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <Text style={s.lbl}>Your Streak</Text>
         <View style={s.statRow}>

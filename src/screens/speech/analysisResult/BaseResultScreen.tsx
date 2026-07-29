@@ -57,7 +57,7 @@ export default function BaseResultScreen({ stepIndex, navigation, params, childr
 
       <Animated.ScrollView
         ref={scrollRef}
-        style={[{ opacity: fadeAnim, flex: 1 }, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
+        style={{ opacity: fadeAnim, flex: 1 }}
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >

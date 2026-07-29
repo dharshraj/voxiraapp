@@ -90,7 +90,7 @@ export default function RewardsScreen({ navigation }: any) {
         <Text style={s.title}>Rewards</Text>
       </View>
       <View style={s.divider} />
-      <ScrollView style={[{ flex: 1 }, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
+      <ScrollView style={{ flex: 1 }}
         contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.balCard}>
           <Text style={s.balLbl}>YOUR COINS</Text>

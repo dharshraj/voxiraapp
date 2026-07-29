@@ -121,7 +121,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       <Animated.View pointerEvents="none" style={[s.orb, { transform: [{ translateX: orbTranslateX }, { translateY: orbTranslateY }] }]} />
 
       <ScrollView
-        style={[, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
+        style={{ flex: 1 }}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
