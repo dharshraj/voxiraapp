@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Animated, View, Text, StyleSheet, StatusBar, Dimensions, Platform,
+  Animated, View, Text, StyleSheet, StatusBar, Dimensions, Platform, ScrollView,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
@@ -120,7 +120,8 @@ export default function SplashScreen({ navigation }: any) {
   const progressWidthInterp = progressWidth.interpolate({ inputRange: [0, 1], outputRange: [0, W - 48] });
 
   const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    root: { flex: 1, backgroundColor: C.bg },
+    scrollContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center' },
     orb: { position: 'absolute', opacity: 0.15, borderRadius: 9999, backgroundColor: C.primary },
     orb1: { width: 300, height: 300, top: -80, left: -80 },
     orb2: { width: 260, height: 260, top: -60, right: -60, opacity: 0.1 },
@@ -162,33 +163,39 @@ export default function SplashScreen({ navigation }: any) {
       <Animated.View style={[s.orb, s.orb2, { transform: [{ translateX: orb2TranslateX }, { translateY: orb2TranslateY }] }]} />
       <Animated.View style={[s.orb, s.orb3, { transform: [{ translateX: orb3TranslateX }, { translateY: orb3TranslateY }] }]} />
 
-      <View style={s.center}>
-        <Animated.View style={[s.glowRing, { transform: [{ scale: ringScale }] }]} />
+      <ScrollView
+        style={Platform.OS === 'web' ? ({ height: '100%', overflowY: 'auto' } as any) : { flex: 1 }}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={s.center}>
+          <Animated.View style={[s.glowRing, { transform: [{ scale: ringScale }] }]} />
 
-        <Animated.View style={[s.logoWrap, { opacity: logoOpacity, transform: [{ translateY: logoTranslate }, { scale: logoScale }] }]}>
-          <View style={s.logoBox}>
-            <Text style={s.logoEmoji}>🎙️</Text>
+          <Animated.View style={[s.logoWrap, { opacity: logoOpacity, transform: [{ translateY: logoTranslate }, { scale: logoScale }] }]}>
+            <View style={s.logoBox}>
+              <Text style={s.logoEmoji}>🎙️</Text>
+            </View>
+          </Animated.View>
+
+          <Animated.Text style={[s.title, { opacity: titleOpacity, transform: [{ translateY: titleTranslate }] }]}>
+            VOX<Text style={s.titleAccent}>IRA</Text>
+          </Animated.Text>
+
+          <Animated.Text style={[s.sub, { opacity: subOpacity, transform: [{ translateY: subTranslate }] }]}>
+            Master Every Conversation
+          </Animated.Text>
+
+          <View style={s.pillRow}>
+            {[
+              { label: '🎤 Speech AI', anim: { opacity: pill1Opacity, transform: [{ translateY: pill1Translate }] } },
+            ].map((p, i) => (
+              <Animated.View key={i} style={[s.pill, p.anim]}>
+                <Text style={s.pillTxt}>{p.label}</Text>
+              </Animated.View>
+            ))}
           </View>
-        </Animated.View>
-
-        <Animated.Text style={[s.title, { opacity: titleOpacity, transform: [{ translateY: titleTranslate }] }]}>
-          VOX<Text style={s.titleAccent}>IRA</Text>
-        </Animated.Text>
-
-        <Animated.Text style={[s.sub, { opacity: subOpacity, transform: [{ translateY: subTranslate }] }]}>
-          Master Every Conversation
-        </Animated.Text>
-
-        <View style={s.pillRow}>
-          {[
-            { label: '🎤 Speech AI', anim: { opacity: pill1Opacity, transform: [{ translateY: pill1Translate }] } },
-          ].map((p, i) => (
-            <Animated.View key={i} style={[s.pill, p.anim]}>
-              <Text style={s.pillTxt}>{p.label}</Text>
-            </Animated.View>
-          ))}
         </View>
-      </View>
+      </ScrollView>
 
       <View style={s.progressTrack}>
         <Animated.View style={[s.progressFill, { width: progressWidthInterp }]} />
