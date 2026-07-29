@@ -32,10 +32,6 @@ const FAQS = [
     a:'Basic features work offline on Pro. Speech recording and AI analysis require an internet connection. Offline mode (Pro) lets you record and syncs the analysis when you reconnect.',
   },
   {
-    q:'Can I cancel my Pro subscription?',
-    a:'Yes, anytime. Go to Settings → Subscription → Cancel. On iOS, manage through App Store subscriptions. On Android, through Google Play. Your Pro access continues until the billing period ends.',
-  },
-  {
     q:'How do I reset my streak?',
     a:'Your streak resets automatically if you miss a day of practice. Streaks are based on your local timezone. Make sure to complete at least one session per day to maintain your streak.',
   },

@@ -12,7 +12,6 @@ const WHAT_GETS_DELETED = [
   { icon: 'mic-outline',              label: 'All speech sessions and recordings'    },
   { icon: 'trophy-outline',           label: 'All achievements and XP earned'        },
   { icon: 'trending-up-outline',      label: 'All progress data and streaks'         },
-  { icon: 'card-outline',             label: 'Your subscription (no refund)'         },
 ];
 
 type Step = 'warning' | 'alternatives' | 'confirm' | 'deleting' | 'deleted';
