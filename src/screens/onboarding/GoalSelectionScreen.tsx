@@ -75,7 +75,7 @@ export default function GoalSelectionScreen({ navigation }: any) {
       </View>
       <ScrollView
         contentContainerStyle={s.scroll}
-        style={{ flex: 1 }}
+        style={[, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
         showsVerticalScrollIndicator={false}
       >
         {GOAL_OPTIONS.map(opt => {

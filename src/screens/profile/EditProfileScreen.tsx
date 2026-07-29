@@ -67,7 +67,7 @@ export default function EditProfileScreen({ navigation }: any) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
@@ -276,7 +276,7 @@ export default function EditProfileScreen({ navigation }: any) {
       <View style={s.divider} />
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={[, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"

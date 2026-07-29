@@ -25,15 +25,18 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         background: #FAF9F7;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         -webkit-font-smoothing: antialiased;
-        overflow: hidden;
       }
       #root {
         height: 100%;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
       }
-      ::-webkit-scrollbar { width: 5px; }
+      #root > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      #root > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      #root > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      #root > div > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      #root > div > div > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-thumb { background: rgba(146,64,14,0.25); border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: rgba(146,64,14,0.45); }
       input:focus, textarea:focus { outline: none; }

@@ -115,7 +115,7 @@ export default function SpeechHomeScreen({ navigation }: any) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
-        style={{ flex: 1 }}
+        style={[, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
       >
         <View style={s.header}>
           {canGoBack && (

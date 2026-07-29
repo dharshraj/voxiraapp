@@ -171,7 +171,7 @@ export default function SearchScreen({ navigation }: any) {
         </ScrollView>
 
         <ScrollView
-          style={{ flex: 1 }}
+          style={[, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

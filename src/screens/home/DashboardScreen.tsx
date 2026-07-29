@@ -139,7 +139,7 @@ export default function DashboardScreen({ navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.ScrollView
-        style={[{ opacity: fadeAnim }, { flex: 1 }]}
+        style={[{ opacity: fadeAnim, flex: 1 }, Platform.OS === 'web' && ({ overflowY: 'auto' } as any)]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
         refreshControl={
