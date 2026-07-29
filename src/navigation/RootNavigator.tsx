@@ -33,7 +33,16 @@ import ProgressOverviewScreen_H  from '../screens/profile/ProgressOverviewScreen
 import SpeechHomeScreen     from '../screens/speech/SpeechHomeScreen';
 import RecordScreen         from '../screens/speech/RecordScreen';
 import AnalyzingScreen      from '../screens/speech/AnalyzingScreen';
-import AnalysisResultScreen from '../screens/speech/AnalysisResultScreen';
+// Analysis Result flow — 9 separate screens
+import TranscriptResultScreen    from '../screens/speech/analysisResult/TranscriptResultScreen';
+import FillerWordBreakdownScreen  from '../screens/speech/analysisResult/FillerWordBreakdownScreen';
+import ScoreBreakdownScreen       from '../screens/speech/analysisResult/ScoreBreakdownScreen';
+import FeedbackResultScreen       from '../screens/speech/analysisResult/FeedbackResultScreen';
+import ContentSuggestionsScreen   from '../screens/speech/analysisResult/ContentSuggestionsScreen';
+import SuggestedRephrasingsScreen from '../screens/speech/analysisResult/SuggestedRephrasingsScreen';
+import ImprovementTipsScreen      from '../screens/speech/analysisResult/ImprovementTipsScreen';
+import StructureFeedbackScreen    from '../screens/speech/analysisResult/StructureFeedbackScreen';
+import SevenDayPlanScreen         from '../screens/speech/analysisResult/SevenDayPlanScreen';
 import FillerWordsScreen    from '../screens/speech/FillerWordsScreen';
 import SpeechProgressScreen from '../screens/speech/SpeechProgressScreen';
 import SessionDetailScreen  from '../screens/speech/SessionDetailScreen';
@@ -133,8 +142,17 @@ function SpeechStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SpeechHome"     component={SpeechHomeScreen} />
       <Stack.Screen name="Record"         component={RecordScreen} />
-      <Stack.Screen name="Analyzing"      component={AnalyzingScreen} />
-      <Stack.Screen name="AnalysisResult" component={AnalysisResultScreen} />
+      <Stack.Screen name="Analyzing"             component={AnalyzingScreen} />
+      {/* Analysis Result — 9 separate screens, navigate() not push() */}
+      <Stack.Screen name="TranscriptResult"     component={TranscriptResultScreen} />
+      <Stack.Screen name="FillerWordBreakdown"  component={FillerWordBreakdownScreen} />
+      <Stack.Screen name="ScoreBreakdown"       component={ScoreBreakdownScreen} />
+      <Stack.Screen name="FeedbackResult"       component={FeedbackResultScreen} />
+      <Stack.Screen name="ContentSuggestions"   component={ContentSuggestionsScreen} />
+      <Stack.Screen name="SuggestedRephrasings" component={SuggestedRephrasingsScreen} />
+      <Stack.Screen name="ImprovementTips"      component={ImprovementTipsScreen} />
+      <Stack.Screen name="StructureFeedback"    component={StructureFeedbackScreen} />
+      <Stack.Screen name="SevenDayPlan"         component={SevenDayPlanScreen} />
       <Stack.Screen name="FillerWords"    component={FillerWordsScreen} />
       <Stack.Screen name="SpeechProgress" component={SpeechProgressScreen} />
       <Stack.Screen name="SessionDetail"  component={SessionDetailScreen} />

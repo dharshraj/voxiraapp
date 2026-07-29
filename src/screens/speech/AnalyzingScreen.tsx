@@ -197,7 +197,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     setDone(true);
 
     setTimeout(() => {
-      navigation.replace('AnalysisResult', {
+      navigation.replace('TranscriptResult', {
         score, duration, fillerCount,
         fillerBreakdown: llmFillerBreakdown,
         transcript, mode, wpm, details, aiAnalysis,
