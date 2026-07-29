@@ -36,6 +36,8 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       #root > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
       #root > div > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
       #root > div > div > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      /* Tab bar: override column back to row */
+      [role="tablist"] { flex-direction: row !important; align-items: center !important; }
       ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-thumb { background: rgba(146,64,14,0.25); border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: rgba(146,64,14,0.45); }
