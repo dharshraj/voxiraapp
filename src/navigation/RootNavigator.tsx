@@ -248,7 +248,8 @@ function MainTabs() {
   const tabBarSize = useTabBarHeight();
 
   return (
-    <Tab.Navigator
+    <View style={Platform.OS === 'web' ? { flex: 1, paddingBottom: tabBarSize.height } : { flex: 1 }}>
+      <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
@@ -291,6 +292,7 @@ function MainTabs() {
       <Tab.Screen name="Achievements" component={AchievementsTabStack} options={{ title: 'Earn' }} />
       <Tab.Screen name="Profile"      component={ProfileStack}        options={{ title: 'Profile' }} />
     </Tab.Navigator>
+    </View>
   );
 }
 
