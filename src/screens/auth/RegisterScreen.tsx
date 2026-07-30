@@ -23,10 +23,22 @@ const registerSchema = z
       .string()
       .min(3,  'Name must be at least 3 characters')
       .max(20, 'Name must be 20 characters or less')
+      // Reject strings whose non-space content is empty (whitespace-only names like "   ")
+      .refine(v => v.trim().length >= 1, 'Name must contain at least one letter')
+      // Reject non-BMP characters (emoji, pictographs) — these are encoded as
+      // surrogate pairs in JS and will cause display/storage issues.
+      // \uD800-\uDFFF covers the full surrogate range.
+      .refine(v => !/[\uD800-\uDFFF]/.test(v), 'Name must not contain emoji or special symbols')
       .regex(/^[A-Za-z\s\-]+$/, 'Name must contain letters only (spaces and hyphens allowed)'),
     email: z
       .string()
       .min(1, 'Email is required')
+      // RFC 5321 limits the local-part (before @) to 64 characters.
+      // Zod 4's .email() regex does not enforce this, so we add an explicit check.
+      .refine(v => {
+        const atIdx = v.indexOf('@');
+        return atIdx === -1 || atIdx <= 64;
+      }, 'Email address is too long (local part must be 64 characters or less)')
       .email('Enter a valid email address (e.g. you@example.com)'),
     password: z
       .string()
@@ -46,15 +58,30 @@ const registerSchema = z
 type RegisterForm = z.infer<typeof registerSchema>;
 
 // ── Password strength meter ───────────────────────────────────────────────────
+// Scoring rules:
+//   Length >= 8 is a hard prerequisite — without it the score is capped at 1
+//   (Weak), no matter how many character classes are present.
+//   With length satisfied, each additional class (uppercase, digit, special)
+//   adds one point: 1=Weak, 2=Fair, 3=Good, 4=Strong.
+//
+//   Examples:
+//     "Ab1!"     → length<8 → score 1 → Weak   (was incorrectly Good)
+//     "Abcde1!"  → length=7 → score 1 → Weak
+//     "Abcde1!x" → length=8, all classes → score 4 → Strong
 function getStrength(p: string): { score: number; label: string; color: string } {
   if (!p) return { score: 0, label: '', color: 'transparent' };
-  let score = 0;
-  if (p.length >= 8)           score++;
+
+  // Length is a prerequisite, not an additive point.
+  // A short password is always Weak regardless of character variety.
+  if (p.length < 8) return { score: 1, label: 'Weak', color: '#EF4444' };
+
+  // Length satisfied — score 1 baseline, add up to 3 more for variety.
+  let score = 1;
   if (/[A-Z]/.test(p))         score++;
   if (/[0-9]/.test(p))         score++;
   if (/[^A-Za-z0-9]/.test(p)) score++;
+
   const map: Record<number, { label: string; color: string }> = {
-    0: { label: '',       color: 'transparent' },
     1: { label: 'Weak',   color: '#EF4444' },
     2: { label: 'Fair',   color: '#F59E0B' },
     3: { label: 'Good',   color: '#3B82F6' },
@@ -200,7 +227,12 @@ export default function RegisterScreen({ navigation }: any) {
     orb1:         { position: 'absolute', top: -80,  right: -60, width: 280, height: 280, borderRadius: 140, opacity: 0.15, backgroundColor: C.primary },
     orb2:         { position: 'absolute', bottom: -60, right: -40, width: 240, height: 240, borderRadius: 120, opacity: 0.10, backgroundColor: C.primaryPressed },
     backBtn:      { marginTop: Platform.OS === 'ios' ? 56 : 24, width: 42, height: 42, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    heading:      { fontSize: 30, fontWeight: '800', color: C.text, marginTop: 24, marginBottom: 6 },
+    logoArea:     { alignItems: 'center', marginTop: 20, marginBottom: 24 },
+    logoBox:      { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10, backgroundColor: C.primary },
+    logoEmoji:    { fontSize: 28 },
+    logoText:     { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+    logoAccent:   { color: C.primary },
+    heading:      { fontSize: 30, fontWeight: '800', color: C.text, marginTop: 0, marginBottom: 6 },
     subheading:   { fontSize: 14, color: C.textMuted, marginBottom: 20 },
     pillRow:      { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 28 },
     pill:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.primary + '50', backgroundColor: C.primaryLight },
@@ -275,6 +307,15 @@ export default function RegisterScreen({ navigation }: any) {
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={22} color={C.textMuted} />
           </TouchableOpacity>
+
+          <View style={s.logoArea}>
+            <View style={s.logoBox}>
+              <Text style={s.logoEmoji}>🎙️</Text>
+            </View>
+            <Text style={s.logoText}>
+              VOX<Text style={s.logoAccent}>IRA</Text>
+            </Text>
+          </View>
 
           <Text style={s.heading}>Create Account</Text>
           <Text style={s.subheading}>Join thousands mastering communication</Text>

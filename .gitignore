@@ -56,3 +56,16 @@ selenium_model/reports/test_results.json
 selenium_model/reports/locust*.csv
 selenium_model/reports/load_results.json
 dist-web/
+
+# ── Root-level debug/screenshot artifacts (moved to selenium_model/) ──────────
+# These patterns guard against accidental recreation at repo root.
+/test-debug.js
+/test-full.js
+/test-register.js
+/test-screenshot.js
+/test-screenshot2.js
+/dbg_*.png
+/screen_*.png
+
+# Selenium debug screenshots archive
+selenium_model/debug_screenshots/

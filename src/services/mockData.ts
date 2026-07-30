@@ -15,7 +15,7 @@ export async function fetchWeeklyReport(userId: string) {
 }
 
 // ── Tone Analysis ─────────────────────────────────────────────────────────────
-// TODO: replace with a Groq/OpenAI analysis call that returns tone breakdown
+// TODO: replace with a Groq analysis call that returns tone breakdown
 // for the most recent session transcript
 export async function fetchToneAnalysis(transcript: string) {
   // Real implementation: call groq-analysis edge function with a tone prompt

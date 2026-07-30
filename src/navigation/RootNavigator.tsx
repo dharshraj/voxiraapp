@@ -84,6 +84,7 @@ import WhatsNewScreen from '../screens/support/WhatsNewScreen';
 // ── Settings ──────────────────────────────────────────────────────────────────
 import SettingsScreen             from '../screens/settings/SettingsScreen';
 import NotificationSettingsScreen from '../screens/settings/NotificationSettingsScreen';
+import HelpScreen                 from '../screens/settings/HelpScreen';
 import PrivacyPolicyScreen        from '../screens/settings/PrivacyPolicyScreen';
 
 const Stack = createStackNavigator();
@@ -202,26 +203,6 @@ function SpeechStack() {
   );
 }
 
-function GamificationStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Rewards"         component={RewardsScreen} />
-      <Stack.Screen name="StreakCalendar"  component={StreakCalendarScreen} />
-      <Stack.Screen name="LevelUp"         component={LevelUpScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function SupportStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="FAQ"        component={FAQScreen} />
-      <Stack.Screen name="Tutorial"   component={TutorialScreen} />
-      <Stack.Screen name="WhatsNew"   component={WhatsNewScreen} />
-    </Stack.Navigator>
-  );
-}
-
 function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -231,6 +212,7 @@ function ProfileStack() {
       <Stack.Screen name="Achievements"         component={AchievementsScreen} />
       <Stack.Screen name="Settings"             component={SettingsScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <Stack.Screen name="Help"                 component={HelpScreen} />
       <Stack.Screen name="PrivacyPolicy"        component={PrivacyPolicyScreen} />
       <Stack.Screen name="DeleteAccount"        component={DeleteAccountScreen} />
       {/* Support screens accessible from Settings */}

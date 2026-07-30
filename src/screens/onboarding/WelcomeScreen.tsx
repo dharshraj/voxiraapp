@@ -10,7 +10,7 @@ export default function WelcomeScreen({ navigation }: any) {
   const { colors: C, isDark } = useTheme();
 
   const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg },
+    root: { flex: 1, backgroundColor: C.bg, overflow: 'hidden' },
     scroll: { flex: 1 },
     glowTop: {
       position: 'absolute', width: 340, height: 340, borderRadius: 170,

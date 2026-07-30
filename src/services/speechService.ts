@@ -3,27 +3,26 @@
  *
  * Architecture: client uploads audio to Supabase Storage → Edge Function
  * `assemblyai-transcribe` submits a signed URL to AssemblyAI → client polls
- * via Edge Function `assemblyai-poll`. This keeps the AssemblyAI key
- * server-side and out of the JS bundle.
+ * via Edge Function `assemblyai-poll`. The AssemblyAI key is stored only as
+ * a Supabase secret and never touches the client bundle.
  *
- * Falls back to direct AssemblyAI API calls if EXPO_PUBLIC_ASSEMBLYAI_KEY is
- * present and the Edge Functions have not yet been deployed.
+ * Deploy secrets once:
+ *   supabase secrets set ASSEMBLYAI_API_KEY=<your_key>
+ *   supabase functions deploy assemblyai-transcribe
+ *   supabase functions deploy assemblyai-poll
  */
 
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../lib/supabase';
 
-const DIRECT_KEY  = process.env.EXPO_PUBLIC_ASSEMBLYAI_KEY ?? '';
-const ASSEMBLYAI  = 'https://api.assemblyai.com/v2';
-const UPLOAD_TIMEOUT_MS  = 60_000;
-const POLL_MAX_ATTEMPTS  = 60;   // 60 × 2 s = 120 s max
+const POLL_MAX_ATTEMPTS = 60; // 60 × 2 s = 120 s max
 
 // Words to highlight as fillers even when AssemblyAI disfluency detection
 // does not tag them (used as a secondary pass on the word list).
 const FILLER_SET = new Set([
-  'um','uh','hmm','mm','like','basically','literally',
-  'actually','so','right','okay','well','mhm','uh-huh',
+  'um', 'uh', 'hmm', 'mm', 'like', 'basically', 'literally',
+  'actually', 'so', 'right', 'okay', 'well', 'mhm', 'uh-huh',
 ]);
 
 export interface WordItem {
@@ -43,7 +42,6 @@ export interface TranscriptResult {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Log a labelled message to console — always visible in dev/prod. */
 function log(label: string, ...args: any[]) {
   console.log(`[AssemblyAI/${label}]`, ...args);
 }
@@ -56,7 +54,7 @@ function logError(label: string, ...args: any[]) {
 
 async function uploadToStorageWeb(uri: string, storagePath: string, mimeType: string): Promise<void> {
   log('upload-web', `Fetching blob from object URL, path=${storagePath}`);
-  const res  = await fetch(uri);
+  const res = await fetch(uri);
   if (!res.ok) throw new Error(`Failed to fetch local audio blob: HTTP ${res.status}`);
   const blob = await res.blob();
   log('upload-web', `Blob size: ${blob.size} bytes, type: ${blob.type}`);
@@ -97,7 +95,7 @@ async function uploadToStorageNative(uri: string, storagePath: string): Promise<
   }
 }
 
-// ─── Edge Function path ────────────────────────────────────────────────────────
+// ─── Edge Function proxy ───────────────────────────────────────────────────────
 
 async function transcribeViaEdgeFunctions(uri: string): Promise<TranscriptResult> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -152,7 +150,6 @@ async function transcribeViaEdgeFunctions(uri: string): Promise<TranscriptResult
 
     if (pollData?.status === 'completed') {
       const words: WordItem[] = pollData.words ?? [];
-      // Tag as filler if AssemblyAI flagged it OR it's in our local set
       const filler_words = words.filter(w =>
         (w as any).filler === true || FILLER_SET.has(w.text.toLowerCase().trim())
       );
@@ -170,171 +167,19 @@ async function transcribeViaEdgeFunctions(uri: string): Promise<TranscriptResult
   return { text: '', words: [], filler_words: [], status: 'error', error: 'Timeout after 2 minutes' };
 }
 
-// ─── Direct AssemblyAI path (fallback / development) ──────────────────────────
-
-async function uploadAudioDirect(uri: string): Promise<string> {
-  log('direct', 'uploadAudio — key present:', !!DIRECT_KEY, '| platform:', Platform.OS);
-
-  if (!DIRECT_KEY) throw new Error('EXPO_PUBLIC_ASSEMBLYAI_KEY is not set in .env');
-
-  const controller = new AbortController();
-  const timeout    = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-
-  try {
-    if (Platform.OS === 'web') {
-      log('direct', 'Fetching web blob from:', uri.slice(0, 60));
-      const res  = await fetch(uri);
-      if (!res.ok) throw new Error(`Failed to read local audio: HTTP ${res.status}`);
-      const blob = await res.blob();
-      log('direct', `Blob size: ${blob.size} bytes`);
-
-      const uploadRes = await fetch(`${ASSEMBLYAI}/upload`, {
-        method:  'POST',
-        headers: { authorization: DIRECT_KEY, 'content-type': 'application/octet-stream' },
-        body:    blob,
-        signal:  controller.signal,
-      });
-
-      if (!uploadRes.ok) {
-        const body = await uploadRes.text().catch(() => '');
-        logError('direct', `Upload HTTP ${uploadRes.status}:`, body.slice(0, 300));
-        throw new Error(`AssemblyAI upload failed (${uploadRes.status}): ${body.slice(0, 200)}`);
-      }
-
-      const data = await uploadRes.json();
-      if (!data.upload_url) throw new Error(`AssemblyAI upload returned no upload_url: ${JSON.stringify(data)}`);
-      log('direct', 'Upload URL received');
-      return data.upload_url;
-    }
-
-    // Native
-    const response = await FileSystem.uploadAsync(`${ASSEMBLYAI}/upload`, uri, {
-      httpMethod:  'POST',
-      headers:     { authorization: DIRECT_KEY },
-      uploadType:  FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    });
-
-    log('direct', `Native upload status: ${response.status}`);
-    if (response.status < 200 || response.status >= 300) {
-      logError('direct', 'Native upload failed:', response.body?.slice(0, 300));
-      throw new Error(`AssemblyAI upload failed (${response.status}): ${response.body?.slice(0, 200)}`);
-    }
-
-    const data = JSON.parse(response.body);
-    if (!data.upload_url) throw new Error(`No upload_url in response: ${response.body.slice(0, 200)}`);
-    log('direct', 'Native upload URL received');
-    return data.upload_url;
-
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function requestTranscriptionDirect(audioUrl: string): Promise<string> {
-  log('direct', 'Submitting transcription request, audio_url length:', audioUrl.length);
-
-  const res = await fetch(`${ASSEMBLYAI}/transcript`, {
-    method:  'POST',
-    headers: { authorization: DIRECT_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      audio_url:     audioUrl,
-      language_code: 'en',
-      // IMPORTANT: AssemblyAI's param is `disfluencies` (not `filler_words`).
-      // When true, it preserves um/uh/hmm in the transcript instead of
-      // silently removing them, and also tags the word items with filler=true.
-      disfluencies: true,
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    logError('direct', `Transcription request failed (${res.status}):`, body.slice(0, 300));
-    throw new Error(`AssemblyAI transcription request failed (${res.status}): ${body.slice(0, 200)}`);
-  }
-
-  const json = await res.json();
-  if (!json.id) {
-    logError('direct', 'No transcript ID in response:', JSON.stringify(json));
-    throw new Error(`AssemblyAI returned no transcript ID: ${JSON.stringify(json).slice(0, 200)}`);
-  }
-
-  log('direct', 'Transcript ID:', json.id);
-  return json.id;
-}
-
-async function pollResultDirect(id: string): Promise<TranscriptResult> {
-  log('direct', 'Starting polling loop for transcript:', id);
-
-  for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-
-    let res: Response;
-    try {
-      res = await fetch(`${ASSEMBLYAI}/transcript/${id}`, {
-        headers: { authorization: DIRECT_KEY },
-      });
-    } catch (fetchErr: any) {
-      logError('direct', `Poll #${i + 1} network error:`, fetchErr.message);
-      continue;
-    }
-
-    if (!res.ok) {
-      logError('direct', `Poll #${i + 1} HTTP ${res.status}`);
-      continue;
-    }
-
-    const data = await res.json();
-    log('direct', `Poll #${i + 1} status:`, data.status);
-
-    if (data.status === 'completed') {
-      const words: WordItem[] = data.words ?? [];
-      // Combine AssemblyAI's native filler tagging with our local FILLER_SET
-      const filler_words = words.filter(w =>
-        (w as any).filler === true || FILLER_SET.has(w.text.toLowerCase().trim())
-      );
-      log('direct', `Complete. Words: ${words.length}, Fillers: ${filler_words.length}, Text preview: "${data.text?.slice(0, 80)}"`);
-      return { text: data.text ?? '', words, filler_words, status: 'completed' };
-    }
-
-    if (data.status === 'error') {
-      logError('direct', 'AssemblyAI error on transcript:', data.error);
-      return { text: '', words: [], filler_words: [], status: 'error', error: data.error };
-    }
-  }
-
-  logError('direct', 'Polling timed out');
-  return { text: '', words: [], filler_words: [], status: 'error', error: 'Timeout after 2 minutes' };
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function transcribeAudio(uri: string): Promise<TranscriptResult> {
-  log('main', 'transcribeAudio called, uri type:', uri.startsWith('blob:') ? 'blob' : uri.startsWith('file:') ? 'file' : 'other');
+  log('main', 'transcribeAudio called, uri type:',
+    uri.startsWith('blob:') ? 'blob' : uri.startsWith('file:') ? 'file' : 'other');
 
-  // Attempt server-side proxy first (AssemblyAI key stays server-side)
   try {
-    const result = await transcribeViaEdgeFunctions(uri);
-    return result;
-  } catch (proxyErr: any) {
-    log('main', 'Proxy path failed, trying direct fallback:', proxyErr?.message);
-  }
-
-  // Direct fallback (uses EXPO_PUBLIC_ASSEMBLYAI_KEY from .env)
-  if (!DIRECT_KEY) {
-    logError('main', 'No API key available. Set EXPO_PUBLIC_ASSEMBLYAI_KEY or deploy Edge Functions.');
-    return {
-      text: '', words: [], filler_words: [], status: 'no_key',
-      error: 'No AssemblyAI key — add EXPO_PUBLIC_ASSEMBLYAI_KEY to .env or deploy Edge Functions',
-    };
-  }
-
-  log('main', 'Using direct API path with client-side key');
-  try {
-    const uploadUrl    = await uploadAudioDirect(uri);
-    const transcriptId = await requestTranscriptionDirect(uploadUrl);
-    return await pollResultDirect(transcriptId);
+    return await transcribeViaEdgeFunctions(uri);
   } catch (err: any) {
-    logError('main', 'Direct path fatal error:', err?.message);
-    return { text: '', words: [], filler_words: [], status: 'error', error: err?.message ?? 'Transcription failed' };
+    logError('main', 'Edge Function path failed:', err?.message);
+    return {
+      text: '', words: [], filler_words: [], status: 'error',
+      error: err?.message ?? 'Transcription failed — ensure Edge Functions are deployed.',
+    };
   }
 }

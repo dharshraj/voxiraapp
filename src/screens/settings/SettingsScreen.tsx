@@ -5,10 +5,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../theme/ThemeContext';
 
 export default function SettingsScreen({ navigation }: any) {
   const { colors: C, isDark, toggle } = useTheme();
+  const signOutStore = useAuthStore(s => s.signOut);
   const [pushNotifs,   setPushNotifs]   = useState(true);
   const [signingOut,   setSigningOut]   = useState(false);
 
@@ -34,8 +36,10 @@ export default function SettingsScreen({ navigation }: any) {
   const signOut = async () => {
     setSigningOut(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) Alert.alert('Sign out failed', error.message);
+      // Use the authStore action so Zustand state (session, user) is cleared
+      // in sync with the Supabase sign-out call. Calling supabase.auth.signOut()
+      // directly would leave stale user/session state in the store.
+      await signOutStore();
     } catch (e: any) {
       Alert.alert('Sign out failed', e?.message ?? 'Something went wrong.');
     } finally {

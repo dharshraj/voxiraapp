@@ -12,6 +12,18 @@ import { supabase } from '../../lib/supabase';
 import { signInWithGoogle } from '../../lib/googleAuth';
 import { useTheme } from '../../theme/ThemeContext';
 
+// ── Stable wrapper components ─────────────────────────────────────────────────
+// MUST be defined at module level (not inside the render function). Defining a
+// component inline causes React to treat it as a new type on every render,
+// remounting the subtree and clearing error state before it can be displayed.
+const WebWrapper = ({ children, style }: { children: React.ReactNode; style: any }) => (
+  <View style={style}>{children}</View>
+);
+const NativeWrapper = ({ children, style }: { children: React.ReactNode; style: any }) => (
+  <KeyboardAvoidingView style={style} behavior="padding">{children}</KeyboardAvoidingView>
+);
+const Wrapper = Platform.OS === 'web' ? WebWrapper : NativeWrapper;
+
 const loginSchema = z.object({
   email:    z.string().email('Enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -102,7 +114,7 @@ export default function LoginScreen({ navigation, route }: any) {
   };
 
   const s = StyleSheet.create({
-    wrapper: { flex: 1, backgroundColor: C.bg },
+    wrapper: { flex: 1, backgroundColor: C.bg, overflow: 'hidden' },
     flex:    { flex: 1 },
     scroll:  { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
     orb1: {
@@ -190,16 +202,9 @@ export default function LoginScreen({ navigation, route }: any) {
   });
 
   const wrapperStyle: any[] = [s.wrapper, Platform.OS === 'web' && ({ height: '100%' } as any)];
-  const Wrapper = Platform.OS === 'web'
-    ? ({ children }: any) => <View style={wrapperStyle}>{children}</View>
-    : ({ children }: any) => (
-        <KeyboardAvoidingView style={wrapperStyle} behavior="padding">
-          {children}
-        </KeyboardAvoidingView>
-      );
 
   return (
-    <Wrapper>
+    <Wrapper style={wrapperStyle}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <Animated.View pointerEvents="none" style={[s.orb1, { transform: [{ translateX: orb1X }, { translateY: orb1Y }] }]} />
