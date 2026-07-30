@@ -1,12 +1,33 @@
-"""Builds selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx — the single master
-workbook combining live Selenium execution results (reports/test_results.json,
-produced by conftest.py during `pytest`) with the static source-code audit
-(audit_data.py). Run after `pytest` so live results are present; if the JSON
-file is missing this still produces a complete audit-only workbook and says
-so in the Executive Summary.
+"""Master Excel report builder — 20-sheet workbook.
+
+Sheets:
+ 01 Executive Summary
+ 02 Selenium UI Tests
+ 03 Unit Tests
+ 04 API Validation Tests
+ 05 Form Validation Tests
+ 06 Performance Tests
+ 07 Load Test Results       (Locust)
+ 08 Vulnerability Tests
+ 09 Appium Mobile Tests
+ 10 E2E Flow Tests
+ 11 Functional Coverage
+ 12 Defect Report
+ 13 Security Observations
+ 14 Accessibility Findings
+ 15 Unused Files
+ 16 Dead Code
+ 17 Code Health Summary
+ 18 Recommendations
+ 19 Navigation Coverage
+ 20 Execution Summary
+
+Run after pytest:
+    python selenium_model/audit/generate_report.py
 """
+from __future__ import annotations
+
 import json
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -15,342 +36,506 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import config
-import audit_data as ad
 
-OUTPUT_PATH = config.ROOT_DIR / "MASTER_TEST_AUDIT_REPORT.xlsx"
+try:
+    import audit_data as ad
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import audit_data as ad
 
+OUTPUT = config.EXCEL_REPORT_PATH
 
-def load_test_results():
-    if config.RESULTS_JSON.exists():
-        with open(config.RESULTS_JSON, "r", encoding="utf-8") as f:
-            return json.load(f)
+# ── Colour palette ────────────────────────────────────────────────────────────
+C = {
+    "hdr_dark":  "1F3864",
+    "hdr_blue":  "2E75B6",
+    "hdr_green": "375623",
+    "hdr_red":   "843C0C",
+    "hdr_purple":"4B0082",
+    "hdr_teal":  "005B5B",
+    "hdr_grey":  "404040",
+    "pass":   "C6EFCE",
+    "fail":   "FFC7CE",
+    "exc":    "FFEB9C",
+    "skip":   "DDEBF7",
+    "info":   "E2EFDA",
+    "warn":   "FCE4D6",
+    "alt":    "F2F2F2",
+}
+
+# ── Loaders ───────────────────────────────────────────────────────────────────
+
+def _load(path: Path) -> list[dict]:
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
     return []
 
 
-def count_project_files():
-    exts = {".ts", ".tsx", ".js", ".jsx"}
-    count = 0
-    for p in (config.PROJECT_ROOT / "src").rglob("*"):
-        if p.is_file() and p.suffix in exts:
-            count += 1
-    return count
+def load_all_results() -> list[dict]:
+    base = _load(config.RESULTS_JSON)
+    seen = {r["test_id"] for r in base}
+    for extra in (config.APPIUM_RESULTS_JSON, config.UNIT_RESULTS_JSON,
+                  config.VULN_RESULTS_JSON):
+        for r in _load(extra):
+            if r["test_id"] not in seen:
+                base.append(r)
+                seen.add(r["test_id"])
+    return base
 
 
-def build_executive_summary(results, defect_count):
-    total = len(results)
-    passed = sum(1 for r in results if r["status"] == "Passed")
-    failed = sum(1 for r in results if r["status"] == "Failed")
-    exceptions = sum(1 for r in results if r["status"] == "Exception")
+def load_load_results() -> list[dict]:
+    return _load(config.LOAD_RESULTS_JSON)
+
+
+def _count_src_files() -> int:
+    src = config.PROJECT_ROOT / "src"
+    if not src.exists():
+        return 0
+    return sum(1 for p in src.rglob("*")
+               if p.is_file() and p.suffix in {".ts", ".tsx", ".js", ".jsx"})
+
+
+# ── Styling ───────────────────────────────────────────────────────────────────
+
+def _style(writer, sheet_name: str, df: pd.DataFrame,
+           hdr_colour: str = "1F3864",
+           row_colour_col: str | None = None) -> None:
+    try:
+        from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        return
+
+    ws = writer.sheets[sheet_name]
+    thin = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin"),
+    )
+    STATUS_FILL = {
+        "Passed":    PatternFill("solid", fgColor=C["pass"]),
+        "Failed":    PatternFill("solid", fgColor=C["fail"]),
+        "Exception": PatternFill("solid", fgColor=C["exc"]),
+        "Skipped":   PatternFill("solid", fgColor=C["skip"]),
+        "Open":      PatternFill("solid", fgColor=C["fail"]),
+        "High":      PatternFill("solid", fgColor=C["fail"]),
+        "Medium":    PatternFill("solid", fgColor=C["warn"]),
+        "Low":       PatternFill("solid", fgColor=C["info"]),
+        "Covered":   PatternFill("solid", fgColor=C["pass"]),
+        "Not Covered": PatternFill("solid", fgColor=C["warn"]),
+    }
+    ALT = PatternFill("solid", fgColor=C["alt"])
+
+    # Header
+    for ci, col in enumerate(df.columns, 1):
+        cell = ws.cell(row=1, column=ci)
+        cell.fill = PatternFill("solid", fgColor=hdr_colour)
+        cell.font = Font(bold=True, color="FFFFFF", size=10)
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin
+    ws.row_dimensions[1].height = 22
+    ws.freeze_panes = "A2"
+
+    cols = list(df.columns)
+    col_pos = cols.index(row_colour_col) + 1 if row_colour_col and row_colour_col in cols else None
+
+    for ri in range(2, ws.max_row + 1):
+        row_val = str(ws.cell(row=ri, column=col_pos).value or "") if col_pos else ""
+        fill = STATUS_FILL.get(row_val, ALT if ri % 2 == 0 else None)
+        for ci in range(1, len(cols) + 1):
+            cell = ws.cell(row=ri, column=ci)
+            if fill:
+                cell.fill = fill
+            cell.border = thin
+            cell.alignment = Alignment(vertical="center", wrap_text=True)
+        ws.row_dimensions[ri].height = 16
+
+    for ci, col in enumerate(cols, 1):
+        try:
+            w = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
+        except Exception:
+            w = len(str(col)) + 2
+        ws.column_dimensions[get_column_letter(ci)].width = min(w, 70)
+
+
+# ── Row builder ───────────────────────────────────────────────────────────────
+
+def _rows(results: list[dict], *,
+          module_filter: str | None = None,
+          type_filter: str | None = None) -> list[dict]:
+    out = []
+    for i, r in enumerate(results, 1):
+        if module_filter and r.get("module", "") != module_filter:
+            continue
+        if type_filter and r.get("test_type", "Selenium") != type_filter:
+            continue
+        out.append({
+            "Test #":       i,
+            "Test ID":      r.get("test_id", ""),
+            "Module":       r.get("module", ""),
+            "Type":         r.get("test_type", "Selenium"),
+            "Scenario":     r.get("scenario", r.get("name", "")),
+            "Expected":     r.get("expected", ""),
+            "Actual":       r.get("actual", ""),
+            "Status":       r.get("status", ""),
+            "Duration (s)": r.get("duration_sec", ""),
+            "Timestamp":    r.get("timestamp", ""),
+            "Screenshot":   r.get("screenshot", ""),
+        })
+    if not out:
+        out.append({k: ("No results — run the suite first" if k == "Scenario" else "")
+                    for k in ["Test #", "Test ID", "Module", "Type", "Scenario",
+                               "Expected", "Actual", "Status", "Duration (s)",
+                               "Timestamp", "Screenshot"]})
+    return out
+
+
+def _df(results, **kw):
+    return pd.DataFrame(_rows(results, **kw))
+
+
+# ── Sheet 01: Executive Summary ───────────────────────────────────────────────
+
+def s01_summary(results: list[dict], load: list[dict]) -> pd.DataFrame:
+    total   = len(results)
+    passed  = sum(1 for r in results if r["status"] == "Passed")
+    failed  = sum(1 for r in results if r["status"] == "Failed")
+    exc     = sum(1 for r in results if r["status"] == "Exception")
     skipped = sum(1 for r in results if r["status"] == "Skipped")
-    coverage_pct = round(100 * passed / total, 1) if total else 0.0
+    rate    = f"{round(100*passed/total, 1)}%" if total else "0%"
+
+    by_type: dict[str, dict] = {}
+    for r in results:
+        t = r.get("test_type", "Selenium")
+        by_type.setdefault(t, {"p": 0, "t": 0})
+        by_type[t]["t"] += 1
+        if r["status"] == "Passed":
+            by_type[t]["p"] += 1
+
+    load_req  = sum(e.get("num_requests", 0) for e in load)
+    load_fail = sum(e.get("num_failures", 0) for e in load)
+    load_p95  = max((e.get("p95_ms", 0) for e in load), default=0)
 
     rows = [
-        ("Project Name", ad.PROJECT_NAME),
-        ("Project Type", ad.PROJECT_TYPE),
-        ("Scan Date", datetime.now().strftime("%Y-%m-%d %H:%M")),
-        ("Total Source Files (src/, .ts/.tsx/.js/.jsx)", count_project_files()),
-        ("Total Pages / Screens Discovered", len(ad.FUNCTIONALITY_MAP)),
-        ("Total Functionalities Mapped", len(ad.FUNCTIONALITY_MAP) + len(ad.AUTH_FEATURES)),
-        ("Total Selenium/API Tests Executed", total),
-        ("Passed", passed),
-        ("Failed", failed),
-        ("Exceptions", exceptions),
-        ("Skipped", skipped),
-        ("Test Pass Rate", f"{coverage_pct}%"),
-        ("Total Bugs/Defects Found (see Defect Report sheet)", defect_count),
-        ("Unused Files Identified", len(ad.UNUSED_FILES)),
-        ("Dead Code Instances Identified", len(ad.DEAD_CODE)),
-        ("Note", "This app is an Expo/React Native web build with no server-rendered "
-                 "multi-page routing, payment flow, RBAC, or pagination — those requested "
-                 "categories are marked Not Applicable in the Functional Coverage sheet "
-                 "with the evidence for that determination, rather than being scored."),
+        ("Report Generated",    datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        ("Project",             ad.PROJECT_NAME),
+        ("Project Type",        ad.PROJECT_TYPE),
+        ("Source Files (src/)", _count_src_files()),
+        ("Screens / Pages",     len(ad.FUNCTIONALITY_MAP)),
+        ("─── TEST RESULTS ───", ""),
+        ("Total Tests Executed", total),
+        ("Passed",              passed),
+        ("Failed",              failed),
+        ("Exceptions",          exc),
+        ("Skipped",             skipped),
+        ("Overall Pass Rate",   rate),
+        ("─── BY TEST TYPE ───", ""),
+    ]
+    for ttype in sorted(by_type):
+        d = by_type[ttype]
+        rows.append((f"  {ttype}",
+                     f"{d['p']}/{d['t']} ({round(100*d['p']/max(d['t'],1),1)}%)"))
+    rows += [
+        ("─── LOAD TEST ───",    ""),
+        ("Total HTTP Requests",  load_req),
+        ("Failed Requests",      load_fail),
+        ("Failure Rate",         f"{round(100*load_fail/max(load_req,1),2)}%"),
+        ("Peak p95 (ms)",        load_p95),
+        ("─── CODE AUDIT ───",   ""),
+        ("Confirmed Defects",    len(ad.LIVE_CONFIRMED_DEFECTS)),
+        ("Unused Files",         len(ad.UNUSED_FILES)),
+        ("Dead Code Instances",  len(ad.DEAD_CODE)),
+        ("Security Findings",    len(ad.SECURITY_OBSERVATIONS)),
+        ("─── REPORTS ───",      ""),
+        ("Real-time Workbook",   str(config.ROOT_DIR / "REALTIME_TEST_PROGRESS.xlsx")),
+        ("Master Report",        str(OUTPUT)),
     ]
     return pd.DataFrame(rows, columns=["Metric", "Value"])
 
 
-def build_functional_test_results(results):
+# ── Sheets 02-10: Test result tables ─────────────────────────────────────────
+
+def s02_selenium(results):
+    rows = _rows(results)
+    # keep only Selenium-type tests (exclude pure unit/API/appium)
+    keep = [r for r in results
+            if r.get("test_type", "Selenium") == "Selenium"
+            and r.get("module") not in ("Unit", "Appium")]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s03_unit(results):
+    keep = [r for r in results if r.get("test_type") == "Unit"
+            or r.get("module") == "Unit"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s04_api(results):
+    keep = [r for r in results if r.get("test_type") == "API"
+            or r.get("module") == "API Validation"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s05_validation(results):
+    keep = [r for r in results if r.get("module") == "Validation"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s06_performance(results):
+    keep = [r for r in results if r.get("module") == "Performance"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s07_load(load: list[dict]) -> pd.DataFrame:
+    if not load:
+        return pd.DataFrame([{
+            "Endpoint": "No load results — run: python -m locust -f locust_load.py --headless",
+            "Method": "", "Requests": 0, "Failures": 0, "Fail %": 0,
+            "Avg ms": 0, "Min ms": 0, "Max ms": 0,
+            "p50 ms": 0, "p90 ms": 0, "p95 ms": 0, "p99 ms": 0, "RPS": 0,
+        }])
+    return pd.DataFrame([{
+        "Endpoint":  e.get("name", ""),
+        "Method":    e.get("method", ""),
+        "Requests":  e.get("num_requests", 0),
+        "Failures":  e.get("num_failures", 0),
+        "Fail %":    e.get("failure_rate_pct", 0),
+        "Avg ms":    e.get("avg_response_ms", 0),
+        "Min ms":    e.get("min_response_ms", 0),
+        "Max ms":    e.get("max_response_ms", 0),
+        "p50 ms":    e.get("p50_ms", 0),
+        "p90 ms":    e.get("p90_ms", 0),
+        "p95 ms":    e.get("p95_ms", 0),
+        "p99 ms":    e.get("p99_ms", 0),
+        "RPS":       e.get("rps", 0),
+    } for e in load])
+
+
+def s08_vulnerability(results):
+    keep = [r for r in results if r.get("module") in ("Vulnerability", "Security Scan")
+            or r.get("test_type") == "Security Scan"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s09_appium(results):
+    keep = [r for r in results if r.get("test_type") == "Appium"
+            or r.get("module") == "Appium"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+def s10_e2e(results):
+    keep = [r for r in results if r.get("module") == "E2E Flow"]
+    return pd.DataFrame(_rows(keep) if keep else _rows([], type_filter="__none__"))
+
+
+# ── Sheet 11: Coverage ────────────────────────────────────────────────────────
+
+def s11_coverage(results: list[dict]) -> pd.DataFrame:
+    tested = " | ".join(r.get("scenario", "") for r in results).lower()
     rows = []
-    for i, r in enumerate(results, start=1):
-        rows.append({
-            "Test ID": f"TC-{i:03d}",
-            "Module": r["module"],
-            "Scenario": r["scenario"],
-            "Expected Result": r["expected"],
-            "Actual Result": r["actual"],
-            "Status": r["status"],
-            "Execution Time (s)": r["duration_sec"],
-            "Screenshot Path": r["screenshot"],
-        })
-    if not rows:
-        rows.append({
-            "Test ID": "N/A", "Module": "N/A", "Scenario": "No test run recorded — run `pytest` before generate_report.py",
-            "Expected Result": "", "Actual Result": "", "Status": "N/A", "Execution Time (s)": "", "Screenshot Path": "",
-        })
-    return pd.DataFrame(rows)
-
-
-COVERAGE_BY_MODULE = {
-    "WelcomeScreen": "Fully Covered",
-    "Feature1/2/3Screen": "Partially Covered",
-    "LoginScreen": "Fully Covered",
-    "RegisterScreen": "Fully Covered",
-    "ForgotPasswordScreen": "Fully Covered",
-}
-
-
-def build_functional_coverage(results):
-    tested_scenarios = " | ".join(r["scenario"] for r in results).lower()
-    rows = []
-    for page, functionality, src in ad.FUNCTIONALITY_MAP:
-        key = page.split(" ")[0].split("/")[0]
-        if key.lower().replace("screen", "") in tested_scenarios or page in COVERAGE_BY_MODULE:
-            status = COVERAGE_BY_MODULE.get(page, "Partially Covered")
-            remarks = "Exercised by Selenium navigation/auth/form-validation suites"
-        else:
-            status = "Not Covered"
-            remarks = "Requires an authenticated test session (VOXIRA_TEST_EMAIL/PASSWORD) which was not provided — see test_auth.py scope note"
-        rows.append({"Page": page, "Functionality": functionality, "Coverage Status": status, "Remarks": f"{remarks} ({src})"})
+    for page, func, src in ad.FUNCTIONALITY_MAP:
+        key = page.split(" ")[0].split("/")[0].lower().replace("screen", "")
+        cov = "Covered" if key in tested else "Not Covered"
+        note = ("Exercised by test suite" if cov == "Covered"
+                else "Requires authenticated session or Appium device")
+        rows.append({"Screen": page, "Functionality": func,
+                     "Coverage Status": cov, "Source": src, "Notes": note})
     for name, reason in ad.NOT_APPLICABLE:
-        rows.append({"Page": "N/A", "Functionality": name, "Coverage Status": "Not Applicable", "Remarks": reason})
+        rows.append({"Screen": "N/A", "Functionality": name,
+                     "Coverage Status": "Not Applicable", "Source": "", "Notes": reason})
     return pd.DataFrame(rows)
 
 
-# Live test names already folded into a hand-curated LIVE_CONFIRMED_DEFECTS entry above,
-# with fuller root-cause detail than the raw test failure message — don't double-list them.
-_CURATED_TEST_NAME_SUBSTRINGS = (
-    "test_no_horizontal_overflow_on_welcome_screen",
-    "test_supabase_edge_function_deployed",
-)
-# Historical: test_forgot_password_malformed_email_validation used to fail here 2 of 3 runs
-# with a TimeoutException. Root-caused (not a flake): LoginScreen and ForgotPasswordScreen
-# share the exact placeholder "you@email.com", React Navigation keeps the previous screen
-# mounted-but-hidden (0x0) rather than unmounting it on push, and the old locator always
-# resolved to the first DOM match regardless of visibility — i.e. the hidden Login input.
-# Fixed in pages/base_page.py (input_by_placeholder/input_by_type now scan all matches for
-# the first *visible* one) and reverified passing 3/3 in isolation. Kept as an empty dict
-# (rather than deleted) so the mechanism is documented for the next genuinely flaky test.
-_KNOWN_TEST_INFRA_FLAKES = {}
+# ── Sheet 12: Defects ─────────────────────────────────────────────────────────
 
-
-def build_defect_report(results):
+def s12_defects(results: list[dict]) -> pd.DataFrame:
     rows = []
-    bug_n = 1
+    n = 1
     for name, module, desc, sev in ad.LIVE_CONFIRMED_DEFECTS:
-        rows.append({
-            "Bug ID": f"BUG-{bug_n:03d}", "Module": module.split(",")[0].split("(")[0].strip(),
-            "Description": name, "Steps to Reproduce": desc,
-            "Severity": sev, "Evidence": "Live Selenium/API execution — see reports/logs and reports/screenshots", "Status": "Open",
-        })
-        bug_n += 1
+        rows.append({"Bug ID": f"BUG-{n:03d}", "Module": module.split(",")[0].strip(),
+                     "Summary": name, "Evidence": desc[:300],
+                     "Severity": sev, "Type": "Live Defect", "Status": "Open"})
+        n += 1
     for r in results:
         if r["status"] not in ("Failed", "Exception"):
             continue
-        if any(s in r["name"] for s in _CURATED_TEST_NAME_SUBSTRINGS):
-            continue  # already captured above with more detail
-        if r["name"] in _KNOWN_TEST_INFRA_FLAKES:
-            rows.append({
-                "Bug ID": f"BUG-{bug_n:03d}", "Module": "Test Infrastructure (selenium_model)",
-                "Description": f"[Test flake, not a confirmed product defect] {r['scenario']}",
-                "Steps to Reproduce": _KNOWN_TEST_INFRA_FLAKES[r["name"]],
-                "Severity": "Low", "Evidence": r["screenshot"] or "See reports/logs", "Status": "Needs Investigation",
-            })
-            bug_n += 1
-            continue
-        rows.append({
-            "Bug ID": f"BUG-{bug_n:03d}",
-            "Module": r["module"],
-            "Description": r["scenario"],
-            "Steps to Reproduce": f"Run selenium_model/tests via pytest; see test node {r['test_id']}",
-            "Severity": "High" if r["status"] == "Exception" else "Medium",
-            "Evidence": r["screenshot"] or "See reports/logs",
-            "Status": "Open",
-        })
-        bug_n += 1
-    # Static defects from code audit (latent bugs, not live-test failures)
-    static_defects = [
-        ("Broken barrel export: SubscriptionScreen", "src/screens/settings/index", "Barrel file exports a component from a file that does not exist", "High"),
-        ("Broken barrel export: LeaderboardScreen", "src/screens/profile/index", "Barrel file exports a component from a file that does not exist", "High"),
-        ("Broken barrel export: AnalysisResultScreen", "src/screens/speech/index", "Barrel file exports a component from a file that does not exist", "High"),
-        ("Unreachable navigation target", "src/screens/auth/SplashScreen.tsx:100", "navigation.replace('MainTabs') targets a screen name not registered in OnboardingStack — would throw if reached", "Medium"),
-        ("HelpScreen unreachable", "src/screens/settings/HelpScreen.tsx", "Fully built screen never registered in RootNavigator.tsx", "Medium"),
+        rows.append({"Bug ID": f"BUG-{n:03d}", "Module": r.get("module", ""),
+                     "Summary": r.get("scenario", ""),
+                     "Evidence": f"pytest node: {r.get('test_id', '')}",
+                     "Severity": "High" if r["status"] == "Exception" else "Medium",
+                     "Type": "Test Failure", "Status": "Open"})
+        n += 1
+    for summary, module, steps, sev in [
+        ("Broken barrel: SubscriptionScreen", "src/screens/settings/index",
+         "Exports non-existent file", "High"),
+        ("Broken barrel: LeaderboardScreen", "src/screens/profile/index",
+         "Exports non-existent file", "High"),
+        ("HelpScreen unreachable", "src/screens/settings/HelpScreen.tsx",
+         "Built but not registered in navigator", "Medium"),
+    ]:
+        rows.append({"Bug ID": f"BUG-{n:03d}", "Module": module,
+                     "Summary": summary, "Evidence": steps,
+                     "Severity": sev, "Type": "Static Analysis", "Status": "Open"})
+        n += 1
+    if not rows:
+        rows.append({k: "" for k in ["Bug ID", "Module", "Summary",
+                                      "Evidence", "Severity", "Type", "Status"]})
+    return pd.DataFrame(rows)
+
+
+# ── Sheets 13-20 ──────────────────────────────────────────────────────────────
+
+def s13_security():
+    return pd.DataFrame([{"Area": a, "Observation": o, "Severity": s, "Recommendation": r}
+                         for a, o, s, r in ad.SECURITY_OBSERVATIONS])
+
+
+def s14_accessibility(results):
+    rows = [{"Screen": "WelcomeScreen", "Issue": r.get("scenario", ""),
+             "Severity": "Medium" if r["status"] != "Passed" else "Info",
+             "Evidence": r.get("actual", ""),
+             "Recommendation": "Add accessibilityLabel/accessibilityRole props"}
+            for r in results if r.get("module") == "Accessibility"]
+    rows.append({"Screen": "App-wide",
+                 "Issue": "Zero aria-* attrs, zero semantic <button> tags — all divs with tabindex=0",
+                 "Severity": "High",
+                 "Evidence": "DOM probe confirmed",
+                 "Recommendation": "Add accessibilityLabel/accessibilityRole to all Pressables"})
+    return pd.DataFrame(rows)
+
+
+def s15_unused():
+    return pd.DataFrame([{"File": f, "Path": p, "Reason": r, "Severity": s}
+                         for f, p, r, s in ad.UNUSED_FILES])
+
+
+def s16_dead_code():
+    return pd.DataFrame([{"File": f, "Symbol": sym, "Line": ln, "Recommendation": rec}
+                         for f, sym, ln, rec in ad.DEAD_CODE])
+
+
+def s17_code_health():
+    rows = [{"Category": "Duplicate/Inconsistent", "Finding": f"{n}: {d}",
+             "Severity": s, "Recommendation": "See Recommendations sheet"}
+            for n, d, s in ad.DUPLICATE_OR_INCONSISTENT]
+    rows.append({"Category": "Large File", "Finding": ad.LARGE_FILES_NOTE,
+                 "Severity": "Medium", "Recommendation": "Split RootNavigator.tsx"})
+    rows.append({"Category": "Dead Code", "Finding": f"{len(ad.DEAD_CODE)} instances",
+                 "Severity": "Medium", "Recommendation": "See Dead Code sheet"})
+    rows.append({"Category": "Unused Files", "Finding": f"{len(ad.UNUSED_FILES)} files",
+                 "Severity": "Medium", "Recommendation": "See Unused Files sheet"})
+    return pd.DataFrame(rows)
+
+
+def s18_recommendations():
+    return pd.DataFrame([{"Priority": p, "Recommendation": r, "Business Impact": b}
+                         for p, r, b in ad.RECOMMENDATIONS])
+
+
+def s19_navigation():
+    data = [
+        ("OnboardingStack", "Splash→Welcome→Feature1/2/3→GoalSelection→ExperienceLevel→Permissions→Register→Login→ForgotPassword", "Active — fully covered"),
+        ("HomeStack", "Dashboard→DailyGoal→Notifications→Search→TopicDetail + Search deep-links", "Active — requires auth"),
+        ("SpeechStack", "SpeechHome→Record→Analyzing→9 result screens→History→Dashboard→DailyChallenge→FillerWords→Pronunciation→PaceAndClarity + extras", "Active — requires auth"),
+        ("ProfileStack", "Profile→EditProfile→ProgressOverview→Achievements→Settings→NotificationSettings→PrivacyPolicy→DeleteAccount→FAQ→Tutorial→WhatsNew", "Active — requires auth"),
+        ("AchievementsTabStack", "AchievementsMain→Rewards→StreakCalendar→LevelUp", "Active — requires auth"),
+        ("DailyGoalsStack", "DailyGoalMain→TopicDetail", "Active — requires auth"),
+        ("GamificationStack", "Rewards→StreakCalendar→LevelUp", "DEAD — defined but never used in Tab.Navigator"),
+        ("SupportStack", "FAQ→Tutorial→WhatsNew", "DEAD — defined but never used"),
     ]
-    for desc, module, steps, sev in static_defects:
+    return pd.DataFrame([{"Stack": s, "Screens": sc, "Status": st} for s, sc, st in data])
+
+
+def s20_exec_summary(results: list[dict]) -> pd.DataFrame:
+    by_mod: dict[str, dict] = {}
+    for r in results:
+        m = r.get("module", "General")
+        by_mod.setdefault(m, {"Passed": 0, "Failed": 0, "Exception": 0, "Skipped": 0, "Total": 0})
+        by_mod[m]["Total"] += 1
+        st = r.get("status", "Unknown")
+        by_mod[m][st] = by_mod[m].get(st, 0) + 1
+    rows = []
+    for mod in sorted(by_mod):
+        d = by_mod[mod]
+        t = d["Total"]
+        p = d.get("Passed", 0)
         rows.append({
-            "Bug ID": f"BUG-{bug_n:03d}", "Module": module, "Description": desc,
-            "Steps to Reproduce": steps, "Severity": sev, "Evidence": "Static source audit", "Status": "Open",
+            "Module":       mod,
+            "Total":        t,
+            "Passed":       p,
+            "Failed":       d.get("Failed", 0),
+            "Exception":    d.get("Exception", 0),
+            "Skipped":      d.get("Skipped", 0),
+            "Pass Rate %":  f"{round(100*p/t, 1)}%" if t else "0%",
         })
-        bug_n += 1
     if not rows:
-        rows.append({"Bug ID": "N/A", "Module": "N/A", "Description": "No defects found", "Steps to Reproduce": "", "Severity": "", "Evidence": "", "Status": ""})
+        rows.append({"Module": "No results", "Total": 0, "Passed": 0,
+                     "Failed": 0, "Exception": 0, "Skipped": 0, "Pass Rate %": "0%"})
     return pd.DataFrame(rows)
 
 
-def build_unused_files():
-    return pd.DataFrame(ad.UNUSED_FILES, columns=["File Name", "Path", "Reason", "Severity"])
-
-
-def build_dead_code():
-    return pd.DataFrame(ad.DEAD_CODE, columns=["File", "Function or Class", "Line Number", "Recommendation"])
-
-
-def build_broken_links(results):
-    rows = []
-    for r in results:
-        if r["module"] == "Broken Links":
-            m = re.search(r"HTTP (\d+)", r["actual"])
-            status_code = m.group(1) if m else "ERROR"
-            url = r["scenario"].split(": ", 1)[-1]
-            rows.append({
-                "URL": url, "Source Page": "Application source (API base URLs)",
-                "Status Code": status_code, "Result": r["status"],
-            })
-    if not rows:
-        rows.append({"URL": "N/A", "Source Page": "N/A", "Status Code": "N/A",
-                      "Result": "No external URLs discovered outside localhost/known-safe domains in src/ or supabase/functions/"})
-    return pd.DataFrame(rows)
-
-
-def build_accessibility_findings(results):
-    rows = []
-    for r in results:
-        if r["module"] == "Accessibility":
-            rows.append({
-                "Page": "WelcomeScreen (representative — same pattern app-wide)",
-                "Issue": r["scenario"],
-                "Severity": "Medium" if r["status"] != "Passed" else "Info",
-                "Recommendation": r["actual"],
-            })
-    rows.append({
-        "Page": "App-wide", "Issue": "Zero aria-* attributes, zero semantic <button>/<a> tags, zero data-testid hooks — every interactive element is a bare <div tabindex=\"0\"> (react-native-web Pressable/TouchableOpacity output)",
-        "Severity": "High", "Recommendation": "Add accessibilityLabel/accessibilityRole props in RN source (they map to aria-* on web) and testID props (map to a stable automation hook) to every Pressable/TouchableOpacity/TextInput.",
-    })
-    return pd.DataFrame(rows)
-
-
-def build_api_validation(results):
-    rows = []
-    for r in results:
-        if r["module"] == "API Validation":
-            m = re.match(r"(\w+) (\S+) -> HTTP (\d+)", r["actual"])
-            method, endpoint, actual_status = (m.group(1), m.group(2), m.group(3)) if m else ("?", r["scenario"], "?")
-            rows.append({
-                "Endpoint": endpoint, "Method": method,
-                "Expected Status": r["expected"], "Actual Status": actual_status, "Result": r["status"],
-            })
-    if not rows:
-        rows.append({"Endpoint": "N/A", "Method": "N/A", "Expected Status": "N/A", "Actual Status": "N/A",
-                      "Result": "No API validation tests executed (EXPO_PUBLIC_SUPABASE_URL missing or pytest not run)"})
-    return pd.DataFrame(rows)
-
-
-def build_ui_validation(results):
-    rows = []
-    for r in results:
-        if r["module"] == "UI Validation":
-            rows.append({"Page": "WelcomeScreen", "Issue": r["scenario"],
-                          "Severity": "Low" if r["status"] == "Passed" else "Medium", "Evidence": r["actual"]})
-    if not rows:
-        rows.append({"Page": "N/A", "Issue": "No UI validation tests executed", "Severity": "N/A", "Evidence": "N/A"})
-    return pd.DataFrame(rows)
-
-
-def build_performance(results):
-    rows = []
-    for r in results:
-        if r["module"] == "Performance":
-            rows.append({"Page": "WelcomeScreen", "Load Time": f"{r['duration_sec']}s (test duration)",
-                          "Observation": r["actual"],
-                          "Recommendation": "Dev-mode Metro bundler is unminified/uncached; re-measure against a production `expo export --platform web` build for real user-facing numbers."})
-    if not rows:
-        rows.append({"Page": "N/A", "Load Time": "N/A", "Observation": "No performance tests executed", "Recommendation": "N/A"})
-    return pd.DataFrame(rows)
-
-
-def build_user_journeys(results):
-    journeys = {
-        "New user onboarding → Register (Skip path)": ["test_onboarding_get_started_reaches_feature_carousel", "test_onboarding_skip_reaches_register"],
-        "Returning user → Login → invalid credentials handled": ["test_login_invalid_credentials_shows_error"],
-        "User explores auth navigation (Welcome→Login→Register→ForgotPassword→back)": [
-            "test_welcome_to_login_navigation", "test_login_to_register_navigation",
-            "test_login_to_forgot_password_navigation", "test_forgot_password_return_to_login",
-        ],
-    }
-    by_name = {r["name"]: r for r in results}
-    rows = []
-    for journey, steps in journeys.items():
-        step_results = [by_name.get(s) for s in steps]
-        if not any(step_results):
-            continue
-        overall = "Passed" if all(sr and sr["status"] == "Passed" for sr in step_results if sr) else "Partial/Failed"
-        evidence = "; ".join(sr["screenshot"] for sr in step_results if sr and sr["screenshot"])
-        rows.append({"Journey Name": journey, "Steps": " -> ".join(steps), "Result": overall, "Evidence": evidence or "See Functional Test Results sheet"})
-    if not rows:
-        rows.append({"Journey Name": "N/A", "Steps": "N/A", "Result": "No journeys executed — run pytest first", "Evidence": "N/A"})
-    return pd.DataFrame(rows)
-
-
-def build_security_observations():
-    return pd.DataFrame(ad.SECURITY_OBSERVATIONS, columns=["Area", "Observation", "Severity", "Recommendation"])
-
-
-def build_code_health_summary():
-    rows = []
-    for name, desc, sev in ad.DUPLICATE_OR_INCONSISTENT:
-        rows.append({"Category": "Duplicate/Inconsistent Implementation", "Finding": f"{name}: {desc}", "Severity": sev, "Recommendation": "See Recommendations sheet"})
-    rows.append({"Category": "Large File", "Finding": ad.LARGE_FILES_NOTE, "Severity": "Medium", "Recommendation": "Split RootNavigator.tsx into the already-scaffolded stack files, or delete the empty stubs."})
-    rows.append({"Category": "Dead Code Volume", "Finding": f"{len(ad.DEAD_CODE)} confirmed dead-code instances across navigation, barrels, and TODO service stubs", "Severity": "Medium", "Recommendation": "See Dead Code sheet"})
-    rows.append({"Category": "Unused Files Volume", "Finding": f"{len(ad.UNUSED_FILES)} unused/orphaned files, including 7 empty component stubs and 4 empty navigation stack stubs", "Severity": "Medium", "Recommendation": "See Unused Files sheet"})
-    return pd.DataFrame(rows)
-
-
-def build_recommendations():
-    return pd.DataFrame(ad.RECOMMENDATIONS, columns=["Priority", "Recommendation", "Business Impact"])
-
-
-def autosize(writer, sheet_name, df):
-    ws = writer.sheets[sheet_name]
-    for i, col in enumerate(df.columns):
-        try:
-            max_len = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
-        except ValueError:
-            max_len = len(str(col)) + 2
-        ws.set_column(i, i, min(max_len, 80))
-    ws.freeze_panes(1, 0)
-
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    results = load_test_results()
-    defect_df = build_defect_report(results)
+    results = load_all_results()
+    load    = load_load_results()
+    defects = s12_defects(results)
 
-    sheets = {
-        "Executive Summary": build_executive_summary(results, len(defect_df)),
-        "Functional Test Results": build_functional_test_results(results),
-        "Functional Coverage": build_functional_coverage(results),
-        "Defect Report": defect_df,
-        "Unused Files": build_unused_files(),
-        "Dead Code": build_dead_code(),
-        "Broken Links": build_broken_links(results),
-        "Accessibility Findings": build_accessibility_findings(results),
-        "API Validation Results": build_api_validation(results),
-        "UI Validation Findings": build_ui_validation(results),
-        "Performance Observations": build_performance(results),
-        "User Journey Results": build_user_journeys(results),
-        "Security Observations": build_security_observations(),
-        "Code Health Summary": build_code_health_summary(),
-        "Recommendations": build_recommendations(),
-    }
+    total  = len(results)
+    passed = sum(1 for r in results if r.get("status") == "Passed")
+    rate   = round(100 * passed / total, 1) if total else 0
 
-    with pd.ExcelWriter(OUTPUT_PATH, engine="xlsxwriter") as writer:
-        workbook = writer.book
-        header_fmt = workbook.add_format({"bold": True, "bg_color": "#1F2937", "font_color": "white", "border": 1})
-        for name, df in sheets.items():
-            df.to_excel(writer, sheet_name=name[:31], index=False, startrow=0)
-            ws = writer.sheets[name[:31]]
-            for col_num, col_name in enumerate(df.columns):
-                ws.write(0, col_num, col_name, header_fmt)
-            autosize(writer, name[:31], df)
+    print(f"[report] {total} tests loaded | {passed} passed | {rate}% pass rate")
+    print(f"[report] Writing → {OUTPUT}")
 
-    print(f"Wrote {OUTPUT_PATH} with {len(sheets)} sheets, {len(results)} live test results.")
+    sheets = [
+        ("01 Executive Summary",      s01_summary(results, load),  "1F3864", None),
+        ("02 Selenium UI Tests",       s02_selenium(results),       "2E75B6", "Status"),
+        ("03 Unit Tests",              s03_unit(results),           "375623", "Status"),
+        ("04 API Validation Tests",    s04_api(results),            "2E75B6", "Status"),
+        ("05 Form Validation Tests",   s05_validation(results),     "2E75B6", "Status"),
+        ("06 Performance Tests",       s06_performance(results),    "404040", "Status"),
+        ("07 Load Test Results",       s07_load(load),              "1F3864", None),
+        ("08 Vulnerability Tests",     s08_vulnerability(results),  "843C0C", "Status"),
+        ("09 Appium Mobile Tests",     s09_appium(results),         "375623", "Status"),
+        ("10 E2E Flow Tests",          s10_e2e(results),            "2E75B6", "Status"),
+        ("11 Functional Coverage",     s11_coverage(results),       "1F3864", "Coverage Status"),
+        ("12 Defect Report",           defects,                     "843C0C", "Severity"),
+        ("13 Security Observations",   s13_security(),              "843C0C", "Severity"),
+        ("14 Accessibility Findings",  s14_accessibility(results),  "404040", "Severity"),
+        ("15 Unused Files",            s15_unused(),                "404040", "Severity"),
+        ("16 Dead Code",               s16_dead_code(),             "404040", None),
+        ("17 Code Health",             s17_code_health(),           "404040", "Severity"),
+        ("18 Recommendations",         s18_recommendations(),       "1F3864", "Priority"),
+        ("19 Navigation Coverage",     s19_navigation(),            "1F3864", None),
+        ("20 Execution Summary",       s20_exec_summary(results),   "1F3864", None),
+    ]
+
+    # Write data with xlsxwriter first
+    with pd.ExcelWriter(str(OUTPUT), engine="xlsxwriter") as writer:
+        for tab, df, _, _ in sheets:
+            df.to_excel(writer, sheet_name=tab, index=False)
+
+    # Re-open with openpyxl to apply styling
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(str(OUTPUT))
+        with pd.ExcelWriter(str(OUTPUT), engine="openpyxl") as writer:
+            writer.book = wb
+            writer.sheets = {ws.title: ws for ws in wb.worksheets}
+            for tab, df, hdr, col in sheets:
+                df.to_excel(writer, sheet_name=tab, index=False)
+                _style(writer, tab, df, hdr_colour=hdr, row_colour_col=col)
+    except Exception as ex:
+        print(f"[report] Styling skipped ({ex}) — data is complete")
+
+    print(f"\n{'='*55}")
+    print(f"  MASTER TEST AUDIT REPORT — {total} tests | {rate}% pass")
+    print(f"  {len(defects)} defects | {len(load)} load entries")
+    print(f"  Saved → {OUTPUT}")
+    print(f"{'='*55}\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,585 @@
+name: VoxiraApp — Full Test Suite
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:          # manual trigger from GitHub Actions UI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 1: Unit Tests  (fastest — no browser, no app needed)
+  # ─────────────────────────────────────────────────────────────────
+  unit-tests:
+    name: "1 · Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: selenium_model
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create .env from secrets
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Run Unit Tests
+        run: |
+          python -m pytest tests/test_unit.py \
+            -v --tb=short \
+            --json-report --json-report-file=reports/unit_pytest.json \
+            --html=reports/html/unit_report.html --self-contained-html \
+            2>&1 | tee reports/logs/unit_run.log
+        env:
+          VOXIRA_BASE_URL: http://localhost:8081
+
+      - name: Upload Unit Test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            selenium_model/reports/html/unit_report.html
+            selenium_model/reports/logs/unit_run.log
+            selenium_model/reports/test_results.json
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 2: API Validation Tests  (hits live Supabase — no browser)
+  # ─────────────────────────────────────────────────────────────────
+  api-tests:
+    name: "2 · API Validation Tests"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    defaults:
+      run:
+        working-directory: selenium_model
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Create .env from secrets
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Run API Validation Tests
+        run: |
+          python -m pytest tests/test_api_extended.py tests/test_api_validation.py \
+            -v --tb=short \
+            --json-report --json-report-file=reports/api_pytest.json \
+            --html=reports/html/api_report.html --self-contained-html \
+            2>&1 | tee reports/logs/api_run.log
+
+      - name: Upload API artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: |
+            selenium_model/reports/html/api_report.html
+            selenium_model/reports/logs/api_run.log
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 3: Selenium UI + Validation + Performance + Vulnerability
+  # ─────────────────────────────────────────────────────────────────
+  selenium-tests:
+    name: "3 · Selenium Tests (UI/Nav/Auth/Validation/Perf/Vuln)"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: selenium_model
+        run: pip install -r requirements.txt
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Install Expo CLI
+        run: npm install -g @expo/cli
+
+      - name: Build Expo web app
+        run: npx expo export --platform web --output-dir dist-web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          CI: "true"
+
+      - name: Serve built web app
+        run: |
+          npm install -g serve
+          serve -s dist-web -l 8081 &
+          sleep 5
+          curl -s http://localhost:8081 | head -5
+
+      - name: Create .env from secrets
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run Selenium test suite
+        working-directory: selenium_model
+        run: |
+          python -m pytest \
+            tests/test_smoke.py \
+            tests/test_navigation_extended.py \
+            tests/test_auth_extended.py \
+            tests/test_validation.py \
+            tests/test_ui_extended.py \
+            tests/test_accessibility_and_ui.py \
+            tests/test_performance.py \
+            tests/test_broken_links.py \
+            tests/test_vulnerability.py \
+            tests/test_navigation.py \
+            tests/test_auth.py \
+            -v --tb=short \
+            --json-report --json-report-file=reports/selenium_pytest.json \
+            --html=reports/html/selenium_report.html --self-contained-html \
+            2>&1 | tee reports/logs/selenium_run.log
+        env:
+          VOXIRA_BASE_URL: http://localhost:8081
+          VOXIRA_HEADLESS: "1"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Upload Selenium artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-results
+          path: |
+            selenium_model/reports/html/selenium_report.html
+            selenium_model/reports/logs/selenium_run.log
+            selenium_model/reports/screenshots/
+            selenium_model/reports/test_results.json
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 4: E2E Flow Tests
+  # ─────────────────────────────────────────────────────────────────
+  e2e-tests:
+    name: "4 · E2E Flow Tests"
+    runs-on: ubuntu-latest
+    needs: selenium-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: selenium_model
+        run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build and serve app
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+          npx expo export --platform web --output-dir dist-web
+          npm install -g serve
+          serve -s dist-web -l 8081 &
+          sleep 5
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          CI: "true"
+
+      - uses: browser-actions/setup-chrome@v1
+
+      - name: Run E2E Flow Tests
+        working-directory: selenium_model
+        run: |
+          python -m pytest tests/test_e2e_flows.py \
+            -v --tb=short \
+            --json-report --json-report-file=reports/e2e_pytest.json \
+            --html=reports/html/e2e_report.html --self-contained-html \
+            2>&1 | tee reports/logs/e2e_run.log
+        env:
+          VOXIRA_BASE_URL: http://localhost:8081
+          VOXIRA_HEADLESS: "1"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            selenium_model/reports/html/e2e_report.html
+            selenium_model/reports/logs/e2e_run.log
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 5: Load Tests  (Locust headless)
+  # ─────────────────────────────────────────────────────────────────
+  load-tests:
+    name: "5 · Load Tests (Locust)"
+    runs-on: ubuntu-latest
+    needs: api-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - name: Install dependencies
+        working-directory: selenium_model
+        run: pip install -r requirements.txt
+
+      - name: Create .env
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Run Locust load test (headless 30s)
+        working-directory: selenium_model
+        run: |
+          SUPABASE_HOST="${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}"
+          HOST="${SUPABASE_HOST:-http://localhost:8081}"
+          python -m locust \
+            -f locust_load.py \
+            --headless \
+            --users 20 \
+            --spawn-rate 5 \
+            --run-time 30s \
+            --host "$HOST" \
+            --html reports/html/locust_report.html \
+            --csv reports/locust \
+            2>&1 | tee reports/logs/locust_run.log || true
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Upload Load test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: |
+            selenium_model/reports/html/locust_report.html
+            selenium_model/reports/locust_stats.csv
+            selenium_model/reports/locust_failures.csv
+            selenium_model/reports/load_results.json
+            selenium_model/reports/logs/locust_run.log
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 6: Appium Tests  (skipped — no device in CI)
+  # ─────────────────────────────────────────────────────────────────
+  appium-tests:
+    name: "6 · Appium Mobile Tests (skipped in CI — no device)"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - name: Install dependencies
+        working-directory: selenium_model
+        run: pip install -r requirements.txt
+
+      - name: Run Appium tests (graceful skip)
+        working-directory: selenium_model
+        run: |
+          python -m pytest tests/test_appium.py \
+            -v --tb=short \
+            --json-report --json-report-file=reports/appium_pytest.json \
+            --html=reports/html/appium_report.html --self-contained-html \
+            2>&1 | tee reports/logs/appium_run.log || true
+        env:
+          APPIUM_SERVER_URL: http://localhost:4723
+          VOXIRA_HEADLESS: "1"
+
+      - name: Upload Appium artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-test-results
+          path: |
+            selenium_model/reports/html/appium_report.html
+            selenium_model/reports/logs/appium_run.log
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 7: Generate Master Excel Report + Upload as artifact
+  # ─────────────────────────────────────────────────────────────────
+  generate-report:
+    name: "7 · Generate Master Excel Report"
+    runs-on: ubuntu-latest
+    needs:
+      - unit-tests
+      - api-tests
+      - selenium-tests
+      - e2e-tests
+      - load-tests
+      - appium-tests
+    if: always()   # always run even if some jobs failed
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: selenium_model/requirements.txt
+
+      - name: Install dependencies
+        working-directory: selenium_model
+        run: pip install -r requirements.txt
+
+      - name: Create .env
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Download all test result artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ci-artifacts
+
+      - name: Merge result JSONs into reports/
+        working-directory: selenium_model
+        run: |
+          mkdir -p reports
+          # Merge all test_results.json files from all jobs
+          python - <<'EOF'
+          import json, pathlib, shutil
+
+          base = pathlib.Path("reports")
+          base.mkdir(exist_ok=True)
+          artifact_root = pathlib.Path("../ci-artifacts")
+
+          combined = {}
+          for json_file in artifact_root.rglob("test_results.json"):
+              try:
+                  data = json.loads(json_file.read_text())
+                  for r in data:
+                      combined[r["test_id"]] = r
+              except Exception as e:
+                  print(f"skip {json_file}: {e}")
+
+          if combined:
+              out = list(combined.values())
+              (base / "test_results.json").write_text(json.dumps(out, indent=2))
+              print(f"Merged {len(out)} test results")
+          else:
+              print("No result JSONs found")
+
+          # Copy load_results.json if present
+          for f in artifact_root.rglob("load_results.json"):
+              shutil.copy(f, base / "load_results.json")
+              print(f"Copied {f}")
+              break
+          EOF
+
+      - name: Generate Master Excel Report
+        working-directory: selenium_model
+        run: python audit/generate_report.py
+
+      - name: Rename report with run number
+        run: |
+          DATE=$(date +%Y%m%d)
+          cp selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx \
+             "selenium_model/MASTER_TEST_AUDIT_REPORT_run${{ github.run_number }}_${DATE}.xlsx"
+
+      - name: Upload Master Excel Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: "MASTER-TEST-REPORT-run${{ github.run_number }}"
+          path: selenium_model/MASTER_TEST_AUDIT_REPORT_run*.xlsx
+          retention-days: 90
+
+      - name: Upload all HTML reports bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: "ALL-HTML-REPORTS-run${{ github.run_number }}"
+          path: selenium_model/reports/html/
+          retention-days: 30
+
+      - name: Print summary to Actions log
+        working-directory: selenium_model
+        run: |
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+
+          rf = Path("reports/test_results.json")
+          if not rf.exists():
+              print("No test_results.json found")
+              exit(0)
+
+          data = json.loads(rf.read_text())
+          total   = len(data)
+          passed  = sum(1 for r in data if r.get("status") == "Passed")
+          failed  = sum(1 for r in data if r.get("status") == "Failed")
+          exc     = sum(1 for r in data if r.get("status") == "Exception")
+          skipped = sum(1 for r in data if r.get("status") == "Skipped")
+          rate    = round(100 * passed / total, 1) if total else 0
+
+          by_type = {}
+          for r in data:
+              t = r.get("test_type", "Selenium")
+              by_type.setdefault(t, {"p": 0, "t": 0})
+              by_type[t]["t"] += 1
+              if r.get("status") == "Passed":
+                  by_type[t]["p"] += 1
+
+          print()
+          print("=" * 60)
+          print("  VOXIRAAPP TEST SUITE — COMPLETE RESULTS")
+          print("=" * 60)
+          print(f"  Total Tests : {total}")
+          print(f"  Passed      : {passed}")
+          print(f"  Failed      : {failed}")
+          print(f"  Exceptions  : {exc}")
+          print(f"  Skipped     : {skipped}")
+          print(f"  Pass Rate   : {rate}%")
+          print()
+          print("  By Test Type:")
+          for t, d in sorted(by_type.items()):
+              r = round(100 * d["p"] / d["t"], 1) if d["t"] else 0
+              print(f"    {t:20s}: {d['p']}/{d['t']} ({r}%)")
+          print("=" * 60)
+          EOF
+
+      - name: Write GitHub Job Summary
+        working-directory: selenium_model
+        run: |
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+
+          rf = Path("reports/test_results.json")
+          if not rf.exists():
+              exit(0)
+
+          data   = json.loads(rf.read_text())
+          total  = len(data)
+          passed = sum(1 for r in data if r.get("status") == "Passed")
+          failed = sum(1 for r in data if r.get("status") in ("Failed", "Exception"))
+          skip   = sum(1 for r in data if r.get("status") == "Skipped")
+          rate   = round(100 * passed / total, 1) if total else 0
+
+          by_module = {}
+          for r in data:
+              m = r.get("module", "General")
+              by_module.setdefault(m, {"p": 0, "t": 0})
+              by_module[m]["t"] += 1
+              if r.get("status") == "Passed":
+                  by_module[m]["p"] += 1
+
+          icon = "✅" if failed == 0 else "❌"
+
+          lines = [
+              f"## {icon} VoxiraApp Test Suite — Run #${{ github.run_number }}",
+              "",
+              f"| Metric | Value |",
+              f"|--------|-------|",
+              f"| Total Tests | **{total}** |",
+              f"| ✅ Passed | **{passed}** |",
+              f"| ❌ Failed/Exception | **{failed}** |",
+              f"| ⏭ Skipped | **{skip}** |",
+              f"| Pass Rate | **{rate}%** |",
+              "",
+              "### Results by Module",
+              "",
+              "| Module | Passed | Total | Pass Rate |",
+              "|--------|--------|-------|-----------|",
+          ]
+          for m, d in sorted(by_module.items()):
+              r = round(100 * d["p"] / d["t"], 1) if d["t"] else 0
+              ico = "✅" if d["p"] == d["t"] else "⚠️"
+              lines.append(f"| {ico} {m} | {d['p']} | {d['t']} | {r}% |")
+
+          lines += [
+              "",
+              "### 📊 Excel Report",
+              "Download the **MASTER-TEST-REPORT** artifact above for the full 20-sheet analysis.",
+              "",
+              "### Test Types Covered",
+              "- 🌐 Selenium UI (navigation, auth, performance, accessibility, vulnerability)",
+              "- 🔬 Unit Tests (zod schema, store shapes, source structure)",
+              "- 🔌 API Validation (Supabase REST/Auth/EdgeFn, RLS enforcement)",
+              "- ✅ Form Validation (50 boundary/edge-case tests)",
+              "- ⚡ Load Tests (Locust — concurrent user simulation)",
+              "- 🔒 Vulnerability (XSS, SQLi, secrets scan, auth bypass)",
+              "- 📱 Appium Mobile (Android/iOS — skipped without device)",
+              "- 🔄 E2E Flows (complete user journeys)",
+          ]
+
+          import os
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+          with open(summary_path, "a") as f:
+              f.write("\n".join(lines))
+          print("GitHub summary written")
+          EOF

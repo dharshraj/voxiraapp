@@ -44,3 +44,15 @@ yarn-error.*
 
 .vercel
 .env*
+
+# ── Test framework generated files ───────────────────────────────
+selenium_model/reports/logs/console_*.log
+selenium_model/reports/screenshots/passed/
+selenium_model/reports/screenshots/failed/
+selenium_model/reports/screenshots/exceptions/
+selenium_model/reports/html/execution_report.html
+selenium_model/REALTIME_TEST_PROGRESS.xlsx
+selenium_model/reports/test_results.json
+selenium_model/reports/locust*.csv
+selenium_model/reports/load_results.json
+dist-web/
