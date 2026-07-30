@@ -100,47 +100,47 @@ def _count_src_files() -> int:
 
 # ── Styling ───────────────────────────────────────────────────────────────────
 
-def _style(writer, sheet_name: str, df: pd.DataFrame,
-           hdr_colour: str = "1F3864",
-           row_colour_col: str | None = None) -> None:
+def _style_ws(ws, df: pd.DataFrame,
+              hdr_colour: str = "1F3864",
+              row_colour_col: str | None = None) -> None:
+    """Apply styling directly to an openpyxl Worksheet object."""
     try:
         from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
         from openpyxl.utils import get_column_letter
     except ImportError:
         return
 
-    ws = writer.sheets[sheet_name]
     thin = Border(
         left=Side(style="thin"), right=Side(style="thin"),
         top=Side(style="thin"), bottom=Side(style="thin"),
     )
     STATUS_FILL = {
-        "Passed":    PatternFill("solid", fgColor=C["pass"]),
-        "Failed":    PatternFill("solid", fgColor=C["fail"]),
-        "Exception": PatternFill("solid", fgColor=C["exc"]),
-        "Skipped":   PatternFill("solid", fgColor=C["skip"]),
-        "Open":      PatternFill("solid", fgColor=C["fail"]),
-        "High":      PatternFill("solid", fgColor=C["fail"]),
-        "Medium":    PatternFill("solid", fgColor=C["warn"]),
-        "Low":       PatternFill("solid", fgColor=C["info"]),
-        "Covered":   PatternFill("solid", fgColor=C["pass"]),
-        "Not Covered": PatternFill("solid", fgColor=C["warn"]),
+        "Passed":       PatternFill("solid", fgColor=C["pass"]),
+        "Failed":       PatternFill("solid", fgColor=C["fail"]),
+        "Exception":    PatternFill("solid", fgColor=C["exc"]),
+        "Skipped":      PatternFill("solid", fgColor=C["skip"]),
+        "Open":         PatternFill("solid", fgColor=C["fail"]),
+        "High":         PatternFill("solid", fgColor=C["fail"]),
+        "Medium":       PatternFill("solid", fgColor=C["warn"]),
+        "Low":          PatternFill("solid", fgColor=C["info"]),
+        "Covered":      PatternFill("solid", fgColor=C["pass"]),
+        "Not Covered":  PatternFill("solid", fgColor=C["warn"]),
     }
-    ALT = PatternFill("solid", fgColor=C["alt"])
-
-    # Header
-    for ci, col in enumerate(df.columns, 1):
-        cell = ws.cell(row=1, column=ci)
-        cell.fill = PatternFill("solid", fgColor=hdr_colour)
-        cell.font = Font(bold=True, color="FFFFFF", size=10)
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border = thin
-    ws.row_dimensions[1].height = 22
-    ws.freeze_panes = "A2"
-
+    ALT  = PatternFill("solid", fgColor=C["alt"])
     cols = list(df.columns)
     col_pos = cols.index(row_colour_col) + 1 if row_colour_col and row_colour_col in cols else None
 
+    # Header row
+    for ci, col in enumerate(cols, 1):
+        cell = ws.cell(row=1, column=ci)
+        cell.fill      = PatternFill("solid", fgColor=hdr_colour)
+        cell.font      = Font(bold=True, color="FFFFFF", size=10)
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border    = thin
+    ws.row_dimensions[1].height = 22
+    ws.freeze_panes = "A2"
+
+    # Data rows
     for ri in range(2, ws.max_row + 1):
         row_val = str(ws.cell(row=ri, column=col_pos).value or "") if col_pos else ""
         fill = STATUS_FILL.get(row_val, ALT if ri % 2 == 0 else None)
@@ -148,16 +148,26 @@ def _style(writer, sheet_name: str, df: pd.DataFrame,
             cell = ws.cell(row=ri, column=ci)
             if fill:
                 cell.fill = fill
-            cell.border = thin
+            cell.border    = thin
             cell.alignment = Alignment(vertical="center", wrap_text=True)
         ws.row_dimensions[ri].height = 16
 
+    # Column widths
     for ci, col in enumerate(cols, 1):
         try:
             w = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
         except Exception:
             w = len(str(col)) + 2
         ws.column_dimensions[get_column_letter(ci)].width = min(w, 70)
+
+
+def _style(writer, sheet_name: str, df: pd.DataFrame,
+           hdr_colour: str = "1F3864",
+           row_colour_col: str | None = None) -> None:
+    """Legacy wrapper — delegates to _style_ws."""
+    ws = writer.sheets.get(sheet_name)
+    if ws:
+        _style_ws(ws, df, hdr_colour=hdr_colour, row_colour_col=row_colour_col)
 
 
 # ── Row builder ───────────────────────────────────────────────────────────────
@@ -436,14 +446,14 @@ def s18_recommendations():
 
 def s19_navigation():
     data = [
-        ("OnboardingStack", "Splash→Welcome→Feature1/2/3→GoalSelection→ExperienceLevel→Permissions→Register→Login→ForgotPassword", "Active — fully covered"),
-        ("HomeStack", "Dashboard→DailyGoal→Notifications→Search→TopicDetail + Search deep-links", "Active — requires auth"),
-        ("SpeechStack", "SpeechHome→Record→Analyzing→9 result screens→History→Dashboard→DailyChallenge→FillerWords→Pronunciation→PaceAndClarity + extras", "Active — requires auth"),
-        ("ProfileStack", "Profile→EditProfile→ProgressOverview→Achievements→Settings→NotificationSettings→PrivacyPolicy→DeleteAccount→FAQ→Tutorial→WhatsNew", "Active — requires auth"),
-        ("AchievementsTabStack", "AchievementsMain→Rewards→StreakCalendar→LevelUp", "Active — requires auth"),
-        ("DailyGoalsStack", "DailyGoalMain→TopicDetail", "Active — requires auth"),
-        ("GamificationStack", "Rewards→StreakCalendar→LevelUp", "DEAD — defined but never used in Tab.Navigator"),
-        ("SupportStack", "FAQ→Tutorial→WhatsNew", "DEAD — defined but never used"),
+        ("OnboardingStack", "Splash->Welcome->Feature1/2/3->GoalSelection->ExperienceLevel->Permissions->Register->Login->ForgotPassword", "Active — fully covered"),
+        ("HomeStack", "Dashboard->DailyGoal->Notifications->Search->TopicDetail + Search deep-links", "Active — requires auth"),
+        ("SpeechStack", "SpeechHome->Record->Analyzing->9 result screens->History->Dashboard->DailyChallenge->FillerWords->Pronunciation->PaceAndClarity + extras", "Active — requires auth"),
+        ("ProfileStack", "Profile->EditProfile->ProgressOverview->Achievements->Settings->NotificationSettings->PrivacyPolicy->DeleteAccount->FAQ->Tutorial->WhatsNew", "Active — requires auth"),
+        ("AchievementsTabStack", "AchievementsMain->Rewards->StreakCalendar->LevelUp", "Active — requires auth"),
+        ("DailyGoalsStack", "DailyGoalMain->TopicDetail", "Active — requires auth"),
+        ("GamificationStack", "Rewards->StreakCalendar->LevelUp", "DEAD — defined but never used in Tab.Navigator"),
+        ("SupportStack", "FAQ->Tutorial->WhatsNew", "DEAD — defined but never used"),
     ]
     return pd.DataFrame([{"Stack": s, "Screens": sc, "Status": st} for s, sc, st in data])
 
@@ -488,7 +498,7 @@ def main():
     rate   = round(100 * passed / total, 1) if total else 0
 
     print(f"[report] {total} tests loaded | {passed} passed | {rate}% pass rate")
-    print(f"[report] Writing → {OUTPUT}")
+    print(f"[report] Writing -> {OUTPUT}")
 
     sheets = [
         ("01 Executive Summary",      s01_summary(results, load),  "1F3864", None),
@@ -521,20 +531,27 @@ def main():
     # Re-open with openpyxl to apply styling
     try:
         import openpyxl
-        wb = openpyxl.load_workbook(str(OUTPUT))
-        with pd.ExcelWriter(str(OUTPUT), engine="openpyxl") as writer:
-            writer.book = wb
-            writer.sheets = {ws.title: ws for ws in wb.worksheets}
-            for tab, df, hdr, col in sheets:
-                df.to_excel(writer, sheet_name=tab, index=False)
-                _style(writer, tab, df, hdr_colour=hdr, row_colour_col=col)
+        from openpyxl import load_workbook
+
+        wb = load_workbook(str(OUTPUT))
+        for ws in wb.worksheets:
+            ws.sheet_state = "visible"
+
+        for tab, df, hdr, col in sheets:
+            if tab in wb.sheetnames:
+                ws = wb[tab]
+                # Apply styling directly using openpyxl
+                _style_ws(ws, df, hdr_colour=hdr, row_colour_col=col)
+
+        wb.save(str(OUTPUT))
+        print("[report] Styling applied successfully")
     except Exception as ex:
-        print(f"[report] Styling skipped ({ex}) — data is complete")
+        print(f"[report] Styling note: {ex}")
 
     print(f"\n{'='*55}")
     print(f"  MASTER TEST AUDIT REPORT — {total} tests | {rate}% pass")
     print(f"  {len(defects)} defects | {len(load)} load entries")
-    print(f"  Saved → {OUTPUT}")
+    print(f"  Saved -> {OUTPUT}")
     print(f"{'='*55}\n")
 
 
