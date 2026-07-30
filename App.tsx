@@ -8,36 +8,67 @@ import { useAuthStore } from './src/store/authStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/theme/ThemeContext';
 
-// ── Web layout — fonts + scrollbar polish injected once ──────────────────────
-// Structural layout CSS (height chain, overflow, flex) lives in web/index.html.
+// ── Web layout fix (SINGLE source of truth — this file, not web/index.html) ──
+// `expo start --web` (the dev server) never actually serves web/index.html —
+// it always uses its own generic built-in HTML shell. web/index.html only
+// applies to a production `expo export --platform web` build. So a CSS fix
+// that lives only in web/index.html silently does nothing during normal
+// development. This block runs as plain JS inside the bundle, so it applies
+// identically in both dev and production — this is the one place a layout
+// fix here actually has to live.
 //
+// Root cause of the "content is cut off, can't scroll" bug: browsers give
+// flex items a default `min-height: auto`, which stops them shrinking below
+// their content's natural height even inside a bounded parent. React
+// Navigation nests screen content inside many <div> layers; without
+// `min-height: 0` on those wrapper divs, one of them grows to full content
+// height instead of being capped at the viewport, so the actual ScrollView
+// further down never gets a bounded box to compute overflow against — the
+// extra content is simply clipped at the page edge instead of scrolling.
+//
+// `min-height: 0` alone isn't sufficient though (verified) — it only allows
+// *shrinking*, it doesn't establish the bound in the first place. The
+// bound comes from `flex-grow` cascading down the same wrapper chain, so
+// each level actually receives (and passes on) a share of the parent's
+// available space instead of just sizing to its own content. We deliberately
+// never set `flex-direction` or `display` here: react-native-web already
+// emits the correct value per element via its own atomic CSS classes
+// (that's why the code used to need a `!important` escape hatch just to
+// keep the tab bar in row direction — an ID-selector rule setting
+// flex-direction here would silently beat react-native-web's own classes).
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const inject = () => {
     if (document.getElementById('vx-web')) return;
     const el = document.createElement('style');
     el.id = 'vx-web';
     el.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-      *, *::before, *::after { box-sizing: border-box; }
       html, body {
         height: 100%;
         margin: 0; padding: 0;
-        background: #FAF9F7;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
       }
       #root {
         height: 100%;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
-      #root > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-      #root > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-      #root > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-      #root > div > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-      #root > div > div > div > div > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-      /* Tab bar: override column back to row */
-      [role="tablist"] { flex-direction: row !important; align-items: center !important; }
+      #root div { min-height: 0; }
+      #root > div,
+      #root > div > div,
+      #root > div > div > div,
+      #root > div > div > div > div,
+      #root > div > div > div > div > div,
+      #root > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div > div > div > div {
+        flex-grow: 1;
+        flex-shrink: 1;
+      }
       ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-thumb { background: rgba(146,64,14,0.25); border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: rgba(146,64,14,0.45); }

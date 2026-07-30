@@ -19,29 +19,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
     <!--
-      WEB LAYOUT FIX
+      WEB LAYOUT FIX (production builds only — see note below)
       ═══════════════════════════════════════════════════════════════════════
-      Root cause of the "can't scroll any screen" bug:
+      IMPORTANT: `expo start --web` (the dev server) does NOT serve this
+      file — it always uses its own generic built-in HTML shell, regardless
+      of app.json's `web.htmlTemplate` setting. This file is only used by
+      `expo export --platform web` (the production static build in `dist/`,
+      what render.yaml/vercel.json deploy). The actual fix that takes effect
+      during normal development lives in App.tsx (the JS-injected <style id="vx-web">
+      block), because that runs as part of the bundle in both dev and
+      production. Keep both in sync — this copy exists purely so the
+      production build's initial HTML paint (before the JS bundle evaluates)
+      already has correct layout CSS instead of a brief unstyled flash.
 
-      React Navigation nests screen content inside 6-8 <div> layers:
+      Root cause of the "can't scroll" bug:
+
+      React Navigation nests screen content inside many <div> layers:
         #root → SafeAreaProvider → GestureHandlerRootView →
         NavigationContainer → BottomTabNavigator → StackNavigator →
         Screen → component root View → ScrollView
 
       CSS flex items default to `min-height: auto`, which means they REFUSE
       to shrink below their content height even inside a bounded parent.
-      Without `min-height: 0` on ALL of these divs, the intermediate layers
-      expand to full content height rather than being capped at the viewport,
-      so the inner ScrollView ends up with an unbounded scroll container and
-      never triggers scrolling.
+      Without `min-height: 0` on the intermediate wrapper divs, one of them
+      grows to full content height instead of being capped at the viewport,
+      so the ScrollView further down never receives a bounded box to
+      compute overflow against — the extra content is simply cut off at the
+      html/body overflow:hidden boundary instead of becoming scrollable.
 
-      Fix: `#root div { min-height: 0 }` cascades the fix to every div
-      inside #root regardless of nesting depth. The ScrollView's content
-      wrapper still grows naturally from its children (not from min-height),
-      so content renders at full height inside the scrollable area.
+      Fix: `#root div { min-height: 0 }` cascades that ONE property to every
+      div inside #root, regardless of nesting depth.
 
-      This file is the single source of truth for web layout CSS.
-      Do NOT add competing rules in App.tsx (they were removed).
+      IMPORTANT — do NOT also force `display`, `flex-direction`, or
+      `overflow` on every div here. react-native-web already emits the
+      correct flex-direction/display for each element via its own atomic
+      CSS classes (reflecting each component's real `style={{flexDirection}}`
+      prop). A previous version of this fix forced `flex-direction: column`
+      globally would (because an ID selector always beats react-native-web's
+      class-based atomic rules) silently override every `flexDirection: 'row'`
+      layout in the app — so this rule only ever sets `flex-grow`/`flex-shrink`
+      /`min-height`, never `flex-direction` or `display`, and only reaches a
+      bounded number of nesting levels (deep enough for this app's actual
+      navigator nesting, not "every div anywhere").
+
+      Keep this block's CSS text identical to the one in App.tsx.
       ═══════════════════════════════════════════════════════════════════════
     -->
     <style>
@@ -63,31 +84,36 @@
         overflow: hidden;
       }
 
-      /*
-        THE KEY FIX — apply min-height:0 to every div inside #root.
-        This allows all intermediate flex containers to shrink to the
-        available viewport space rather than expanding to content height.
-        Without this, ScrollViews have no bounded container and can't scroll.
-      */
+      /* THE KEY FIX. min-height:0 lets every wrapper shrink to its bounded
+         box instead of expanding to content height (needed everywhere, safe
+         everywhere — it only affects the *minimum*, never layout direction). */
       #root div {
         min-height: 0;
-        overflow: hidden;
       }
 
-      /*
-        Top two wrapper layers (SafeAreaProvider, GestureHandlerRootView)
-        need an explicit flex chain + overflow:hidden so they bound their
-        children to the viewport and prevent page-level scroll.
-        overflow:hidden here does NOT prevent child ScrollViews from
-        scrolling — it only clips content that tries to escape these
-        bounded containers.
-      */
+      /* flex-grow/flex-shrink alone (never flex-direction/display) chained
+         down through the known navigator wrapper depth (SafeAreaProvider >
+         GestureHandlerRootView > NavigationContainer > Tab/Stack navigator >
+         Screen > screen root view > ScrollView, plus headroom). This is what
+         actually gives each level a *bounded* height to measure against —
+         min-height:0 alone only allows shrinking, it doesn't establish the
+         bound. Scoped to this fixed depth (not every div) so it can't touch
+         unrelated leaf elements like icons/badges/buttons elsewhere in the
+         tree that intentionally size to their own content. */
       #root > div,
-      #root > div > div {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+      #root > div > div,
+      #root > div > div > div,
+      #root > div > div > div > div,
+      #root > div > div > div > div > div,
+      #root > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div > div > div,
+      #root > div > div > div > div > div > div > div > div > div > div > div > div {
+        flex-grow: 1;
+        flex-shrink: 1;
       }
 
       /* Global helpers */
