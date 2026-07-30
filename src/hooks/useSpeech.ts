@@ -123,7 +123,7 @@ export function useSpeech() {
         return { transcript: result.text, duration, audioUri, status: 'completed' };
       }
       if (result.status === 'no_key') {
-        setStatusMsg('No AssemblyAI key configured.');
+        setStatusMsg('Transcription service not configured.');
         return { transcript: '', duration, audioUri, status: 'no_key', error: result.error };
       }
       setStatusMsg(`Error: ${result.error ?? 'Unknown'}`);
