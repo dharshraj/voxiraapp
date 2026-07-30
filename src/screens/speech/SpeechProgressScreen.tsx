@@ -221,7 +221,7 @@ const s = StyleSheet.create({
   pill:          { flex:1, alignItems:'center', paddingVertical:12, gap:2 },
   pillVal:       { fontSize:15, fontWeight:'800', color:C.text },
   pillLbl:       { fontSize:10, color:C.muted },
-  scroll:        { paddingHorizontal:20, paddingTop:20 },
+  scroll:        { flexGrow:1, paddingHorizontal:20, paddingTop:20 },
   card:          { backgroundColor:C.bgCard, borderRadius:20, padding:16, borderWidth:1, borderColor:C.border, marginBottom:24 },
   cardHead:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:16 },
   cardTitle:     { fontSize:15, fontWeight:'700', color:C.text },

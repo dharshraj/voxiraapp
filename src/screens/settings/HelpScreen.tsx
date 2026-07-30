@@ -162,7 +162,7 @@ const s = StyleSheet.create({
   headerTitle:   {fontSize:17,fontWeight:'700',color:C.text},
   searchBar:     {flexDirection:'row',alignItems:'center',marginHorizontal:20,backgroundColor:C.bgCard,borderRadius:14,paddingHorizontal:14,height:44,borderWidth:1,borderColor:C.border},
   searchInput:   {flex:1,color:C.text,fontSize:14},
-  scroll:        {paddingHorizontal:20,paddingTop:16},
+  scroll:        {flexGrow:1,paddingHorizontal:20,paddingTop:16},
   sectionTitle:  {fontSize:15,fontWeight:'700',color:C.text,marginBottom:12,marginTop:8},
   contactGrid:   {flexDirection:'row',flexWrap:'wrap',gap:10,marginBottom:24},
   contactCard:   {width:'47%',backgroundColor:C.bgCard,borderRadius:16,padding:14,borderWidth:1,borderColor:C.border,alignItems:'center',gap:10},
