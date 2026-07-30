@@ -1,0 +1,81 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.14.4', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.1.1', 'pluggy': '1.6.0'}, 'Plugins': {'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\91637\VoxiraApp\selenium_model
+configfile: pytest.ini
+testpaths: tests
+plugins: html-4.2.0, metadata-3.1.1
+collecting ... collected 40 items
+
+tests/test_accessibility_and_ui.py::test_page_has_title PASSED           [  2%]
+tests/test_accessibility_and_ui.py::test_html_lang_attribute_present PASSED [  5%]
+tests/test_accessibility_and_ui.py::test_interactive_elements_lack_accessible_roles PASSED [  7%]
+tests/test_accessibility_and_ui.py::test_no_horizontal_overflow_on_welcome_screen FAILED [ 10%]
+tests/test_accessibility_and_ui.py::test_viewport_meta_tag_present PASSED [ 12%]
+tests/test_api_validation.py::test_supabase_rest_root_reachable PASSED   [ 15%]
+tests/test_api_validation.py::test_supabase_auth_endpoint_rejects_bad_credentials PASSED [ 17%]
+tests/test_api_validation.py::test_supabase_edge_function_deployed[assemblyai-transcribe] FAILED [ 20%]
+tests/test_api_validation.py::test_supabase_edge_function_deployed[assemblyai-poll] FAILED [ 22%]
+tests/test_api_validation.py::test_supabase_edge_function_deployed[groq-analysis] PASSED [ 25%]
+tests/test_api_validation.py::test_supabase_edge_function_deployed[openai-proxy] SKIPPED) — status was 404) [ 27%]
+tests/test_auth.py::test_login_invalid_credentials_shows_error PASSED    [ 30%]
+tests/test_auth.py::test_login_empty_fields_validation PASSED            [ 32%]
+tests/test_auth.py::test_login_malformed_email_validation PASSED         [ 35%]
+tests/test_auth.py::test_google_sign_in_button_present PASSED            [ 37%]
+tests/test_auth.py::test_register_empty_fields_validation PASSED         [ 40%]
+tests/test_auth.py::test_register_weak_password_validation PASSED        [ 42%]
+tests/test_auth.py::test_register_password_mismatch_validation PASSED    [ 45%]
+tests/test_auth.py::test_register_valid_input_clears_validation_errors PASSED [ 47%]
+tests/test_auth.py::test_forgot_password_malformed_email_validation PASSED [ 50%]
+tests/test_auth.py::test_forgot_password_empty_email_validation PASSED   [ 52%]
+tests/test_auth.py::test_login_with_provided_test_account_reaches_dashboard SKIPPEDavoid a guaranteed-fail live login and to avoid exercising
+the authenticated area without an authorized test account.)              [ 55%]
+tests/test_auth.py::test_logout_requires_authenticated_session SKIPPEDnfigured.) [ 57%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://api.assemblyai.com/v2] PASSED [ 60%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://api.groq.com/openai/v1] PASSED [ 62%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://api.openai.com/v1] PASSED [ 65%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://deno.land/std@0.168.0/http/server.ts] PASSED [ 67%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://esm.sh/@supabase/supabase-js@2] PASSED [ 70%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://voxira.app/help] PASSED [ 72%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://voxira.app/rate] PASSED [ 75%]
+tests/test_broken_links.py::test_external_source_url_resolves[https://wa.me/911234567890] PASSED [ 77%]
+tests/test_navigation.py::test_welcome_to_login_navigation PASSED        [ 80%]
+tests/test_navigation.py::test_login_to_register_navigation PASSED       [ 82%]
+tests/test_navigation.py::test_login_to_forgot_password_navigation PASSED [ 85%]
+tests/test_navigation.py::test_forgot_password_return_to_login PASSED    [ 87%]
+tests/test_navigation.py::test_onboarding_get_started_reaches_feature_carousel PASSED [ 90%]
+tests/test_navigation.py::test_onboarding_skip_reaches_register PASSED   [ 92%]
+tests/test_performance.py::test_initial_load_time_observation PASSED     [ 95%]
+tests/test_smoke.py::test_app_boots_and_renders_welcome_screen PASSED    [ 97%]
+tests/test_smoke.py::test_no_uncaught_js_errors_on_initial_load PASSED   [100%]
+
+================================== FAILURES ===================================
+________________ test_no_horizontal_overflow_on_welcome_screen ________________
+tests\test_accessibility_and_ui.py:54: in test_no_horizontal_overflow_on_welcome_screen
+    assert scroll_width <= inner_width + 20, f"Horizontal overflow detected: scrollWidth {scroll_width} > innerWidth {inner_width}"
+E   AssertionError: Horizontal overflow detected: scrollWidth 1502 > innerWidth 1422
+E   assert 1502 <= (1422 + 20)
+_________ test_supabase_edge_function_deployed[assemblyai-transcribe] _________
+tests\test_api_validation.py:79: in test_supabase_edge_function_deployed
+    assert resp.status_code != 404, f"Edge Function '{fn_name}' returned 404 — not deployed or misrouted"
+E   AssertionError: Edge Function 'assemblyai-transcribe' returned 404 — not deployed or misrouted
+E   assert 404 != 404
+E    +  where 404 = <Response [404]>.status_code
+____________ test_supabase_edge_function_deployed[assemblyai-poll] ____________
+tests\test_api_validation.py:79: in test_supabase_edge_function_deployed
+    assert resp.status_code != 404, f"Edge Function '{fn_name}' returned 404 — not deployed or misrouted"
+E   AssertionError: Edge Function 'assemblyai-poll' returned 404 — not deployed or misrouted
+E   assert 404 != 404
+E    +  where 404 = <Response [404]>.status_code
+- Generated html report: file:///C:/Users/91637/VoxiraApp/selenium_model/reports/html/execution_report.html -
+=========================== short test summary info ===========================
+FAILED tests/test_accessibility_and_ui.py::test_no_horizontal_overflow_on_welcome_screen - AssertionError: Horizontal overflow detected: scrollWidth 1502 > innerWidth 1422
+assert 1502 <= (1422 + 20)
+FAILED tests/test_api_validation.py::test_supabase_edge_function_deployed[assemblyai-transcribe] - AssertionError: Edge Function 'assemblyai-transcribe' returned 404 — not deployed or misrouted
+assert 404 != 404
+ +  where 404 = <Response [404]>.status_code
+FAILED tests/test_api_validation.py::test_supabase_edge_function_deployed[assemblyai-poll] - AssertionError: Edge Function 'assemblyai-poll' returned 404 — not deployed or misrouted
+assert 404 != 404
+ +  where 404 = <Response [404]>.status_code
+============= 3 failed, 34 passed, 3 skipped in 365.61s (0:06:05) =============
