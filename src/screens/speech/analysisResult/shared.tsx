@@ -122,7 +122,7 @@ export function makeSharedStyles(C: any) {
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 36, paddingBottom: 4 },
     iconBtn:     { width: 40, height: 40, borderRadius: 11, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     stepTitle:   { fontSize: 16, fontWeight: '700', color: C.text, flex: 1, textAlign: 'center' },
-    scroll:      { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 },
+    scroll:      { flexGrow: 1, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 120 },0 },
     summaryBar:  { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 16, gap: 14 },
     scoreCircle: { width: 56, height: 56, borderRadius: 28, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     scoreNum:    { fontSize: 20, fontWeight: '800' },

@@ -61,7 +61,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   const s = StyleSheet.create({
     root:           { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
-    scrollContent:  { paddingBottom: 80 },
+    scrollContent:  { flexGrow: 1, paddingBottom: 120 },
 
     // Header
     header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingHorizontal: 20, paddingBottom: 14 },

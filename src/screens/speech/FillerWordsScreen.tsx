@@ -228,7 +228,7 @@ const s = StyleSheet.create({
   header:        { flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:20, paddingTop:Platform.OS==='ios'?56:36 },
   backBtn:       { width:42, height:42, borderRadius:13, backgroundColor:'rgba(255,255,255,0.08)', alignItems:'center', justifyContent:'center' },
   headerTitle:   { fontSize:17, fontWeight:'700', color:C.text },
-  scroll:        { paddingHorizontal:20, paddingTop:16 },
+  scroll:        { flexGrow: 1, paddingHorizontal:20, paddingTop:16 , paddingBottom:120},
   summaryCard:   { borderRadius:22, padding:20, marginBottom:24, borderWidth:1, borderColor:'rgba(21,101,255,0.20)', overflow:'hidden', gap:16 },
   summaryTop:    { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start' },
   summaryLeft:   { gap:6 },

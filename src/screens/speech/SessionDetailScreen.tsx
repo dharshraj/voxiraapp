@@ -48,7 +48,7 @@ export default function SessionDetailScreen({ navigation, route }: any) {
     backBtn:       { width:42, height:42, borderRadius:13, backgroundColor:C.bg, borderWidth:1, borderColor:C.border, alignItems:'center', justifyContent:'center' },
     headerTitle:   { fontSize:17, fontWeight:'700', color:C.text },
     shareBtn:      { width:42, height:42, borderRadius:13, backgroundColor:C.bg, borderWidth:1, borderColor:C.border, alignItems:'center', justifyContent:'center' },
-    scroll:        { paddingHorizontal:20, paddingTop:16 },
+    scroll:        { flexGrow: 1, paddingHorizontal:20, paddingTop:16 , paddingBottom:120},
     heroCard:      { borderRadius:22, padding:20, borderWidth:1, borderColor:C.primary+'33', overflow:'hidden', gap:16, marginBottom:24, backgroundColor:C.primaryLight },
     heroTop:       { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start' },
     heroMode:      { fontSize:18, fontWeight:'700', color:C.text, marginBottom:4 },

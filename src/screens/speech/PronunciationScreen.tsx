@@ -208,7 +208,7 @@ const s = StyleSheet.create({
   tabBtnActive:   {backgroundColor:C.primary},
   tabTxt:         {fontSize:13,color:C.muted,fontWeight:'500'},
   tabTxtActive:   {color:'#fff',fontWeight:'600'},
-  scroll:         {paddingHorizontal:20,paddingTop:16},
+  scroll:         { flexGrow: 1,paddingHorizontal:20,paddingTop:16, paddingBottom:120},
   sectionTitle:   {fontSize:15,fontWeight:'700',color:C.text,marginBottom:12},
   wordList:       {backgroundColor:C.bgCard,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:C.border,marginBottom:20},
   wordRow:        {flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:14,borderBottomWidth:1,borderBottomColor:C.border,gap:12},

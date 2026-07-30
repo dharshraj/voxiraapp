@@ -150,7 +150,7 @@ export default function NotificationSettingsScreen({ navigation }: any) {
     banner:       { marginHorizontal: 20, borderRadius: 10, padding: 11, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1 },
     bannerTxt:    { flex: 1, fontSize: 12, fontWeight: '500', lineHeight: 17 },
 
-    scroll:       { paddingHorizontal: 20, paddingBottom: 60 },
+    scroll:       { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 120 },
     sectionLabel: { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, marginTop: 20 },
 
     // Master toggle

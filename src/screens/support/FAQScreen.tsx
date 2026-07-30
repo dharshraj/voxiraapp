@@ -26,7 +26,7 @@ export default function FAQScreen({ navigation }: any) {
     backBtn:  { width:38, height:38, borderRadius:10, backgroundColor:C.surface, borderWidth:1, borderColor:C.border, alignItems:'center', justifyContent:'center' },
     title:    { flex:1, fontSize:18, fontWeight:'700', color:C.text },
     divider:  { height:1, backgroundColor:C.border, marginHorizontal:20, marginBottom:16 },
-    scroll:   { paddingHorizontal:20, paddingBottom:60 },
+    scroll:   { flexGrow:1, paddingHorizontal:20, paddingBottom:120 },
     item:     { backgroundColor:C.surface, borderRadius:14, borderWidth:1, borderColor:C.border, marginBottom:8, overflow:'hidden' },
     qRow:     { flexDirection:'row', alignItems:'center', padding:16, gap:12 },
     qTxt:     { flex:1, fontSize:14, fontWeight:'600', color:C.text },

@@ -97,7 +97,7 @@ export default function SettingsScreen({ navigation }: any) {
       alignItems: 'center', justifyContent: 'center',
     },
     headerTitle:   { fontSize: 20, fontWeight: '700', color: C.text },
-    scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
+    scrollContent: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 120 },
     sectionTitle:  {
       fontSize: 11, fontWeight: '700', color: C.textMuted,
       textTransform: 'uppercase', letterSpacing: 0.8,

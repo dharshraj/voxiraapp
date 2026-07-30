@@ -54,7 +54,7 @@ export default function SpeechHomeScreen({ navigation }: any) {
 
   const s = StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
-    scrollContent: { paddingBottom: 80 },
+    scrollContent: { flexGrow: 1, paddingBottom: 120 },
 
     header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14 },
     headerLeft:    {},

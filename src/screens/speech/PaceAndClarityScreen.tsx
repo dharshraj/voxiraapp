@@ -258,7 +258,7 @@ const s = StyleSheet.create({
   tabBtnActive:   {backgroundColor:C.primary},
   tabTxt:         {fontSize:12,color:C.muted,fontWeight:'500'},
   tabTxtActive:   {color:'#fff',fontWeight:'600'},
-  scroll:         {paddingHorizontal:20,paddingTop:16},
+  scroll:         { flexGrow: 1,paddingHorizontal:20,paddingTop:16, paddingBottom:120},
   gaugeCard:      {backgroundColor:C.bgCard,borderRadius:20,padding:20,borderWidth:1,borderColor:C.border,marginBottom:24,alignItems:'center'},
   gaugeTitle:     {fontSize:14,fontWeight:'600',color:C.muted,marginBottom:20,textTransform:'uppercase',letterSpacing:0.5},
   gauge:          {width:'100%',marginBottom:16,position:'relative'},

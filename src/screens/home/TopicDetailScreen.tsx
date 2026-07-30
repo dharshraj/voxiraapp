@@ -23,7 +23,7 @@ export default function TopicDetailScreen({ navigation, route }: any) {
     backBtn:     { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: C.text, numberOfLines: 1 } as any,
     divider:     { height: 1, backgroundColor: C.border, marginHorizontal: 20, marginBottom: 20 },
-    scroll:      { paddingHorizontal: 20, paddingBottom: 80 },
+    scroll:      { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 120 },
 
     // Hero card
     heroCard:    { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 18, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 14 },

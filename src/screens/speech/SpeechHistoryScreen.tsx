@@ -102,7 +102,7 @@ export default function SpeechHistoryScreen({ navigation }: any) {
     chipActive:    { backgroundColor: C.primary, borderColor: C.primary },
     chipTxt:       { fontSize: 12, color: C.textMuted, fontWeight: '500' },
     chipTxtActive: { color: '#fff' },
-    scroll:        { paddingHorizontal: 20, paddingTop: 16 },
+    scroll:        { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 },
     centerState:   { alignItems: 'center', paddingTop: 80, gap: 12 },
     centerTxt:     { fontSize: 15, color: C.textMuted },
     trendCard:     { backgroundColor: C.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.border, marginBottom: 20 },

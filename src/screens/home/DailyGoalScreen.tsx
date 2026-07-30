@@ -150,7 +150,7 @@ export default function DailyGoalScreen({ navigation }: any) {
     headerCenter:  { flex:1, alignItems:'center' },
     headerTitle:   { fontSize:17, fontWeight:'700', color:C.text },
     headerSub:     { fontSize:12, color:C.textMuted, marginTop:2 },
-    scroll:        { paddingHorizontal:20, paddingTop:16, paddingBottom:60 },
+    scroll:        { flexGrow: 1, paddingHorizontal:20, paddingTop:16, paddingBottom:120 },
     sectionLabel:  { fontSize:11, fontWeight:'700', color:C.textMuted, textTransform:'uppercase', letterSpacing:0.8, marginBottom:10, marginTop:20 },
     card:          { backgroundColor:C.surface, borderRadius:14, borderWidth:1, borderColor:C.border, padding:16, marginBottom:10 },
 

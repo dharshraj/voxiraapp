@@ -81,7 +81,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   const s = StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.bg, ...(Platform.OS === 'web' && { height: '100%' as any }) },
-    scrollContent: { paddingBottom: 80 },
+    scrollContent: { flexGrow: 1, paddingBottom: 120 },
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14 },
     headerTitle:   { fontSize: 22, fontWeight: '700', color: C.text },
     settingsBtn:   { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },

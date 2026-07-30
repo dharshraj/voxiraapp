@@ -89,7 +89,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
 
   const s = StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.bg },
-    scrollContent: { paddingBottom: 60 },
+    scrollContent: { flexGrow: 1, paddingBottom: 120 },
 
     header:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 52 : 32, paddingBottom: 14, gap: 10 },
     backBtn:       { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
@@ -106,7 +106,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
     introCard:     { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 16, marginBottom: 12 },
     introTxt:      { fontSize: 13, color: C.textSec, lineHeight: 21 },
 
-    scroll:        { paddingHorizontal: 20 },
+    scroll:        { flexGrow: 1, paddingHorizontal: 20 },
 
     // Accordion
     accordion:     { backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, marginBottom: 8, overflow: 'hidden' },

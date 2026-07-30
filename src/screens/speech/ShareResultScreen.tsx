@@ -219,7 +219,7 @@ const s = StyleSheet.create({
   header:          {flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingTop:Platform.OS==='ios'?56:36},
   backBtn:         {width:42,height:42,borderRadius:13,backgroundColor:'rgba(255,255,255,0.08)',alignItems:'center',justifyContent:'center'},
   headerTitle:     {fontSize:17,fontWeight:'700',color:C.text},
-  scroll:          {paddingHorizontal:20,paddingTop:16},
+  scroll:          { flexGrow: 1,paddingHorizontal:20,paddingTop:16, paddingBottom:120},
   previewCard:     {borderRadius:24,padding:24,marginBottom:24,borderWidth:1,borderColor:'rgba(21,101,255,0.30)',overflow:'hidden',minHeight:280,alignItems:'center'},
   dec1:            {position:'absolute',right:-30,top:-30,width:160,height:160,borderRadius:80,backgroundColor:'rgba(255,255,255,0.06)'},
   dec2:            {position:'absolute',left:-20,bottom:-20,width:120,height:120,borderRadius:60,backgroundColor:'rgba(255,255,255,0.04)'},

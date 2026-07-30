@@ -226,7 +226,7 @@ const s = StyleSheet.create({
   weekBarBg:       { height:6, backgroundColor:'rgba(255,255,255,0.08)', borderRadius:3, overflow:'hidden' },
   weekBarFill:     { height:'100%', borderRadius:3 },
   weekBarLbl:      { fontSize:11, color:C.muted },
-  scroll:          { flexGrow:1, paddingHorizontal:20, paddingTop:20 },
+  scroll:          { flexGrow:1, paddingHorizontal:20, paddingTop:20, paddingBottom:120 },
   sectionTitle:    { fontSize:15, fontWeight:'700', color:C.text, marginBottom:14 },
   challengeCard:   { backgroundColor:C.bgCard, borderRadius:20, padding:16, borderWidth:1, borderColor:C.border, marginBottom:12 },
   challengeDone:   { opacity:0.7 },
