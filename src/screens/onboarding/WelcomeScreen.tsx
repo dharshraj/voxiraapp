@@ -52,14 +52,6 @@ export default function WelcomeScreen({ navigation }: any) {
       borderRadius: 20, paddingHorizontal: 11, paddingVertical: 6,
     },
     featurePillTxt: { fontSize: 12, color: C.primary, fontWeight: '600' },
-    statsRow: {
-      flexDirection: 'row', backgroundColor: C.surface,
-      borderWidth: 1, borderColor: C.border, borderRadius: 18, marginBottom: 28, overflow: 'hidden',
-    },
-    statsItem:    { flex: 1, alignItems: 'center', paddingVertical: 14 },
-    statsDivider: { width: 1, backgroundColor: C.border },
-    statsVal:     { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 2 },
-    statsLbl:     { fontSize: 10, color: C.textMuted, fontWeight: '500' },
     ctaBtn: {
       borderRadius: 18, overflow: 'hidden', marginBottom: 16,
       backgroundColor: C.primary,
@@ -116,22 +108,6 @@ export default function WelcomeScreen({ navigation }: any) {
               <Ionicons name={f.icon as any} size={14} color={C.primary} />
               <Text style={s.featurePillTxt}>{f.label}</Text>
             </View>
-          ))}
-        </View>
-
-        <View style={s.statsRow}>
-          {[
-            { val: '50K+', lbl: 'Users'        },
-            { val: '95%',  lbl: 'Satisfaction' },
-            { val: '4.9★', lbl: 'Rating'       },
-          ].map((st, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <View style={s.statsDivider} />}
-              <View style={s.statsItem}>
-                <Text style={s.statsVal}>{st.val}</Text>
-                <Text style={s.statsLbl}>{st.lbl}</Text>
-              </View>
-            </React.Fragment>
           ))}
         </View>
 

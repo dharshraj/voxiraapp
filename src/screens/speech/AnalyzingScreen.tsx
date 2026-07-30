@@ -27,7 +27,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
 
   // Step labels — now 5 steps including the LLM filler analysis
   const STEPS = [
-    { label: 'Processing audio',          icon: 'cloud-upload-outline', color: C.primary  },
+    { label: 'Uploading your speech',     icon: 'cloud-upload-outline', color: C.primary  },
     { label: 'Reading transcript',        icon: 'mic-outline',          color: C.warning   },
     { label: 'Detecting filler words',    icon: 'warning-outline',      color: C.error     },
     { label: 'Running AI speech analysis',icon: 'sparkles-outline',     color: C.info      },

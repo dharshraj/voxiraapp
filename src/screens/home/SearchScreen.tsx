@@ -111,7 +111,7 @@ export default function SearchScreen({ navigation }: any) {
     searchBar:  { flex:1, flexDirection:'row', alignItems:'center', backgroundColor:C.surface, borderRadius:14, paddingHorizontal:12, height:44, borderWidth:1.5, borderColor:C.border },
     searchBarFocused: { borderColor:C.primary+'99', backgroundColor:'#F5F3F0' },
     searchInput:{ flex:1, color:C.text, fontSize:14 },
-    catRow:     { paddingHorizontal:20, paddingVertical:10, gap:8 },
+    catRow:     { flexDirection:'row', paddingHorizontal:20, paddingVertical:10, gap:8 },
     catChip:    { flexDirection:'row', alignItems:'center', gap:5, paddingHorizontal:12, paddingVertical:6, borderRadius:20, borderWidth:1, borderColor:C.border, backgroundColor:C.surface },
     catTxt:     { fontSize:12, color:C.textMuted, fontWeight:'500' },
     scroll:     { paddingHorizontal:20 },
@@ -155,12 +155,12 @@ export default function SearchScreen({ navigation }: any) {
       </View>
 
       <Animated.View style={[{ flex:1 }, { opacity:fadeAnim }]}>
-        {/* Category filter tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
+        {/* Category filter tabs — horizontal row, evenly spaced */}
+        <View style={s.catRow}>
           {CATEGORIES.map(cat => (
             <TouchableOpacity
               key={cat.key}
-              style={[s.catChip, catFilter===cat.key && { backgroundColor:`${cat.color}18`, borderColor:`${cat.color}55` }]}
+              style={[s.catChip, { flex: 1, justifyContent: 'center' }, catFilter===cat.key && { backgroundColor:`${cat.color}18`, borderColor:`${cat.color}55` }]}
               onPress={() => setCat(cat.key)}
               activeOpacity={0.75}
             >
@@ -168,7 +168,7 @@ export default function SearchScreen({ navigation }: any) {
               <Text style={[s.catTxt, catFilter===cat.key && { color:cat.color, fontWeight:'700' }]}>{cat.label}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
 
         <ScrollView
           style={{ flex: 1 }}

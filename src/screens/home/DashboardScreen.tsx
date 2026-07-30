@@ -122,8 +122,8 @@ export default function DashboardScreen({ navigation }: any) {
 
     // Trending topic chips
     topicsRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
-    topicChip:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
-    topicTxt:       { fontSize: 12, color: C.textSec, fontWeight: '500' },
+    topicChip:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, borderWidth: 1, borderColor: C.border },
+    topicTxt:       { fontSize: 14, color: C.textSec, fontWeight: '600' },
   });
 
   const TIPS = [
@@ -231,7 +231,7 @@ export default function DashboardScreen({ navigation }: any) {
                   <Ionicons name="mic-outline" size={15} color={C.primary} />
                 </View>
                 <View style={s.sessionMeta}>
-                  <Text style={s.sessionMode}>{sess.mode}</Text>
+                  <Text style={s.sessionMode}>Session {speechSessions.length - recentSessions.indexOf(sess)}</Text>
                   <Text style={s.sessionSub}>
                     {formatDuration(sess.duration)}
                     {sess.wpm > 0 ? `  ·  ${sess.wpm} WPM` : ''}
