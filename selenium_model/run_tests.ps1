@@ -25,6 +25,16 @@ $env:VOXIRA_BROWSER        = "chrome"
 $env:VOXIRA_IMPLICIT_WAIT  = "3"
 $env:VOXIRA_EXPLICIT_WAIT  = "15"
 
+# ── Android SDK / adb path ─────────────────────────────────────────────────────
+# Add Android SDK platform-tools to PATH so adb is available in this session
+$adbPath = "$env:LOCALAPPDATA\Android\Sdk\platform-tools"
+if (Test-Path $adbPath) {
+    $env:Path = "$env:Path;$adbPath"
+    Write-Host "  adb: found at $adbPath" -ForegroundColor Green
+} else {
+    Write-Host "  adb: NOT found at $adbPath — Appium Android tests may skip" -ForegroundColor Yellow
+}
+
 # ── Appium / Android config ────────────────────────────────────────────────────
 # After running: adb devices
 # Copy the serial (e.g. R3CN90ABCDE or emulator-5554) into ANDROID_DEVICE_NAME
