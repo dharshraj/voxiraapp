@@ -1,39 +1,24 @@
 # ── Selenium / WebDriver ─────────────────────────────────────────────────────
-selenium==4.27.1
-webdriver-manager==4.0.2
+selenium>=4.27.0
+webdriver-manager>=4.0.0
 
 # ── Appium ────────────────────────────────────────────────────────────────────
-Appium-Python-Client==4.4.0
+Appium-Python-Client>=4.4.0
 
 # ── Pytest core + plugins ─────────────────────────────────────────────────────
-pytest==8.3.5
-pytest-html==4.1.1
-pytest-xdist==3.6.1
-pytest-timeout==2.3.1
-pytest-rerunfailures==14.0
-pytest-ordering==0.6
-pytest-json-report==1.5.0
+pytest>=8.0.0
+pytest-html>=4.0.0
+pytest-xdist>=3.0.0
+pytest-timeout>=2.0.0
+pytest-rerunfailures>=14.0
+pytest-json-report>=1.5.0
 
-# ── Load testing ──────────────────────────────────────────────────────────────
-locust==2.32.3
-
-# ── Security / vulnerability scanning ────────────────────────────────────────
-bandit==1.8.3
-safety==3.2.14
-requests==2.32.3
-
-# ── Unit testing helpers ──────────────────────────────────────────────────────
-pytest-mock==3.14.0
-responses==0.25.3
+# ── API / HTTP ────────────────────────────────────────────────────────────────
+requests>=2.32.0
 
 # ── Excel / reporting ─────────────────────────────────────────────────────────
-pandas==2.2.3
-openpyxl==3.1.5
-xlsxwriter==3.2.2
+openpyxl>=3.1.0
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
-python-dotenv==1.0.1
-Pillow==11.1.0
-psutil==6.0.0
-colorama==0.4.6
-tqdm==4.67.1
+python-dotenv>=1.0.0
+colorama>=0.4.6
