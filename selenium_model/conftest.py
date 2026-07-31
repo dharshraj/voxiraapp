@@ -328,9 +328,9 @@ def appium_driver(request):
         else config.IOS_DESIRED_CAPS.copy()
     )
 
-    # Skip if the .apk / .ipa doesn't exist yet (not built)
+    # In Expo Go mode there is no APK path — skip the file check
     app_path = caps.get("appium:app", "")
-    if not Path(app_path).exists():
+    if app_path and not Path(app_path).exists():
         pytest.skip(
             f"App binary not found at {app_path} — build the app first "
             "(expo build / eas build) and set ANDROID_APP_PATH or IOS_APP_PATH."

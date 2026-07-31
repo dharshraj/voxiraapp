@@ -60,14 +60,29 @@ ANDROID_PLATFORM_VERSION = os.environ.get("ANDROID_PLATFORM_VERSION", "15")
 IOS_PLATFORM_VERSION     = os.environ.get("IOS_PLATFORM_VERSION",     "17.0")
 APPIUM_IMPLICIT_WAIT     = int(os.environ.get("APPIUM_IMPLICIT_WAIT", "5"))
 
+# ── Expo Go deep-link for Appium ──────────────────────────────────────────────
+# When ANDROID_USE_EXPO_GO=1, Appium launches Expo Go (host.exp.exponent) and
+# deep-links it to the local dev server instead of installing the APK.
+# This works around Android 15 16KB page-size incompatibility with native builds.
+# Requires: npx expo start --android running so the Metro bundler is live.
+_expo_go_mode = os.environ.get("ANDROID_USE_EXPO_GO", "1") == "1"
+# Expo dev server LAN URL — replace with the IP shown by `npx expo start`
+EXPO_LAN_URL = os.environ.get("EXPO_LAN_URL", "exp://172.23.50.100:8081")
+
 ANDROID_DESIRED_CAPS = {
-    "platformName":         "Android",
-    "appium:deviceName":    ANDROID_DEVICE_NAME,
+    "platformName":           "Android",
+    "appium:deviceName":      ANDROID_DEVICE_NAME,
     "appium:platformVersion": ANDROID_PLATFORM_VERSION,
-    "appium:app":           ANDROID_APP_PATH,
-    "appium:automationName": "UiAutomator2",
-    "appium:noReset":       False,
+    "appium:automationName":  "UiAutomator2",
+    "appium:noReset":         True,
     "appium:newCommandTimeout": 120,
+    # Use Expo Go instead of native APK
+    "appium:appPackage":      "host.exp.exponent",
+    "appium:appActivity":     "host.exp.launcher.LauncherActivity",
+    "appium:intentAction":    "android.intent.action.VIEW",
+    "appium:intentCategory":  "android.intent.category.BROWSABLE",
+    "appium:intentFlags":     "0x10000000",
+    "appium:optionalIntentArguments": f"--es url {EXPO_LAN_URL} --esn newSession",
 }
 
 IOS_DESIRED_CAPS = {

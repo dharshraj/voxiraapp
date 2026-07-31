@@ -5,10 +5,10 @@
 #   .\run_tests.ps1
 #
 # PREREQUISITES (complete all before running):
-#   1. npx expo start --web   (running in a separate terminal at localhost:8081)
-#   2. Appium Server running  (npx appium  OR  Appium Desktop)
+#   1. npx expo start         (separate terminal — starts web :8081 AND LAN Metro for Expo Go)
+#   2. npx appium             (separate terminal — Appium server on :4723)
 #   3. Android device connected via USB with USB debugging ON
-#   4. APK installed on device (see APK_PATH below — set after eas build)
+#   4. Expo Go installed on phone + phone on same Wi-Fi as PC
 #   5. pip install -r requirements.txt  (if not already done)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -42,6 +42,19 @@ $env:APPIUM_SERVER_URL         = "http://localhost:4723"
 $env:ANDROID_APP_PATH          = "$PSScriptRoot\..\dist\voxira.apk"
 $env:ANDROID_DEVICE_NAME       = "10BD6G2LZ0000FK"
 $env:ANDROID_PLATFORM_VERSION  = "15"
+$env:ANDROID_USE_EXPO_GO       = "1"   # Use Expo Go instead of native APK (Android 15 workaround)
+
+# Auto-detect LAN IP for Expo Go deep-link
+$lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
+    Where-Object { $_.IPAddress -notmatch "^127\." -and $_.IPAddress -notmatch "^169\." } |
+    Select-Object -First 1).IPAddress
+if ($lanIp) {
+    $env:EXPO_LAN_URL = "exp://${lanIp}:8081"
+    Write-Host "  Expo Go URL: $($env:EXPO_LAN_URL)" -ForegroundColor Cyan
+} else {
+    $env:EXPO_LAN_URL = "exp://192.168.1.100:8081"
+    Write-Host "  Could not auto-detect LAN IP — set EXPO_LAN_URL manually." -ForegroundColor Yellow
+}
 
 # ── Performance thresholds ─────────────────────────────────────────────────────
 $env:PERF_DOM_CONTENT_LOADED_MAX = "5000"
