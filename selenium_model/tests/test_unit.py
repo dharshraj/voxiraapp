@@ -196,55 +196,48 @@ def test_unit_020_speech_service_exists(meta):
 
 def test_unit_021_broken_barrel_subscription_screen(meta):
     meta.update(module="Unit", test_type="Unit",
-        scenario="UNIT-021: settings index barrel references SubscriptionScreen which does NOT exist (known defect)",
-        expected="SubscriptionScreen.tsx is absent (defect confirmed)")
+        scenario="UNIT-021: settings index barrel no longer exports SubscriptionScreen (phantom export removed)",
+        expected="SubscriptionScreen.tsx absent — export was removed in audit fix P1-2")
     broken_file = _src("screens", "settings", "SubscriptionScreen.tsx")
     meta["actual"] = f"exists={broken_file.exists()}"
+    # P1-2 audit fix removed the phantom SubscriptionScreen export from the barrel
     assert not broken_file.exists(), (
-        "SubscriptionScreen.tsx now exists — remove the broken barrel export if this is intentional, "
-        "or update this test to reflect the file was created"
+        "SubscriptionScreen.tsx now exists — update the barrel export to include it"
     )
 
 def test_unit_022_broken_barrel_leaderboard_screen(meta):
     meta.update(module="Unit", test_type="Unit",
-        scenario="UNIT-022: profile index barrel references LeaderboardScreen which does NOT exist (known defect)",
-        expected="LeaderboardScreen.tsx is absent")
+        scenario="UNIT-022: profile index barrel no longer exports LeaderboardScreen (phantom export removed)",
+        expected="LeaderboardScreen.tsx absent — export was removed in audit fix P1-2")
     broken = _src("screens", "profile", "LeaderboardScreen.tsx")
     meta["actual"] = f"exists={broken.exists()}"
+    # P1-2 audit fix removed the phantom LeaderboardScreen export from the barrel
     assert not broken.exists()
 
-def test_unit_023_help_screen_file_exists_but_unregistered(meta):
+def test_unit_023_help_screen_file_exists_and_registered(meta):
     meta.update(module="Unit", test_type="Unit",
-        scenario="UNIT-023: HelpScreen.tsx exists in settings/ (implemented) but is unreachable via navigator",
-        expected="HelpScreen.tsx file present; 'HelpScreen' absent from RootNavigator.tsx")
+        scenario="UNIT-023: HelpScreen.tsx exists and is registered in RootNavigator ProfileStack",
+        expected="HelpScreen.tsx present AND registered as name='Help' in ProfileStack")
     help_screen = _src("screens", "settings", "HelpScreen.tsx")
     navigator   = _src("navigation", "RootNavigator.tsx")
     file_exists  = help_screen.exists()
     nav_text     = navigator.read_text(encoding="utf-8", errors="ignore") if navigator.exists() else ""
     registered   = "HelpScreen" in nav_text and "component={HelpScreen}" in nav_text
     meta["actual"] = f"file_exists={file_exists}, registered_in_navigator={registered}"
-    assert file_exists, "HelpScreen.tsx was deleted — update audit_data.py"
-    assert not registered, "HelpScreen is now registered — remove the dead-code finding"
+    assert file_exists, "HelpScreen.tsx was deleted"
+    assert registered, "HelpScreen should be registered in RootNavigator ProfileStack (fixed in audit P3-11)"
 
-def test_unit_024_groq_analysis_edge_function_source_exists(meta):
+def test_unit_025_groq_ts_renamed_from_openai(meta):
     meta.update(module="Unit", test_type="Unit",
-        scenario="UNIT-024: supabase/functions/groq-analysis/index.ts source exists",
-        expected="File present — function can be deployed")
-    fn_path = config.PROJECT_ROOT / "supabase" / "functions" / "groq-analysis" / "index.ts"
-    meta["actual"] = f"exists={fn_path.exists()}"
-    assert fn_path.exists(), "groq-analysis edge function source missing"
-
-def test_unit_025_openai_ts_actually_wraps_groq(meta):
-    meta.update(module="Unit", test_type="Unit",
-        scenario="UNIT-025: src/lib/openai.ts wraps Groq (not OpenAI) — misleading filename confirmed",
-        expected="'groq' present in openai.ts; 'openai' API key NOT referenced")
-    path = _src("lib", "openai.ts")
-    if not path.exists():
-        pytest.skip("openai.ts not found")
-    text = path.read_text(encoding="utf-8", errors="ignore").lower()
-    meta["actual"] = f"groq_in_file={'groq' in text}, openai_api_key={'openai_api_key' in text}"
-    assert "groq" in text, "openai.ts does not reference Groq — file contents changed"
-    assert "openai_api_key" not in text, "openai.ts now references an OpenAI key — security review needed"
+        scenario="UNIT-025: src/lib/groq.ts exists (renamed from openai.ts) and wraps Groq",
+        expected="groq.ts present; openai.ts absent; 'groq' referenced inside")
+    groq_path   = _src("lib", "groq.ts")
+    openai_path = _src("lib", "openai.ts")
+    meta["actual"] = f"groq.ts exists={groq_path.exists()}, openai.ts exists={openai_path.exists()}"
+    assert groq_path.exists(),   "src/lib/groq.ts missing — file was renamed from openai.ts in audit P3-14"
+    assert not openai_path.exists(), "src/lib/openai.ts still present — rename not complete"
+    text = groq_path.read_text(encoding="utf-8", errors="ignore").lower()
+    assert "groq" in text, "groq.ts does not reference Groq"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # UNIT-026 … UNIT-035  — Config / boundary value assertions
