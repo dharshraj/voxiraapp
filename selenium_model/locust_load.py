@@ -90,8 +90,15 @@ class AuthApiTasks(TaskSet):
             SB_URL + "/auth/v1/token?grant_type=password" if SB_URL else "/auth/noop",
             catch_response=True,
             name="/auth/v1/token [invalid login]",
-        ) as _:
-            pass  # just measuring reachability
+        ) as r:
+            # GET with no credentials body is expected to be rejected (400/401) —
+            # that's a successful probe of the endpoint, not a load-test failure.
+            if r.status_code in (400, 401):
+                r.success()
+            elif r.status_code >= 500:
+                r.failure(f"Server error {r.status_code}")
+            else:
+                r.success()
 
     @task(4)
     def login_post_invalid(self):

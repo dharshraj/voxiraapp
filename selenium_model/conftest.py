@@ -109,16 +109,35 @@ def _status_fill(status: str):
     return _FILL.get(status.lower(), _FILL["running"])
 
 
+_WB_CACHE: dict[str, Any] = {"wb": None, "dirty_count": 0}
+_FLUSH_EVERY = 25  # write to disk every N results instead of on every single test
+
+
+def _flush_realtime_wb(force: bool = False) -> None:
+    """Save the in-memory workbook to disk. Cheap no-op if nothing pending."""
+    wb = _WB_CACHE.get("wb")
+    if wb is None or (not force and _WB_CACHE["dirty_count"] == 0):
+        return
+    try:
+        wb.save(str(_REALTIME_XLSX))
+        _WB_CACHE["dirty_count"] = 0
+    except Exception as exc:
+        print(f"[conftest] real-time Excel flush failed: {exc}")
+
+
 def _append_result_to_realtime_wb(result: dict[str, Any]) -> None:
-    """Thread-safe append of one test result row to the real-time workbook."""
+    """Thread-safe append of one test result row to an in-memory workbook,
+    flushed to disk periodically (not on every single test) — reloading and
+    re-saving a growing .xlsx on every test does not scale past a few hundred
+    tests, so the workbook is kept in memory for the whole session instead."""
     if not _EXCEL_AVAILABLE:
         return
     with _EXCEL_LOCK:
         try:
-            if _REALTIME_XLSX.exists():
-                wb = openpyxl.load_workbook(str(_REALTIME_XLSX))
-            else:
+            wb = _WB_CACHE.get("wb")
+            if wb is None:
                 wb = _init_realtime_wb()
+                _WB_CACHE["wb"] = wb
             if wb is None:
                 return
 
@@ -172,7 +191,9 @@ def _append_result_to_realtime_wb(result: dict[str, Any]) -> None:
             ], start=2):
                 ws2.cell(row=r_idx, column=2, value=val)
 
-            wb.save(str(_REALTIME_XLSX))
+            _WB_CACHE["dirty_count"] += 1
+            if _WB_CACHE["dirty_count"] >= _FLUSH_EVERY:
+                _flush_realtime_wb(force=True)
         except Exception as exc:
             # Never let Excel I/O crash the test run
             print(f"[conftest] real-time Excel write failed: {exc}")
@@ -416,6 +437,8 @@ def pytest_runtest_makereport(item, call):
 
 def pytest_sessionfinish(session, exitstatus):
     """Persist all results to JSON for the Excel report builder."""
+    _flush_realtime_wb(force=True)
+
     # Merge with any pre-existing results (Appium, unit, load run separately)
     existing: list[dict] = []
     if config.RESULTS_JSON.exists():

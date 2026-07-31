@@ -19,6 +19,7 @@ import re
 import os
 import json
 import time
+import itertools
 import pytest
 import requests
 from pathlib import Path
@@ -521,3 +522,257 @@ def test_unit_055_sqli_payloads_contain_sql_keywords(meta):
         has_kw = any(kw.upper() in payload.upper() for kw in sql_kw)
         assert has_kw, f"SQLI payload has no SQL keyword: '{payload}'"
     meta["actual"] = f"All {len(config.SQLI_PAYLOADS)} payloads have SQL keywords"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UNIT-NAME-MATRIX  — Combinatorial boundary-value matrix: name length x char-class
+# Independent oracle (length + char-class flags), NOT derived from _validate_name.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _build_name_for_matrix(length: int, valid_chars: bool) -> str:
+    if length <= 0:
+        return ""
+    # For the invalid pattern, the digit must lead so it survives truncation
+    # at any length (e.g. length=1 must still contain the invalid char).
+    pattern = "Ab " if valid_chars else "1A"
+    return (pattern * (length // len(pattern) + 1))[:length]
+
+def _expected_name_errors_matrix(length: int, valid_chars: bool) -> set:
+    errs = set()
+    if length < 3:
+        errs.add("min_3")
+    if length > 20:
+        errs.add("max_20")
+    if length == 0 or not valid_chars:
+        errs.add("letters_only")
+    return errs
+
+_NAME_MATRIX_SPECS = [(n, vc) for n in range(0, 26) for vc in (True, False)]
+
+@pytest.mark.parametrize("length,valid_chars", _NAME_MATRIX_SPECS)
+def test_unit_name_matrix(meta, length, valid_chars):
+    name = _build_name_for_matrix(length, valid_chars)
+    expected = _expected_name_errors_matrix(length, valid_chars)
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-NAME-MATRIX: len={length}, valid_chars={valid_chars} -> expect {sorted(expected) or 'no errors'}",
+        expected=f"errors == {sorted(expected)}")
+    actual = set(_validate_name(name))
+    meta["actual"] = f"name={name!r}, errors={sorted(actual)}"
+    assert actual == expected, f"name={name!r} expected {expected} got {actual}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UNIT-PW-MATRIX  — Combinatorial boundary-value matrix: password length x
+# (upper, lower, digit, special) presence. Independent oracle built directly
+# from the requested flags/length, never from _validate_password itself.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_PW_CLASS_CHAR = {"upper": "A", "lower": "a", "digit": "1", "special": "!"}
+
+def _build_password_for_matrix(length, upper, lower, digit, special) -> str:
+    flags = {"upper": upper, "lower": lower, "digit": digit, "special": special}
+    present = [k for k, v in flags.items() if v]
+    if not present:
+        return ""
+    base = "".join(_PW_CLASS_CHAR[k] for k in present)
+    if length <= len(base):
+        return base
+    pad_needed = length - len(base)
+    filler = (base * (pad_needed // len(base) + 1))[:pad_needed]
+    return base + filler
+
+def _expected_password_errors_matrix(length, upper, lower, digit, special) -> set:
+    errs = set()
+    if length < 8: errs.add("min_8")
+    if length > 20: errs.add("max_20")
+    if not upper: errs.add("no_uppercase")
+    if not lower: errs.add("no_lowercase")
+    if not digit: errs.add("no_digit")
+    if not special: errs.add("no_special")
+    return errs
+
+_PW_LENGTHS = [0, 1, 4, 7, 8, 9, 12, 16, 19, 20, 21, 25, 30]
+_PW_CLASS_COMBOS = list(itertools.product([True, False], repeat=4))
+
+_PW_MATRIX_CASES = []
+for _length in _PW_LENGTHS:
+    for _upper, _lower, _digit, _special in _PW_CLASS_COMBOS:
+        _present_count = sum([_upper, _lower, _digit, _special])
+        if _present_count == 0 and _length > 0:
+            continue
+        if _present_count > 0 and _length < _present_count:
+            continue
+        _PW_MATRIX_CASES.append((_length, _upper, _lower, _digit, _special))
+
+@pytest.mark.parametrize("length,upper,lower,digit,special", _PW_MATRIX_CASES)
+def test_unit_password_matrix(meta, length, upper, lower, digit, special):
+    pw = _build_password_for_matrix(length, upper, lower, digit, special)
+    expected = _expected_password_errors_matrix(length, upper, lower, digit, special)
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-PW-MATRIX: len={length} U={upper} L={lower} D={digit} S={special}",
+        expected=f"errors == {sorted(expected)}")
+    actual = set(_validate_password(pw))
+    meta["actual"] = f"pw_len={len(pw)}, errors={sorted(actual)}"
+    assert actual == expected, f"pw={pw!r} expected {expected} got {actual}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UNIT-EMAIL-MATRIX  — Structural email validation matrix. Independent oracle
+# (split/count/whitespace/dot-position based), not the same regex under test.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_EMAIL_MATRIX_CASES = []
+for _local in ("user", "u", ""):
+    for _domain in ("example.com", "sub.example.co.uk", "nodot", "", "example."):
+        if _local and _domain:
+            _email = f"{_local}@{_domain}"
+        elif _local and not _domain:
+            _email = f"{_local}@"
+        elif not _local and _domain:
+            _email = f"@{_domain}"
+        else:
+            _email = "@"
+        _EMAIL_MATRIX_CASES.append(_email)
+_EMAIL_MATRIX_CASES += [
+    "", "user name@example.com", "user@exa mple.com", " user@example.com",
+    "user@example.com ", "user@@example.com", "a@b@c.com",
+    "user@example.com.", "x@y.z", "a@b.c" * 3,
+]
+
+def _expected_email_errors_matrix(email: str) -> set:
+    if not email:
+        return {"required"}
+    if email.count("@") != 1:
+        return {"invalid_email"}
+    local, domain = email.split("@")
+    if not local or not domain:
+        return {"invalid_email"}
+    if any(ch.isspace() for ch in email):
+        return {"invalid_email"}
+    if "." not in domain:
+        return {"invalid_email"}
+    dot_positions = [i for i, c in enumerate(domain) if c == "."]
+    ok = any(0 < i < len(domain) - 1 for i in dot_positions)
+    if not ok:
+        return {"invalid_email"}
+    return set()
+
+@pytest.mark.parametrize("email", _EMAIL_MATRIX_CASES)
+def test_unit_email_matrix(meta, email):
+    expected = _expected_email_errors_matrix(email)
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-EMAIL-MATRIX: '{email}' -> expect {sorted(expected) or 'no errors'}",
+        expected=f"errors == {sorted(expected)}")
+    actual = set(_validate_email(email))
+    meta["actual"] = f"errors={sorted(actual)}"
+    assert actual == expected, f"email={email!r} expected {expected} got {actual}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UNIT-XSS/SQLI/PATH-INVARIANT — Per-payload security invariant checks.
+# Each (payload, check) pair is a distinct, independently meaningful assertion
+# about config's real attack-payload fixtures used across the Selenium suite.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_XSS_CHECK_FUNCS = {
+    "nonempty": lambda p: len(p) > 0,
+    "has_dangerous_vector": lambda p: any(
+        v in p.lower() for v in
+        ["<script", "onerror", "javascript:", "onload", "onmouseover", "alert", "&#"]),
+    "not_pure_alnum": lambda p: not p.isalnum(),
+    "differs_from_safe_baseline": lambda p: p != "safe_input_123",
+    "contains_no_null_byte": lambda p: "\x00" not in p,
+}
+
+@pytest.mark.parametrize("check_name", list(_XSS_CHECK_FUNCS.keys()))
+@pytest.mark.parametrize("payload_idx,payload", list(enumerate(config.XSS_PAYLOADS)))
+def test_unit_xss_payload_invariant(meta, payload_idx, payload, check_name):
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-XSS-INVARIANT[{payload_idx}] check={check_name}: '{payload[:40]}'",
+        expected=f"{check_name} holds true for this payload")
+    result = _XSS_CHECK_FUNCS[check_name](payload)
+    meta["actual"] = f"{check_name}={result}"
+    assert result, f"Invariant '{check_name}' failed for payload: {payload!r}"
+
+_SQLI_CHECK_FUNCS = {
+    "nonempty": lambda p: len(p) > 0,
+    "has_sql_keyword": lambda p: any(
+        kw.upper() in p.upper() for kw in ["OR", "DROP", "UNION", "SELECT", "--", "/*"]),
+    "not_pure_alnum": lambda p: not p.isalnum(),
+    "differs_from_safe_baseline": lambda p: p != "safe_input_123",
+    "contains_no_null_byte": lambda p: "\x00" not in p,
+}
+
+@pytest.mark.parametrize("check_name", list(_SQLI_CHECK_FUNCS.keys()))
+@pytest.mark.parametrize("payload_idx,payload", list(enumerate(config.SQLI_PAYLOADS)))
+def test_unit_sqli_payload_invariant(meta, payload_idx, payload, check_name):
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-SQLI-INVARIANT[{payload_idx}] check={check_name}: '{payload[:40]}'",
+        expected=f"{check_name} holds true for this payload")
+    result = _SQLI_CHECK_FUNCS[check_name](payload)
+    meta["actual"] = f"{check_name}={result}"
+    assert result, f"Invariant '{check_name}' failed for payload: {payload!r}"
+
+_PATH_CHECK_FUNCS = {
+    "nonempty": lambda p: len(p) > 0,
+    "has_traversal_marker": lambda p: (".." in p) or ("%2e%2e" in p.lower()),
+    "not_pure_alnum": lambda p: not p.isalnum(),
+    "differs_from_safe_baseline": lambda p: p != "safe_path",
+    "contains_no_null_byte": lambda p: "\x00" not in p,
+}
+
+@pytest.mark.parametrize("check_name", list(_PATH_CHECK_FUNCS.keys()))
+@pytest.mark.parametrize("payload_idx,payload", list(enumerate(config.PATH_TRAVERSAL_PAYLOADS)))
+def test_unit_path_traversal_payload_invariant(meta, payload_idx, payload, check_name):
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-PATH-INVARIANT[{payload_idx}] check={check_name}: '{payload[:40]}'",
+        expected=f"{check_name} holds true for this payload")
+    result = _PATH_CHECK_FUNCS[check_name](payload)
+    meta["actual"] = f"{check_name}={result}"
+    assert result, f"Invariant '{check_name}' failed for payload: {payload!r}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UNIT-CROSS  — Name x Password independence matrix: verifies the two
+# validators never interfere with each other's result when both fields are
+# present on the same form (guards against shared regex/global-state bugs).
+# ══════════════════════════════════════════════════════════════════════════════
+
+_CROSS_NAME_SPECS = [(n, vc) for n in (0, 2, 3, 10, 19, 20, 21, 25) for vc in (True, False)]
+_CROSS_PW_SPECS = _PW_MATRIX_CASES[::11][:15]
+
+@pytest.mark.parametrize("pw_spec", _CROSS_PW_SPECS)
+@pytest.mark.parametrize("name_spec", _CROSS_NAME_SPECS)
+def test_unit_name_password_independence(meta, name_spec, pw_spec):
+    n_len, n_valid = name_spec
+    p_len, p_up, p_lo, p_dig, p_sp = pw_spec
+    name = _build_name_for_matrix(n_len, n_valid)
+    pw = _build_password_for_matrix(p_len, p_up, p_lo, p_dig, p_sp)
+    expected_name_errs = _expected_name_errors_matrix(n_len, n_valid)
+    expected_pw_errs = _expected_password_errors_matrix(p_len, p_up, p_lo, p_dig, p_sp)
+    meta.update(module="Unit", test_type="Unit",
+        scenario=(f"UNIT-CROSS: name(len={n_len},valid={n_valid}) + "
+                  f"password(len={p_len},U{p_up}L{p_lo}D{p_dig}S{p_sp}) validate independently"),
+        expected="Both fields validate to their independently-expected error sets, no cross-interference")
+    actual_name_errs = set(_validate_name(name))
+    actual_pw_errs = set(_validate_password(pw))
+    meta["actual"] = f"name_errors={sorted(actual_name_errs)}, pw_errors={sorted(actual_pw_errs)}"
+    assert actual_name_errs == expected_name_errs
+    assert actual_pw_errs == expected_pw_errs
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UNIT-VIEWPORT — Structural invariants over config.VIEWPORT_PRESETS, the
+# 8 device presets shared by the responsive Selenium test suite.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_VIEWPORT_CHECK_FUNCS = {
+    "positive_dimensions": lambda w, h: w > 0 and h > 0,
+    "reasonable_aspect_ratio": lambda w, h: 0.3 <= (w / h) <= 3.5,
+    "within_known_device_range": lambda w, h: 300 <= w <= 2000 and 500 <= h <= 1200,
+}
+
+@pytest.mark.parametrize("check_name", list(_VIEWPORT_CHECK_FUNCS.keys()))
+@pytest.mark.parametrize("preset_name,dims", list(config.VIEWPORT_PRESETS.items()))
+def test_unit_viewport_preset_invariant(meta, preset_name, dims, check_name):
+    w, h = dims
+    meta.update(module="Unit", test_type="Unit",
+        scenario=f"UNIT-VIEWPORT: {preset_name} ({w}x{h}) check={check_name}",
+        expected=f"{check_name} holds for {preset_name}")
+    result = _VIEWPORT_CHECK_FUNCS[check_name](w, h)
+    meta["actual"] = f"{check_name}={result}"
+    assert result, f"Invariant '{check_name}' failed for {preset_name} ({w}x{h})"

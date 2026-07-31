@@ -14,7 +14,13 @@ class TabBarPage(BasePage):
     }
 
     def is_displayed(self) -> bool:
-        return all(self.pressable_exists(label, timeout=3) for label in ("Home", "Speech", "Profile"))
+        # Allow up to 20s for the Supabase auth round-trip + onAuthStateChange
+        # + React Navigation stack swap to complete before checking tab labels.
+        return all(self.pressable_exists(label, timeout=20) for label in ("Home", "Speech", "Profile"))
+
+    def is_displayed_quick(self) -> bool:
+        """Fast check (3s) used when we expect the tab bar NOT to be present."""
+        return any(self.pressable_exists(label, timeout=3) for label in ("Home", "Speech", "Profile"))
 
     def go_to(self, tab_label: str):
         self.click_pressable(tab_label)

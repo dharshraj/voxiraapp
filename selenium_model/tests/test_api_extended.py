@@ -125,17 +125,15 @@ def test_api_008_storage_endpoint_reachable(meta):
     ("groq-analysis",          True),
     ("assemblyai-transcribe",  False),   # known defect: 404 (not deployed)
     ("assemblyai-poll",        False),   # known defect: 404 (not deployed)
-    ("openai-proxy",           None),    # dead code — skip result assertion
+    # openai-proxy removed from project 2026-07-31 — no client callers, no deployment
 ])
 def test_api_009_edge_function_status(fn_name, expect_deployed, meta):
     meta.update(module="API Validation", test_type="API",
         scenario=f"API-009: Edge Function '{fn_name}' deployment status",
-        expected=f"expected_deployed={expect_deployed} (None=informational)")
+        expected=f"expected_deployed={expect_deployed}")
     url = f"{SB_URL}/functions/v1/{fn_name}"
     r = requests.post(url, json={}, headers=HEADERS_AUTH, timeout=10)
     meta["actual"] = f"POST {url} -> HTTP {r.status_code}"
-    if expect_deployed is None:
-        pytest.skip(f"'{fn_name}' is dead code (no client caller) — status={r.status_code}")
     if expect_deployed:
         assert r.status_code != 404, (
             f"DEFECT: Edge function '{fn_name}' returned 404 — not deployed. "
@@ -280,7 +278,7 @@ def test_api_019_auth_signup_empty_body_rejected(meta):
         expected="HTTP 400 or 422 — server validates required fields")
     url = f"{SB_URL}/auth/v1/signup"
     r = requests.post(url, json={}, headers=HEADERS_ANON, timeout=10)
-    meta["actual"] = f"POST {url} {} -> HTTP {r.status_code}"
+    meta["actual"] = f"POST {url} -> HTTP {r.status_code}"
     assert r.status_code in (400, 422), f"Expected 400/422, got {r.status_code}"
 
 @_SB_SKIP
@@ -416,3 +414,81 @@ def test_api_030_concurrent_auth_requests_stable(meta):
     meta["actual"] = f"status_codes={codes}"
     bad = [c for c in codes if c >= 500]
     assert not bad, f"5xx under low concurrency: {bad}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API-RLS-MATRIX — table x write-method: anon key must never succeed at
+# mutating another user's data, across every RLS-protected table.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_RLS_TABLES = ["profiles", "speech_sessions", "notifications"]
+_RLS_WRITE_METHODS = ["POST", "PATCH", "DELETE"]
+
+@_SB_SKIP
+@pytest.mark.parametrize("method", _RLS_WRITE_METHODS)
+@pytest.mark.parametrize("table", _RLS_TABLES)
+def test_api_rls_write_blocked_matrix(meta, table, method):
+    meta.update(module="API Validation", test_type="API",
+        scenario=f"API-RLS-MATRIX: {method} {table} with anon key never mutates real data",
+        expected="HTTP 400/401/403/404/409/422, or 204 with 0 rows affected (RLS-invisible target)")
+    url = f"{SB_URL}/rest/v1/{table}?id=eq.00000000-0000-0000-0000-000000000000"
+    body = {"id": "00000000-0000-0000-0000-000000000000"}
+    r = requests.request(method, url, json=body, headers=HEADERS_AUTH, timeout=10)
+    meta["actual"] = f"{method} {table} -> HTTP {r.status_code}, body={r.text[:80]!r}"
+    if r.status_code == 204:
+        # PostgREST returns 204 for a successful write filter that matched 0 rows —
+        # here the target UUID doesn't exist, so this confirms no real row was
+        # touched, not a bypass of RLS. An empty body is the safe/expected shape.
+        assert not r.text.strip(), (
+            f"204 response for anon {method} on {table} unexpectedly has a body: {r.text[:200]}"
+        )
+    else:
+        assert r.status_code in (400, 401, 403, 404, 409, 422), (
+            f"Unexpected status for anon {method} on {table}: {r.status_code}"
+        )
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API-HEADER-MATRIX — endpoint x header: no internal stack disclosure anywhere.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_HEADER_ENDPOINTS = ["/rest/v1/", "/auth/v1/", "/storage/v1/"]
+_FORBIDDEN_HEADER_VALUES = {
+    "server": ["apache", "nginx/", "iis/", "express/", "uvicorn"],
+    "x-powered-by": None,  # any nonempty value is forbidden
+}
+
+@_SB_SKIP
+@pytest.mark.parametrize("header_name", list(_FORBIDDEN_HEADER_VALUES.keys()))
+@pytest.mark.parametrize("endpoint", _HEADER_ENDPOINTS)
+def test_api_no_stack_disclosure_matrix(meta, endpoint, header_name):
+    meta.update(module="API Validation", test_type="API",
+        scenario=f"API-HEADER-MATRIX: {endpoint} does not leak via '{header_name}' header",
+        expected="Header absent or contains no internal stack disclosure")
+    url = f"{SB_URL}{endpoint}"
+    r = requests.get(url, headers=HEADERS_ANON, timeout=10)
+    val = r.headers.get(header_name, "").lower()
+    meta["actual"] = f"{header_name}='{val}'"
+    forbidden = _FORBIDDEN_HEADER_VALUES[header_name]
+    if forbidden is None:
+        assert not val, f"'{header_name}' header present: '{val}'"
+    else:
+        hit = [v for v in forbidden if v in val]
+        assert not hit, f"Internal stack disclosed via '{header_name}': '{val}'"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API-TIMING-MATRIX — response time budget across core endpoints.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_TIMING_ENDPOINTS = [("/rest/v1/", 3.0), ("/auth/v1/", 3.0), ("/storage/v1/", 4.0)]
+
+@_SB_SKIP
+@pytest.mark.parametrize("endpoint,max_sec", _TIMING_ENDPOINTS)
+def test_api_endpoint_response_time_matrix(meta, endpoint, max_sec):
+    meta.update(module="API Validation", test_type="API",
+        scenario=f"API-TIMING-MATRIX: {endpoint} responds within {max_sec}s",
+        expected=f"response_time < {max_sec}s")
+    url = f"{SB_URL}{endpoint}"
+    t0 = time.time()
+    r = requests.get(url, headers=HEADERS_ANON, timeout=10)
+    elapsed = round(time.time() - t0, 2)
+    meta["actual"] = f"response_time={elapsed}s, HTTP={r.status_code}"
+    assert elapsed < max_sec, f"{endpoint} too slow: {elapsed}s"

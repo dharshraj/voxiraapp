@@ -38,6 +38,14 @@ def _open_login(driver):
 def _login_with_test_account(driver):
     login = _open_login(driver)
     login.login(config.TEST_USER_EMAIL, config.TEST_USER_PASSWORD)
+    # Wait for: Supabase auth round-trip + onAuthStateChange + React stack swap
+    time.sleep(5)
+    # Check if Supabase wrote a session token to localStorage
+    session_in_storage = driver.execute_script(
+        "return Object.keys(localStorage).some(k => k.includes('supabase') || k.includes('auth'))"
+    )
+    if session_in_storage:
+        time.sleep(8)
     tabs = TabBarPage(driver)
     assert tabs.is_displayed(), "Tab bar not shown after login"
     time.sleep(ANIM)
@@ -339,6 +347,8 @@ def test_nav_026_profile_to_settings(driver, meta):
     meta.update(module="Navigation", test_type="Selenium",
         scenario="NAV-026: Settings menu item on ProfileScreen → SettingsScreen",
         expected="'Settings' heading visible")
+    # Extra settle: this test runs after many authenticated tests in sequence
+    time.sleep(2)
     tabs = _login_with_test_account(driver)
     tabs.go_to("Profile")
     ProfilePage(driver).click_settings()

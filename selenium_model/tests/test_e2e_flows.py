@@ -31,6 +31,16 @@ def _login_test_account(driver):
     _start(driver)
     WelcomePage(driver).click_sign_in()
     LoginPage(driver).login(config.TEST_USER_EMAIL, config.TEST_USER_PASSWORD)
+    # Wait for: Supabase auth round-trip + onAuthStateChange + React stack swap
+    time.sleep(5)
+    # Check if Supabase wrote a session token to localStorage
+    # (this confirms the auth call succeeded even if React hasn't re-rendered yet)
+    session_in_storage = driver.execute_script(
+        "return Object.keys(localStorage).some(k => k.includes('supabase') || k.includes('auth'))"
+    )
+    if session_in_storage:
+        # Session exists — give React more time to pick it up
+        time.sleep(8)
     tabs = TabBarPage(driver)
     assert tabs.is_displayed(), "Login failed — Dashboard not reached"
     time.sleep(ANIM)
@@ -304,9 +314,10 @@ def test_e2e_016_tab_bar_shown_only_when_authenticated(driver, meta):
         expected="Home/Speech/Profile tabs absent on WelcomeScreen and LoginScreen")
     _start(driver)
     tab = TabBarPage(driver)
-    tabs_on_welcome = tab.is_displayed()
+    # Use quick check (3s) since we EXPECT tabs to be absent — no point waiting 20s
+    tabs_on_welcome = tab.is_displayed_quick()
     WelcomePage(driver).click_sign_in()
-    tabs_on_login = tab.is_displayed()
+    tabs_on_login = tab.is_displayed_quick()
     meta["actual"] = f"tabs_on_welcome={tabs_on_welcome}, tabs_on_login={tabs_on_login}"
     assert not tabs_on_welcome, "Tab bar visible before authentication (Welcome)"
     assert not tabs_on_login,   "Tab bar visible before authentication (Login)"

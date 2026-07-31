@@ -84,7 +84,6 @@ UNUSED_FILES = [
     ("ProfileStack.tsx", "src/navigation/ProfileStack.tsx", "Empty stub — superseded by inline ProfileStack() in RootNavigator.tsx", "Medium"),
     ("SpeechStack.tsx", "src/navigation/SpeechStack.tsx", "Empty stub — superseded by inline SpeechStack() in RootNavigator.tsx", "Medium"),
     ("HelpScreen.tsx", "src/screens/settings/HelpScreen.tsx", "Fully implemented (search+FAQ+contact) but not registered in RootNavigator.tsx — unreachable", "High"),
-    ("openai-proxy/index.ts", "supabase/functions/openai-proxy/index.ts", "Deployed-looking Edge Function with zero client-side callers", "Medium"),
     ("test-debug.js / test-full.js / test-register.js / test-screenshot.js / test-screenshot2.js", "repo root", "Ad-hoc Playwright debug scripts committed at project root, not part of any structured test suite", "Low"),
     ("dbg_*.png / screen_*.png (~3.5MB)", "repo root", "Debug screenshots committed to the repo root", "Low"),
     ("c:Users91637VoxiraAppsrcutils", "repo root", "Malformed empty directory artifact from an earlier shell command", "Low"),
@@ -154,7 +153,7 @@ LARGE_FILES_NOTE = "src/navigation/RootNavigator.tsx (352 lines) defines every s
 # ---------------------------------------------------------------- Security observations --
 SECURITY_OBSERVATIONS = [
     ("Client-side API key usage", "services/speechService.ts calls the AssemblyAI REST API directly with a client-embedded key (EXPO_PUBLIC_ASSEMBLYAI_KEY) as a fallback path, alongside the proper server-side Edge Function path (assemblyai-transcribe/poll). Client-embedded keys are extractable from any web/mobile build.", "Medium", "Remove the direct-fetch fallback and route all AssemblyAI calls through the Edge Function exclusively."),
-    ("Dead Edge Function still deployed", "openai-proxy Edge Function has no client caller but (if deployed) remains an open network-reachable endpoint.", "Low", "Remove the deployment if truly unused, or confirm it's intentionally reserved."),
+    # openai-proxy Edge Function removed 2026-07-31 — deleted from supabase/functions/ and no client callers existed.
     ("Account deletion re-auth", "DeleteAccountScreen re-authenticates via signInWithPassword before deleting — a good practice; no negative finding here, noted for completeness.", "Low", "None — reference the pattern for other destructive flows."),
     ("No rate-limit/backoff visible on auth forms", "LoginScreen/RegisterScreen/ForgotPasswordScreen submit directly to Supabase on every click with no client-side debounce; relies entirely on Supabase's own rate limiting.", "Low", "Consider a short client-side cooldown to reduce accidental duplicate submissions and email-quota exhaustion (RegisterScreen's own error handling already anticipates Supabase email rate-limit errors)."),
 ]
