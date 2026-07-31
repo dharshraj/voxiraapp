@@ -11,6 +11,21 @@ from pathlib import Path
 ROOT_DIR     = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT_DIR.parent
 
+# ── Auto-load .env.test if VOXIRA_TEST_EMAIL not already set in environment ───
+# This means running `python -m pytest` directly (without run_tests.ps1) still
+# picks up the QA credentials automatically.
+_env_test = ROOT_DIR / ".env.test"
+if _env_test.exists() and os.environ.get("VOXIRA_TEST_EMAIL", "") == "":
+    with open(_env_test, encoding="utf-8") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                _k, _v = _k.strip(), _v.strip()
+                # Only set if not already in environment (env vars take priority)
+                if _k and not os.environ.get(_k):
+                    os.environ[_k] = _v
+
 # ── Web target ────────────────────────────────────────────────────────────────
 BASE_URL = os.environ.get("VOXIRA_BASE_URL", "http://localhost:8081")
 

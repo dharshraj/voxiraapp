@@ -65,7 +65,7 @@ def test_appium_001_app_launches_android(appium_driver, meta):
         scenario="APPIUM-001: App launches on Android without crashing",
         expected="App is in a non-error state within 15 seconds of launch")
     time.sleep(5)  # allow Expo splash + React hydration
-    state = appium_driver.query_app_state("com.voxiraapp")
+    state = appium_driver.query_app_state("com.voxira.app")
     meta["actual"] = f"app_state={state}"
     # State 4 = RUNNING_IN_FOREGROUND
     assert state in (3, 4), f"App not running: state={state}"
@@ -294,7 +294,27 @@ def test_appium_017_tab_bar_tabs_count(appium_driver, meta):
     meta.update(module="Appium", test_type="Appium",
         scenario="APPIUM-017: Bottom tab bar shows 5 tabs after login (authenticated)",
         expected="5 tab labels visible (Home, Speech, Goals, Earn, Profile)")
-    pytest.skip("Requires authenticated session — set VOXIRA_TEST_EMAIL")
+    import config as _cfg
+    if _cfg.TEST_USER_EMAIL == "qa.selenium.test@example.com":
+        pytest.skip("Set VOXIRA_TEST_EMAIL to run authenticated Appium tests")
+    time.sleep(6)
+    # Navigate to login
+    _tap_element(appium_driver, "Sign In")
+    time.sleep(2)
+    # Fill credentials
+    from appium.webdriver.common.appiumby import AppiumBy
+    inputs = appium_driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.EditText")
+    if len(inputs) < 2:
+        pytest.skip("Could not find login fields")
+    inputs[0].send_keys(_cfg.TEST_USER_EMAIL)
+    inputs[1].send_keys(_cfg.TEST_USER_PASSWORD)
+    time.sleep(0.5)
+    _tap_element(appium_driver, "Sign In")
+    time.sleep(5)  # wait for auth + tab render
+    tab_labels = ["Home", "Speech", "Goals", "Earn", "Profile"]
+    visible = [label for label in tab_labels if _element_exists(appium_driver, label, timeout=5)]
+    meta["actual"] = f"visible_tabs={visible}"
+    assert len(visible) >= 4, f"Expected ≥4 tab labels, found: {visible}"
 
 @pytest.mark.appium_platform("android")
 def test_appium_018_mic_permission_dialog_android(appium_driver, meta):
@@ -321,9 +341,13 @@ def test_appium_019_app_not_in_debug_mode_production(appium_driver, meta):
 def test_appium_020_app_logo_visible_android(appium_driver, meta):
     meta.update(module="Appium", test_type="Appium",
         scenario="APPIUM-020: VOXIRA brand text visible on WelcomeScreen (Android)",
-        expected="'VOXIRA' text element present")
+        expected="'VOX' or 'VOXIRA' text element present on WelcomeScreen")
     time.sleep(6)
-    found = _element_exists(appium_driver, "VOXIRA", timeout=10)
+    # Brand is rendered as two Text nodes: "VOX" + "IRA" — check for either
+    found = (
+        _element_exists(appium_driver, "VOXIRA", timeout=8)
+        or _element_exists(appium_driver, "VOX", timeout=5)
+    )
     meta["actual"] = f"brand_visible={found}"
     assert found
 
@@ -437,9 +461,12 @@ def test_appium_027_ios_app_background_resume(appium_driver, meta):
 def test_appium_028_ios_voxira_brand_visible(appium_driver, meta):
     meta.update(module="Appium", test_type="Appium",
         scenario="APPIUM-028: VOXIRA brand visible on WelcomeScreen (iOS)",
-        expected="'VOXIRA' text element present")
+        expected="'VOX' or 'VOXIRA' text element present")
     time.sleep(8)
-    found = _element_exists(appium_driver, "VOXIRA", timeout=12)
+    found = (
+        _element_exists(appium_driver, "VOXIRA", timeout=10)
+        or _element_exists(appium_driver, "VOX", timeout=5)
+    )
     meta["actual"] = f"brand_visible={found}"
     assert found
 

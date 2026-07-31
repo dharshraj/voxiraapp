@@ -1,8 +1,8 @@
 """API validation: confirm the external services this app depends on
 (Supabase project, Supabase Edge Functions) are reachable, without needing
-valid secrets — an auth-rejection response (401/400/404) still proves the
+valid secrets — an auth-rejection response (401/400/500) still proves the
 endpoint is live and routed correctly. Endpoints identified via source audit
-of src/lib/supabase.ts, src/lib/openai.ts, src/services/speechService.ts,
+of src/lib/supabase.ts, src/lib/groq.ts, src/services/speechService.ts,
 and supabase/functions/*."""
 import os
 import requests
@@ -64,7 +64,7 @@ def test_supabase_auth_endpoint_rejects_bad_credentials(meta):
 
 
 @pytest.mark.skipif(not SUPABASE_URL, reason="EXPO_PUBLIC_SUPABASE_URL not set in .env")
-@pytest.mark.parametrize("fn_name", ["assemblyai-transcribe", "assemblyai-poll", "groq-analysis", "openai-proxy"])
+@pytest.mark.parametrize("fn_name", ["assemblyai-transcribe", "assemblyai-poll", "groq-analysis"])
 def test_supabase_edge_function_deployed(fn_name, meta):
     meta["module"] = "API Validation"
     meta["scenario"] = f"Edge Function '{fn_name}' is deployed and routed (supabase/functions/{fn_name})"
@@ -73,9 +73,6 @@ def test_supabase_edge_function_deployed(fn_name, meta):
     try:
         resp = requests.post(url, json={}, timeout=10)
         meta["actual"] = f"POST {url} -> HTTP {resp.status_code}"
-        if fn_name == "openai-proxy":
-            # Known dead code per source audit: no client caller. Still report actual status, don't hard-fail the suite.
-            pytest.skip(f"openai-proxy has no client-side caller (dead code, see Dead Code sheet) — status was {resp.status_code}")
         assert resp.status_code != 404, f"Edge Function '{fn_name}' returned 404 — not deployed or misrouted"
     except requests.RequestException as e:
         meta["actual"] = f"Request failed: {e}"
