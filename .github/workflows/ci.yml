@@ -6,41 +6,35 @@ on:
   pull_request:
     branches: [ main ]
 
-# Cancel in-progress runs on the same branch when a new push arrives
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
-    name: Run 289 automated tests
+    name: Run automated tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     env:
-      # ── Supabase (public keys only — safe to expose) ──────────────────────
       EXPO_PUBLIC_SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
-      # ── QA test account ───────────────────────────────────────────────────
-      VOXIRA_TEST_EMAIL:    ${{ secrets.VOXIRA_TEST_EMAIL }}
-      VOXIRA_TEST_PASSWORD: ${{ secrets.VOXIRA_TEST_PASSWORD }}
-      # ── Selenium config ───────────────────────────────────────────────────
-      VOXIRA_BASE_URL:     http://localhost:8081
-      VOXIRA_HEADLESS:     "1"
-      VOXIRA_WINDOW_WIDTH: "1440"
-      VOXIRA_WINDOW_HEIGHT: "1024"
-      VOXIRA_BROWSER:      chrome
-      VOXIRA_IMPLICIT_WAIT: "3"
-      VOXIRA_EXPLICIT_WAIT: "15"
+      VOXIRA_TEST_EMAIL:             ${{ secrets.VOXIRA_TEST_EMAIL }}
+      VOXIRA_TEST_PASSWORD:          ${{ secrets.VOXIRA_TEST_PASSWORD }}
+      VOXIRA_BASE_URL:               http://localhost:8081
+      VOXIRA_HEADLESS:               "1"
+      VOXIRA_WINDOW_WIDTH:           "1440"
+      VOXIRA_WINDOW_HEIGHT:          "1024"
+      VOXIRA_BROWSER:                chrome
+      VOXIRA_IMPLICIT_WAIT:          "3"
+      VOXIRA_EXPLICIT_WAIT:          "15"
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────────
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - uses: actions/checkout@v4
 
-      # ── 2. Node.js (for Expo web server) ──────────────────────────────────
-      - name: Set up Node.js 18
-        uses: actions/setup-node@v4
+      # ── 2. Node 18 ────────────────────────────────────────────────────────
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -48,18 +42,31 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      # ── 3. Start Expo web server in background ────────────────────────────
-      - name: Start Expo web server
+      # ── 3. Write .env so Expo export bakes in the Supabase keys ──────────
+      - name: Write .env
         run: |
-          npx expo export --platform web --output-dir dist-web 2>&1 | tail -5 &
-          npx expo start --web --non-interactive &
-          echo "Waiting for Expo web server..."
-          timeout 60 bash -c 'until curl -sf http://localhost:8081 > /dev/null 2>&1; do sleep 2; done'
-          echo "Expo server ready at localhost:8081"
+          printf 'EXPO_PUBLIC_SUPABASE_URL=%s\n'      "$EXPO_PUBLIC_SUPABASE_URL"      > .env
+          printf 'EXPO_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$EXPO_PUBLIC_SUPABASE_ANON_KEY" >> .env
+          echo ".env written:"
+          cat .env
 
-      # ── 4. Python ─────────────────────────────────────────────────────────
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      # ── 4. Build Expo web bundle ──────────────────────────────────────────
+      - name: Build Expo web bundle
+        run: |
+          npx expo export --platform web --output-dir dist-web
+          ls dist-web/
+        timeout-minutes: 10
+
+      # ── 5. Serve on :8081 ─────────────────────────────────────────────────
+      - name: Start static server on :8081
+        run: |
+          npm install -g serve@14
+          serve -s dist-web -l 8081 &
+          sleep 3
+          curl -sf http://localhost:8081 > /dev/null && echo "Server OK" || echo "Server not ready yet"
+
+      # ── 6. Python 3.12 ────────────────────────────────────────────────────
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -68,42 +75,35 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r selenium_model/requirements.txt
 
-      # ── 5. Chrome (headless) ──────────────────────────────────────────────
-      - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
+      # ── 7. Chrome (headless) ──────────────────────────────────────────────
+      - uses: browser-actions/setup-chrome@v1
         with:
           chrome-version: stable
 
-      # ── 6. Write .env for Python tests ────────────────────────────────────
-      - name: Write .env for Supabase connection
-        run: |
-          echo "EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL" > .env
-          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY" >> .env
-
-      # ── 7. Run unit tests (no browser, fast) ──────────────────────────────
-      - name: Run unit tests
+      # ── 8. Unit tests — pure Python, no browser needed ───────────────────
+      - name: Unit tests (55)
         working-directory: selenium_model
         run: |
           python -m pytest tests/test_unit.py \
-            -v --tb=short \
+            -v --tb=short -q \
             --html=reports/html/unit_report.html \
-            --self-contained-html \
-            -q
+            --self-contained-html
         continue-on-error: false
 
-      # ── 8. Run API validation tests ────────────────────────────────────────
-      - name: Run API tests
+      # ── 9. API tests — HTTP only ──────────────────────────────────────────
+      - name: API tests (33)
         working-directory: selenium_model
         run: |
-          python -m pytest tests/test_api_validation.py tests/test_api_extended.py \
-            -v --tb=short \
+          python -m pytest \
+            tests/test_api_validation.py \
+            tests/test_api_extended.py \
+            -v --tb=short -q \
             --html=reports/html/api_report.html \
-            --self-contained-html \
-            -q
-        continue-on-error: true   # Supabase may rate-limit in CI
+            --self-contained-html
+        continue-on-error: true
 
-      # ── 9. Run Selenium tests ─────────────────────────────────────────────
-      - name: Run Selenium tests (headless Chrome)
+      # ── 10. Selenium tests — headless Chrome ─────────────────────────────
+      - name: Selenium tests (201)
         working-directory: selenium_model
         run: |
           python -m pytest \
@@ -119,20 +119,19 @@ jobs:
             tests/test_vulnerability.py \
             tests/test_accessibility_and_ui.py \
             tests/test_broken_links.py \
-            -v --tb=short \
+            -v --tb=short -q \
             --html=reports/html/execution_report.html \
             --self-contained-html \
-            -n 2 \
-            -q
-        continue-on-error: true   # Report failures but don't block merge
+            -n 2
+        continue-on-error: true
 
-      # ── 10. Generate Excel audit report ────────────────────────────────────
+      # ── 11. Generate Excel report ─────────────────────────────────────────
       - name: Generate Excel report
         working-directory: selenium_model
         run: python audit/generate_report.py
         continue-on-error: true
 
-      # ── 11. Upload test artifacts ─────────────────────────────────────────
+      # ── 12. Upload artifacts ──────────────────────────────────────────────
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -145,40 +144,37 @@ jobs:
             selenium_model/reports/test_results.json
           retention-days: 30
 
-      - name: Upload screenshots on failure
+      - name: Upload failure screenshots
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: screenshots-${{ github.run_number }}
           path: selenium_model/reports/screenshots/
           retention-days: 7
 
-      # ── 12. Print summary ─────────────────────────────────────────────────
-      - name: Print test summary
+      # ── 13. Summary ───────────────────────────────────────────────────────
+      - name: Print results summary
         working-directory: selenium_model
         if: always()
         run: |
           python -c "
-          import json
-          from pathlib import Path
+          import json; from pathlib import Path
           f = Path('reports/test_results.json')
           if f.exists():
-              data = json.loads(f.read_text())
-              total   = len(data)
-              passed  = sum(1 for r in data if r['status'] == 'Passed')
-              failed  = sum(1 for r in data if r['status'] == 'Failed')
-              skipped = sum(1 for r in data if r['status'] == 'Skipped')
-              rate    = round(100*passed/total, 1) if total else 0
+              d = json.loads(f.read_text())
+              t = len(d)
+              p = sum(1 for r in d if r['status']=='Passed')
+              fa = sum(1 for r in d if r['status']=='Failed')
+              s = sum(1 for r in d if r['status']=='Skipped')
               print(f'')
               print(f'================================')
-              print(f'  TEST RESULTS SUMMARY')
+              print(f'  TEST RESULTS')
               print(f'================================')
-              print(f'  Total:   {total}')
-              print(f'  Passed:  {passed}')
-              print(f'  Failed:  {failed}')
-              print(f'  Skipped: {skipped}')
-              print(f'  Rate:    {rate}%')
+              print(f'  Total:   {t}')
+              print(f'  Passed:  {p}  ({round(100*p/t,1) if t else 0}%)')
+              print(f'  Failed:  {fa}')
+              print(f'  Skipped: {s}')
               print(f'================================')
           else:
-              print('No test_results.json found')
+              print('No results file yet')
           "
