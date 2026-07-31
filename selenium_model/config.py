@@ -54,9 +54,9 @@ VIEWPORT_PRESETS = {
 APPIUM_SERVER_URL   = os.environ.get("APPIUM_SERVER_URL",   "http://localhost:4723")
 ANDROID_APP_PATH    = os.environ.get("ANDROID_APP_PATH",    str(PROJECT_ROOT / "dist" / "voxira.apk"))
 IOS_APP_PATH        = os.environ.get("IOS_APP_PATH",        str(PROJECT_ROOT / "dist" / "voxira.ipa"))
-ANDROID_DEVICE_NAME = os.environ.get("ANDROID_DEVICE_NAME", "emulator-5554")
+ANDROID_DEVICE_NAME = os.environ.get("ANDROID_DEVICE_NAME", "10BD6G2LZ0000FK")
 IOS_DEVICE_NAME     = os.environ.get("IOS_DEVICE_NAME",     "iPhone 15 Simulator")
-ANDROID_PLATFORM_VERSION = os.environ.get("ANDROID_PLATFORM_VERSION", "13.0")
+ANDROID_PLATFORM_VERSION = os.environ.get("ANDROID_PLATFORM_VERSION", "15")
 IOS_PLATFORM_VERSION     = os.environ.get("IOS_PLATFORM_VERSION",     "17.0")
 APPIUM_IMPLICIT_WAIT     = int(os.environ.get("APPIUM_IMPLICIT_WAIT", "5"))
 

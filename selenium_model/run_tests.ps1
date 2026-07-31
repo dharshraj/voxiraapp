@@ -40,8 +40,8 @@ if (Test-Path $adbPath) {
 # Copy the serial (e.g. R3CN90ABCDE or emulator-5554) into ANDROID_DEVICE_NAME
 $env:APPIUM_SERVER_URL         = "http://localhost:4723"
 $env:ANDROID_APP_PATH          = "$PSScriptRoot\..\dist\voxira.apk"
-$env:ANDROID_DEVICE_NAME       = "REPLACE_WITH_ADB_SERIAL"   # <-- fill this in
-$env:ANDROID_PLATFORM_VERSION  = "REPLACE_WITH_ANDROID_VERSION"  # e.g. "13" or "14"
+$env:ANDROID_DEVICE_NAME       = "10BD6G2LZ0000FK"
+$env:ANDROID_PLATFORM_VERSION  = "15"
 
 # ── Performance thresholds ─────────────────────────────────────────────────────
 $env:PERF_DOM_CONTENT_LOADED_MAX = "5000"
