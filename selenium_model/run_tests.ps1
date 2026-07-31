@@ -68,6 +68,7 @@ $env:PERF_FIRST_PAINT_MAX_MS     = "3000"
 Write-Host ""
 Write-Host "=====================================================================" -ForegroundColor Cyan
 Write-Host "  STEP 1/3 — Selenium + Unit + Perf + Vuln + Validation tests" -ForegroundColor Cyan
+Write-Host "  (403 total: unit/api/selenium/extended — Appium in Step 2)" -ForegroundColor Cyan
 Write-Host "=====================================================================" -ForegroundColor Cyan
 
 python -m pytest tests/ `
@@ -76,7 +77,7 @@ python -m pytest tests/ `
   --tb=short `
   --html=reports/html/execution_report.html `
   --self-contained-html `
-  -n auto `
+  -q `
   2>&1
 
 # ─────────────────────────────────────────────────────────────────────────────
