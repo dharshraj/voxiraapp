@@ -549,8 +549,9 @@ def main():
         print(f"[report] Styling note: {ex}")
 
     print(f"\n{'='*55}")
-    print(f"  MASTER TEST AUDIT REPORT — {total} tests | {rate}% pass")
-    print(f"  {len(defects)} defects | {len(load)} load entries")
+    print(f"  MASTER TEST AUDIT REPORT (20 sheets)")
+    print(f"  {total} tests | {rate}% pass | {len(defects)} defects")
+    print(f"  {len(load)} load entries")
     print(f"  Saved -> {OUTPUT}")
     print(f"{'='*55}\n")
 
