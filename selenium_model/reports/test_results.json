@@ -13892,8 +13892,8 @@
     "expected": "App is in a non-error state within 15 seconds of launch",
     "actual": "app_id=com.voxira.app, app_state=4",
     "status": "Passed",
-    "duration_sec": 5.453,
-    "timestamp": "2026-08-03 00:07:46",
+    "duration_sec": 5.436,
+    "timestamp": "2026-08-03 00:35:22",
     "screenshot": ""
   },
   {
@@ -13905,8 +13905,8 @@
     "expected": "'Get Started Free' text element present",
     "actual": "get_started_visible=True",
     "status": "Passed",
-    "duration_sec": 6.167,
-    "timestamp": "2026-08-03 00:08:13",
+    "duration_sec": 6.201,
+    "timestamp": "2026-08-03 00:35:48",
     "screenshot": ""
   },
   {
@@ -13918,8 +13918,8 @@
     "expected": "'Skip' element visible on Feature1Screen",
     "actual": "skip_visible=True",
     "status": "Passed",
-    "duration_sec": 9.126,
-    "timestamp": "2026-08-03 00:08:42",
+    "duration_sec": 9.165,
+    "timestamp": "2026-08-03 00:36:19",
     "screenshot": ""
   },
   {
@@ -13931,8 +13931,8 @@
     "expected": "'Create Account' text visible",
     "actual": "register_visible=True",
     "status": "Passed",
-    "duration_sec": 11.271,
-    "timestamp": "2026-08-03 00:09:15",
+    "duration_sec": 11.358,
+    "timestamp": "2026-08-03 00:36:51",
     "screenshot": ""
   },
   {
@@ -13944,8 +13944,8 @@
     "expected": "'Welcome Back' text visible",
     "actual": "login_visible=True",
     "status": "Passed",
-    "duration_sec": 9.301,
-    "timestamp": "2026-08-03 00:09:47",
+    "duration_sec": 8.659,
+    "timestamp": "2026-08-03 00:37:21",
     "screenshot": ""
   },
   {
@@ -13957,8 +13957,8 @@
     "expected": "'Get Started Free' visible after pressing hardware back",
     "actual": "welcome_after_back=True",
     "status": "Passed",
-    "duration_sec": 11.398,
-    "timestamp": "2026-08-03 00:10:23",
+    "duration_sec": 10.803,
+    "timestamp": "2026-08-03 00:37:54",
     "screenshot": ""
   },
   {
@@ -13970,8 +13970,8 @@
     "expected": "Keyboard is shown after tapping email field",
     "actual": "keyboard_shown=True",
     "status": "Passed",
-    "duration_sec": 12.004,
-    "timestamp": "2026-08-03 00:10:56",
+    "duration_sec": 12.191,
+    "timestamp": "2026-08-03 00:38:26",
     "screenshot": ""
   },
   {
@@ -13983,8 +13983,8 @@
     "expected": "Field contains 'test@example.com' after typing",
     "actual": "field_value='test@example.com'",
     "status": "Passed",
-    "duration_sec": 9.781,
-    "timestamp": "2026-08-03 00:11:31",
+    "duration_sec": 9.837,
+    "timestamp": "2026-08-03 00:38:58",
     "screenshot": ""
   },
   {
@@ -13996,8 +13996,8 @@
     "expected": "'Get Started Free' still visible; landscape rotation itself may be rejected by the OS since app.json declares \"orientation\": \"portrait\" \u2014 that rejection is the app correctly enforcing its own config, not a crash",
     "actual": "rotation_locked_by_app_config=True, app_stable_after_rotate=True",
     "status": "Passed",
-    "duration_sec": 8.299,
-    "timestamp": "2026-08-03 00:12:02",
+    "duration_sec": 8.382,
+    "timestamp": "2026-08-03 00:39:28",
     "screenshot": ""
   },
   {
@@ -14009,8 +14009,8 @@
     "expected": "WelcomeScreen visible after foreground restoration",
     "actual": "welcome_visible_after_background=True",
     "status": "Passed",
-    "duration_sec": 12.104,
-    "timestamp": "2026-08-03 00:12:34",
+    "duration_sec": 11.993,
+    "timestamp": "2026-08-03 00:40:01",
     "screenshot": ""
   },
   {
@@ -14022,8 +14022,8 @@
     "expected": "Stays on LoginScreen after empty submit",
     "actual": "still_on_login=True",
     "status": "Passed",
-    "duration_sec": 10.159,
-    "timestamp": "2026-08-03 00:13:04",
+    "duration_sec": 10.003,
+    "timestamp": "2026-08-03 00:40:32",
     "screenshot": ""
   },
   {
@@ -14035,8 +14035,8 @@
     "expected": "\u22653 android.widget.EditText elements",
     "actual": "input_count=4",
     "status": "Passed",
-    "duration_sec": 10.764,
-    "timestamp": "2026-08-03 00:13:38",
+    "duration_sec": 11.546,
+    "timestamp": "2026-08-03 00:41:04",
     "screenshot": ""
   },
   {
@@ -14048,8 +14048,8 @@
     "expected": "'Forgot Password?' heading visible",
     "actual": "forgot_screen_visible=True",
     "status": "Passed",
-    "duration_sec": 11.257,
-    "timestamp": "2026-08-03 00:14:12",
+    "duration_sec": 10.947,
+    "timestamp": "2026-08-03 00:41:36",
     "screenshot": ""
   },
   {
@@ -14061,8 +14061,8 @@
     "expected": "EditText has password input type attribute",
     "actual": "password_fields=1",
     "status": "Passed",
-    "duration_sec": 8.695,
-    "timestamp": "2026-08-03 00:14:43",
+    "duration_sec": 8.533,
+    "timestamp": "2026-08-03 00:42:05",
     "screenshot": ""
   },
   {
@@ -14074,8 +14074,8 @@
     "expected": "Google button element found",
     "actual": "google_button=True",
     "status": "Passed",
-    "duration_sec": 8.617,
-    "timestamp": "2026-08-03 00:15:13",
+    "duration_sec": 8.66,
+    "timestamp": "2026-08-03 00:42:36",
     "screenshot": ""
   },
   {
@@ -14087,8 +14087,8 @@
     "expected": "App remains stable after swipe gesture",
     "actual": "screen_stable_after_swipe=True",
     "status": "Passed",
-    "duration_sec": 13.593,
-    "timestamp": "2026-08-03 00:15:49",
+    "duration_sec": 12.881,
+    "timestamp": "2026-08-03 00:43:10",
     "screenshot": ""
   },
   {
@@ -14098,10 +14098,10 @@
     "test_type": "Appium",
     "scenario": "APPIUM-017: Bottom tab bar shows 5 tabs after login (authenticated)",
     "expected": "5 tab labels visible (Home, Speech, Goals, Earn, Profile)",
-    "actual": "",
-    "status": "Skipped",
-    "duration_sec": 0.007,
-    "timestamp": "2026-08-03 00:16:11",
+    "actual": "visible_tabs=['Home', 'Speech', 'Goals', 'Earn', 'Profile']",
+    "status": "Passed",
+    "duration_sec": 16.769,
+    "timestamp": "2026-08-03 00:43:47",
     "screenshot": ""
   },
   {
@@ -14110,11 +14110,11 @@
     "module": "Appium",
     "test_type": "Appium",
     "scenario": "APPIUM-018: Mic permission dialog can be accepted on Android",
-    "expected": "Permission dialog appears and can be accepted without crash",
-    "actual": "",
-    "status": "Skipped",
-    "duration_sec": 0.001,
-    "timestamp": "2026-08-03 00:16:33",
+    "expected": "Permission dialog appears when requesting RECORD_AUDIO and can be accepted",
+    "actual": "dialog_shown=True, accepted=True",
+    "status": "Passed",
+    "duration_sec": 20.46,
+    "timestamp": "2026-08-03 00:44:27",
     "screenshot": ""
   },
   {
@@ -14126,8 +14126,8 @@
     "expected": "No 'Metro' or 'Debug' overlay text visible in production build",
     "actual": "metro=False, debugger=False",
     "status": "Passed",
-    "duration_sec": 16.338,
-    "timestamp": "2026-08-03 00:17:09",
+    "duration_sec": 16.322,
+    "timestamp": "2026-08-03 00:45:03",
     "screenshot": ""
   },
   {
@@ -14139,8 +14139,8 @@
     "expected": "'VOX' or 'VOXIRA' text element present on WelcomeScreen",
     "actual": "brand_visible=True",
     "status": "Passed",
-    "duration_sec": 6.194,
-    "timestamp": "2026-08-03 00:17:37",
+    "duration_sec": 6.203,
+    "timestamp": "2026-08-03 00:45:29",
     "screenshot": ""
   }
 ]

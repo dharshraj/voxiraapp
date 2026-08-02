@@ -350,8 +350,54 @@ def test_appium_017_tab_bar_tabs_count(appium_driver, meta):
 def test_appium_018_mic_permission_dialog_android(appium_driver, meta):
     meta.update(module="Appium", test_type="Appium",
         scenario="APPIUM-018: Mic permission dialog can be accepted on Android",
-        expected="Permission dialog appears and can be accepted without crash")
-    pytest.skip("Permission dialog only shown on first run or after permission reset")
+        expected="Permission dialog appears when requesting RECORD_AUDIO and can be accepted")
+    import config as _cfg
+    if _cfg.TEST_USER_EMAIL == "qa.selenium.test@example.com":
+        pytest.skip("Set VOXIRA_TEST_EMAIL to run authenticated Appium tests")
+
+    # Revoke the permission first so the OS dialog is guaranteed to fire —
+    # once granted it stays granted across app restarts (pm clear resets app
+    # storage, not OS-level permission grants), so a prior test run in this
+    # same install would otherwise make this test a silent no-op.
+    import subprocess
+    try:
+        subprocess.run(
+            ["adb", "-s", _cfg.ANDROID_DEVICE_NAME, "shell", "pm", "revoke",
+             _cfg.ANDROID_PACKAGE_NAME, "android.permission.RECORD_AUDIO"],
+            capture_output=True, timeout=10,
+        )
+    except Exception:
+        pass
+
+    time.sleep(6)
+    _tap_element(appium_driver, "Sign In")
+    time.sleep(2)
+    from appium.webdriver.common.appiumby import AppiumBy
+    inputs = appium_driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.EditText")
+    if len(inputs) < 2:
+        pytest.skip("Could not find login fields")
+    inputs[0].send_keys(_cfg.TEST_USER_EMAIL)
+    inputs[1].send_keys(_cfg.TEST_USER_PASSWORD)
+    time.sleep(0.5)
+    _tap_element(appium_driver, "Sign In")
+    time.sleep(5)  # wait for auth + tab render
+
+    _tap_element(appium_driver, "Speech")
+    time.sleep(2)
+    _tap_element(appium_driver, "Start Recording")
+    time.sleep(2)
+
+    dialog_shown = _element_exists(appium_driver, "record audio", timeout=6)
+    accepted = False
+    if dialog_shown:
+        for label in ["While using the app", "Only this time", "Allow"]:
+            if _element_exists(appium_driver, label, timeout=2):
+                _tap_element(appium_driver, label)
+                accepted = True
+                break
+    meta["actual"] = f"dialog_shown={dialog_shown}, accepted={accepted}"
+    assert dialog_shown, "RECORD_AUDIO permission dialog did not appear"
+    assert accepted, "Could not find a button to accept the permission dialog"
 
 @pytest.mark.appium_platform("android")
 def test_appium_019_app_not_in_debug_mode_production(appium_driver, meta):
