@@ -1,8 +1,0 @@
-- name: Upload All Excel Reports
-  uses: actions/upload-artifact@v4
-  if: always()
-  with:
-    name: Excel-Reports
-    path: selenium_model/*.xlsx
-    if-no-files-found: error
-    retention-days: 30
