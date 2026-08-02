@@ -1,0 +1,31 @@
+name: Upload Excel Reports
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  upload-excel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Excel files
+        run: |
+          ls -lh selenium_model
+          test -f selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx
+          test -f selenium_model/REALTIME_TEST_PROGRESS.xlsx
+
+      - name: Upload Excel Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: Excel-Reports
+          path: |
+            selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx
+            selenium_model/REALTIME_TEST_PROGRESS.xlsx
+          if-no-files-found: error
+          retention-days: 30
