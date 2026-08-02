@@ -61,13 +61,26 @@ IOS_PLATFORM_VERSION     = os.environ.get("IOS_PLATFORM_VERSION",     "17.0")
 APPIUM_IMPLICIT_WAIT     = int(os.environ.get("APPIUM_IMPLICIT_WAIT", "5"))
 
 # ── Expo Go deep-link for Appium ──────────────────────────────────────────────
-# When ANDROID_USE_EXPO_GO=1, Appium launches Expo Go (host.exp.exponent) and
-# deep-links it to the local dev server instead of installing the APK.
-# This works around Android 15 16KB page-size incompatibility with native builds.
-# Requires: npx expo start --android running so the Metro bundler is live.
-_expo_go_mode = os.environ.get("ANDROID_USE_EXPO_GO", "1") == "1"
-# Expo dev server LAN URL — replace with the IP shown by `npx expo start`
-EXPO_LAN_URL = os.environ.get("EXPO_LAN_URL", "exp://172.23.50.100:8081")
+# When ANDROID_USE_EXPO_GO=1, Appium launches Expo Go (host.exp.exponent) plainly,
+# then the appium_driver fixture issues a separate `mobile: deepLink` command to
+# navigate into the local dev server. This works around Android 15 16KB page-size
+# incompatibility with native builds. Requires: npx expo start running.
+#
+# NOTE: baking the target URL into the launch capabilities via
+# optionalIntentArguments (--es url ...) + an explicit appActivity component
+# name does NOT work against current Expo Go builds — `am start-activity -n
+# host.exp.exponent/.LauncherActivity` with that extra just opens Expo Go's own
+# home screen instead of the project. Confirmed via `adb shell dumpsys window`
+# + logcat: the plain, unforced `am start -a VIEW -d exp://host:port -c
+# BROWSABLE` (no -n, no -f) correctly lands on `.experience.ExperienceActivity`
+# with the project loaded — this is exactly what Appium's `mobile: deepLink`
+# extension does, so the fixture calls that after a normal Expo Go launch.
+EXPO_GO_MODE = os.environ.get("ANDROID_USE_EXPO_GO", "1") == "1"
+# Expo dev server LAN URL — replace with the IP shown by `npx expo start`,
+# or exp://127.0.0.1:8081 when using `adb reverse tcp:8081 tcp:8081` over USB.
+EXPO_LAN_URL = os.environ.get("EXPO_LAN_URL", "exp://192.168.1.5:8081")
+
+ANDROID_PACKAGE_NAME = "com.voxira.app"  # from app.json android.package
 
 ANDROID_DESIRED_CAPS = {
     "platformName":           "Android",
@@ -76,13 +89,30 @@ ANDROID_DESIRED_CAPS = {
     "appium:automationName":  "UiAutomator2",
     "appium:noReset":         True,
     "appium:newCommandTimeout": 120,
-    # Use Expo Go instead of native APK
-    "appium:appPackage":      "host.exp.exponent",
-    "appium:appActivity":     "host.exp.launcher.LauncherActivity",
-    "appium:intentAction":    "android.intent.action.VIEW",
-    "appium:intentCategory":  "android.intent.category.BROWSABLE",
-    "appium:intentFlags":     "0x10000000",
-    "appium:optionalIntentArguments": f"--es url {EXPO_LAN_URL} --esn newSession",
+    # UiAutomator2 waits for the app's UI thread to go fully idle before
+    # running most element commands. React Native apps (blinking text-input
+    # cursor, continuous re-renders) never truly go idle, which reproducibly
+    # hangs commands like reading an EditText's .text right after send_keys
+    # — a raw socket read that never returns, rather than a clean error.
+    # This is the standard documented workaround.
+    "appium:waitForIdleTimeout": 0,
+    "appium:disableWindowAnimation": True,
+    **(
+        {
+            # Launch Expo Go plainly — conftest.py's appium_driver fixture
+            # deep-links into the actual project afterward via `mobile: deepLink`.
+            "appium:appPackage":      "host.exp.exponent",
+            "appium:appActivity":     "host.exp.exponent.LauncherActivity",
+        }
+        if EXPO_GO_MODE
+        else {
+            # Real standalone build — Appium installs (if needed) and launches
+            # it directly, no deep link required.
+            "appium:app":             ANDROID_APP_PATH,
+            "appium:appPackage":      ANDROID_PACKAGE_NAME,
+            "appium:appActivity":     ".MainActivity",
+        }
+    ),
 }
 
 IOS_DESIRED_CAPS = {

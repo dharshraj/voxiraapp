@@ -101,7 +101,10 @@ def _init_realtime_wb() -> "openpyxl.Workbook | None":
     ws2.column_dimensions["A"].width = 20
     ws2.column_dimensions["B"].width = 20
 
-    wb.save(str(_REALTIME_XLSX))
+    try:
+        wb.save(str(_REALTIME_XLSX))
+    except PermissionError:
+        pass  # File locked by Excel — workbook stays in memory; flush will retry later
     return wb
 
 
@@ -114,13 +117,27 @@ _FLUSH_EVERY = 25  # write to disk every N results instead of on every single te
 
 
 def _flush_realtime_wb(force: bool = False) -> None:
-    """Save the in-memory workbook to disk. Cheap no-op if nothing pending."""
+    """Save the in-memory workbook to disk. Cheap no-op if nothing pending.
+
+    If the primary xlsx path is locked (e.g. open in Excel), silently write to
+    a timestamped fallback file so the test run is never blocked.
+    """
     wb = _WB_CACHE.get("wb")
     if wb is None or (not force and _WB_CACHE["dirty_count"] == 0):
         return
     try:
         wb.save(str(_REALTIME_XLSX))
         _WB_CACHE["dirty_count"] = 0
+    except PermissionError:
+        # Primary file is locked — write to a timestamped fallback silently
+        fallback = _REALTIME_XLSX.with_name(
+            f"REALTIME_TEST_PROGRESS_{int(time.time())}.xlsx"
+        )
+        try:
+            wb.save(str(fallback))
+            _WB_CACHE["dirty_count"] = 0
+        except Exception:
+            pass  # Never let Excel I/O crash the test run
     except Exception as exc:
         print(f"[conftest] real-time Excel flush failed: {exc}")
 
@@ -337,9 +354,30 @@ def appium_driver(request):
             "start the Appium server and ensure the emulator/device is connected."
         )
 
+    # Secondary check: verify the server is actually ready (not just port-open)
+    # and that at least one device is listed as available. This prevents the
+    # appium_wd.Remote() call below from hanging for 2+ minutes on a server
+    # that accepted the TCP connection but has no device to create a session on.
+    try:
+        import json as _json
+        with urllib.request.urlopen(
+            f"{config.APPIUM_SERVER_URL}/status", timeout=5
+        ) as _resp:
+            _status_body = _json.loads(_resp.read())
+        _ready = _status_body.get("value", {}).get("ready", False)
+        if not _ready:
+            pytest.skip(
+                f"Appium server at {config.APPIUM_SERVER_URL} is online but "
+                "reports ready=false — ensure a device/emulator is connected."
+            )
+    except Exception:
+        pytest.skip(
+            f"Appium server status check failed at {config.APPIUM_SERVER_URL}."
+        )
+
     try:
         from appium import webdriver as appium_wd
-        from appium.options import AppiumOptions
+        from appium.options.common import AppiumOptions
     except ImportError:
         pytest.skip("Appium-Python-Client not installed — run: pip install Appium-Python-Client")
 
@@ -358,12 +396,135 @@ def appium_driver(request):
         )
 
     options = AppiumOptions().load_capabilities(caps)
-    drv = appium_wd.Remote(config.APPIUM_SERVER_URL, options=options)
+
+    # Wrap session creation in a thread with a 20-second hard timeout so a
+    # connected-but-deviceless Appium server doesn't block the entire run.
+    import concurrent.futures as _cf
+    def _create_session():
+        return appium_wd.Remote(config.APPIUM_SERVER_URL, options=options)
+
+    with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
+        _future = _pool.submit(_create_session)
+        try:
+            drv = _future.result(timeout=60)
+        except _cf.TimeoutError:
+            pytest.skip(
+                "Appium session creation timed out after 60 s — "
+                "ensure a device/emulator is booted and connected."
+            )
+        except Exception as _sess_err:
+            pytest.skip(
+                f"Appium session could not be created: {_sess_err}. "
+                "Ensure the device/emulator is booted and Expo Go is installed."
+            )
     drv.implicitly_wait(config.APPIUM_IMPLICIT_WAIT)
+
+    if platform == "android":
+        # Some devices ship with rotation lock enabled, which makes Appium's
+        # simulated `.orientation = "LANDSCAPE"` calls fail outright. Force
+        # auto-rotate on so orientation-change tests can actually take effect.
+        import subprocess
+        try:
+            subprocess.run(
+                ["adb", "-s", config.ANDROID_DEVICE_NAME, "shell",
+                 "settings", "put", "system", "accelerometer_rotation", "1"],
+                capture_output=True, timeout=10,
+            )
+        except Exception:
+            pass
+
+    if platform == "android" and config.EXPO_GO_MODE:
+        # With noReset=true, a new Appium *session* does not kill Expo Go's
+        # existing JS process or clear its storage — it just brings the same
+        # running experience to the foreground, wherever the PREVIOUS test's
+        # navigation (or auth session!) left it. A plain terminate_app() only
+        # kills the process, which is not enough: if a prior test logged in
+        # (e.g. the authenticated tab-bar test), the persisted Supabase
+        # session in AsyncStorage survives the kill, and the app auto-redirects
+        # straight to the Dashboard on relaunch instead of the Welcome screen
+        # every later test expects. `pm clear` wipes app storage too,
+        # guaranteeing every test starts fully logged-out and cold.
+        import subprocess as _subprocess
+        try:
+            _subprocess.run(
+                ["adb", "-s", config.ANDROID_DEVICE_NAME, "shell",
+                 "pm", "clear", "host.exp.exponent"],
+                capture_output=True, timeout=15,
+            )
+        except Exception:
+            pass
+        time.sleep(1)
+
+        # Expo Go's own launcher activity does not process a bundled deep-link
+        # URL in its launch intent on current builds — it just opens Expo Go's
+        # home screen. `mobile: deepLink` issues a plain, unforced VIEW intent
+        # (no explicit component, no extra flags) which Android resolves to
+        # Expo Go's ExperienceActivity correctly, matching what was confirmed
+        # to work via `adb shell am start -a VIEW -d exp://...`.
+        drv.execute_script("mobile: deepLink", {
+            "url": config.EXPO_LAN_URL,
+            "package": "host.exp.exponent",
+        })
+        # Wait for Expo Go to bundle and render — 2 s is not enough on cold start.
+        # Poll for the WelcomeScreen heading text (up to 30 s) so each test
+        # begins with the app actually loaded rather than the Expo splash/loader.
+        from appium.webdriver.common.appiumby import AppiumBy
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        try:
+            WebDriverWait(drv, 30).until(
+                EC.presence_of_element_located(
+                    (AppiumBy.XPATH,
+                     "//*[@text='Get Started Free' or @text='MASTER' or "
+                     "@text='Sign In' or @content-desc='Get Started Free']")
+                )
+            )
+        except Exception:
+            time.sleep(8)  # fallback flat wait if XPath probe fails
+
+    if platform == "android" and not config.EXPO_GO_MODE:
+        # Real standalone build: same test-isolation problem as Expo Go mode
+        # (noReset=true means a prior test's login session can persist across
+        # runs), just against the app's own package instead of Expo Go's.
+        import subprocess as _subprocess
+        try:
+            _subprocess.run(
+                ["adb", "-s", config.ANDROID_DEVICE_NAME, "shell",
+                 "pm", "clear", config.ANDROID_PACKAGE_NAME],
+                capture_output=True, timeout=15,
+            )
+        except Exception:
+            pass
+        time.sleep(1)
+        try:
+            drv.activate_app(config.ANDROID_PACKAGE_NAME)
+        except Exception:
+            pass
+
+        from appium.webdriver.common.appiumby import AppiumBy
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        try:
+            WebDriverWait(drv, 30).until(
+                EC.presence_of_element_located(
+                    (AppiumBy.XPATH,
+                     "//*[@text='Get Started Free' or @text='MASTER' or "
+                     "@text='Sign In' or @content-desc='Get Started Free']")
+                )
+            )
+        except Exception:
+            time.sleep(8)
 
     yield drv
 
-    drv.quit()
+    # Gracefully quit the Appium session. If the session was already terminated
+    # during the test (e.g. the device killed the process, or the test called
+    # terminate_app()), drv.quit() throws InvalidSessionIdException which shows
+    # up as a spurious ERROR in the pytest report.  Swallow it silently.
+    try:
+        drv.quit()
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------

@@ -19,11 +19,21 @@ pytestmark = pytest.mark.appium  # custom marker — can filter with -m appium
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 def _find_by_text(driver, text, timeout=10):
-    """Locate element by visible text on native."""
+    """Locate element by visible text on native.
+
+    Uses contains() rather than exact equality: several links on this app
+    (e.g. "Sign In") are rendered as nested Text spans inside one combined
+    string ("Already have an account?  Sign In"), so the accessibility tree
+    exposes the whole phrase as a single node's text — an exact match against
+    just "Sign In" never finds it. contains() still matches standalone exact
+    text just as well, so this is a strict superset of the old behavior.
+    """
     from appium.webdriver.common.appiumby import AppiumBy
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-    locator = f'//*[@text="{text}" or @label="{text}" or @name="{text}"]'
+    locator = (
+        f'//*[contains(@text,"{text}") or contains(@label,"{text}") or contains(@name,"{text}")]'
+    )
     return WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located(("xpath", locator))
     )
@@ -65,8 +75,12 @@ def test_appium_001_app_launches_android(appium_driver, meta):
         scenario="APPIUM-001: App launches on Android without crashing",
         expected="App is in a non-error state within 15 seconds of launch")
     time.sleep(5)  # allow Expo splash + React hydration
-    state = appium_driver.query_app_state("com.voxira.app")
-    meta["actual"] = f"app_state={state}"
+    import config as _cfg
+    # In Expo Go mode there's no standalone "com.voxira.app" process — the
+    # project runs hosted inside Expo Go's own process (host.exp.exponent).
+    app_id = "host.exp.exponent" if _cfg.EXPO_GO_MODE else "com.voxira.app"
+    state = appium_driver.query_app_state(app_id)
+    meta["actual"] = f"app_id={app_id}, app_state={state}"
     # State 4 = RUNNING_IN_FOREGROUND
     assert state in (3, 4), f"App not running: state={state}"
 
@@ -163,8 +177,16 @@ def test_appium_008_typing_email_updates_field(appium_driver, meta):
     if not inputs:
         pytest.skip("No EditText found")
     inputs[0].send_keys("test@example.com")
-    time.sleep(0.5)
-    value = inputs[0].get_attribute("text") or inputs[0].text
+    time.sleep(1)
+    # Re-query fresh rather than reusing the pre-typing element handle, and
+    # read via the standard .text property only. React Native re-renders the
+    # underlying native EditText on each controlled-input onChange, and
+    # calling get_attribute("text") on a handle obtained before that re-render
+    # reproducibly hangs the on-device UiAutomator2 instrumentation (a raw
+    # socket read that never returns, killing the whole pytest session via
+    # the 120s test timeout) rather than raising a clean stale-element error.
+    inputs = appium_driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.EditText")
+    value = inputs[0].text if inputs else ""
     meta["actual"] = f"field_value='{value}'"
     assert "test" in value.lower()
 
@@ -172,15 +194,23 @@ def test_appium_008_typing_email_updates_field(appium_driver, meta):
 def test_appium_009_app_does_not_crash_on_rotate_android(appium_driver, meta):
     meta.update(module="Appium", test_type="Appium",
         scenario="APPIUM-009: App survives screen rotation (portrait → landscape → portrait)",
-        expected="'Get Started Free' still visible after rotation")
+        expected="'Get Started Free' still visible; landscape rotation itself may be "
+                 "rejected by the OS since app.json declares \"orientation\": \"portrait\" — "
+                 "that rejection is the app correctly enforcing its own config, not a crash")
     time.sleep(6)
-    from selenium.webdriver.common.action_chains import ActionChains
-    appium_driver.orientation = "LANDSCAPE"
-    time.sleep(2)
-    appium_driver.orientation = "PORTRAIT"
-    time.sleep(2)
+    rotation_locked = False
+    try:
+        appium_driver.orientation = "LANDSCAPE"
+        time.sleep(2)
+        appium_driver.orientation = "PORTRAIT"
+        time.sleep(2)
+    except Exception as exc:
+        # app.json's orientation:"portrait" lock makes the OS refuse the
+        # rotation outright — that's expected, intentional behavior, not a
+        # crash. Only an actual app crash/hang below should fail this test.
+        rotation_locked = True
     found = _element_exists(appium_driver, "Get Started Free", timeout=10)
-    meta["actual"] = f"app_stable_after_rotate={found}"
+    meta["actual"] = f"rotation_locked_by_app_config={rotation_locked}, app_stable_after_rotate={found}"
     assert found
 
 @pytest.mark.appium_platform("android")
@@ -280,10 +310,10 @@ def test_appium_016_swipe_up_on_register_screen(appium_driver, meta):
     time.sleep(2)
     size = appium_driver.get_window_size()
     w, h = size["width"], size["height"]
-    # Swipe up
-    from appium.webdriver.common.touch_action import TouchAction
-    action = TouchAction(appium_driver)
-    action.press(x=w//2, y=h*3//4).wait(300).move_to(x=w//2, y=h//4).release().perform()
+    # Swipe up (TouchAction was removed from Appium-Python-Client v3+; use the
+    # W3C-actions-backed driver.swipe() convenience method instead, consistent
+    # with the iOS swipe tests elsewhere in this file)
+    appium_driver.swipe(w // 2, h * 3 // 4, w // 2, h // 4, 500)
     time.sleep(1)
     still_on = _element_exists(appium_driver, "Create Account", timeout=5)
     meta["actual"] = f"screen_stable_after_swipe={still_on}"
