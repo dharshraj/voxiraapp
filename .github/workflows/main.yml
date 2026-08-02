@@ -1,7 +1,32 @@
-- name: Upload Excel Reports
-  uses: actions/upload-artifact@v4
-  with:
-    name: Excel-Reports
-    path: |
-      selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx
-      selenium_model/REALTIME_TEST_PROGRESS.xlsx 7.xlsx
+name: VoxiraApp — Excel Reports
+
+# Uploads the already-committed Excel test reports as downloadable Actions
+# artifacts. Deliberately does NOT run the test suite or build the app —
+# just checkout + upload, so it can't fail the way a full test run can.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx'
+      - 'selenium_model/ALL_TEST_CASES_FLAT_REPORT.xlsx'
+  workflow_dispatch:
+
+jobs:
+  upload-excels:
+    name: Upload Excel reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload Excel reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: excel-reports-${{ github.run_number }}
+          path: |
+            selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx
+            selenium_model/ALL_TEST_CASES_FLAT_REPORT.xlsx
+          retention-days: 90
+          if-no-files-found: error
