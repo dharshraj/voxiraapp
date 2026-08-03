@@ -1,27 +1,88 @@
 name: VoxiraApp — Excel Reports
 
-# Uploads the already-committed Excel test reports as downloadable Actions
-# artifacts. Deliberately does NOT run the test suite or build the app —
-# just checkout + upload, so it can't fail the way a full test run can.
+# Uploads the already-committed, per-category Excel test reports as separate
+# downloadable Actions artifacts (one per test type, like the sample repo).
+# Deliberately does NOT run the test suite or build the app — just checkout +
+# upload per job, so it can't fail the way a full test run can. Reports are
+# generated locally via `python selenium_model/audit/generate_report.py`
+# (run automatically by run_all.py) and committed alongside the code.
 
 on:
   push:
     branches: [ main ]
     paths:
+      - 'selenium_model/SELENIUM_REPORT.xlsx'
+      - 'selenium_model/APPIUM_REPORT.xlsx'
+      - 'selenium_model/LOAD_REPORT.xlsx'
+      - 'selenium_model/SECURITY_REPORT.xlsx'
       - 'selenium_model/MASTER_TEST_AUDIT_REPORT.xlsx'
       - 'selenium_model/ALL_TEST_CASES_FLAT_REPORT.xlsx'
   workflow_dispatch:
 
 jobs:
-  upload-excels:
-    name: Upload Excel reports
+  selenium-report:
+    name: selenium-tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - uses: actions/checkout@v4
+      - name: Upload Selenium report
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-report
+          path: selenium_model/SELENIUM_REPORT.xlsx
+          retention-days: 90
+          if-no-files-found: error
 
-      - name: Upload Excel reports
+  appium-report:
+    name: appium-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload Appium report
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-report
+          path: selenium_model/APPIUM_REPORT.xlsx
+          retention-days: 90
+          if-no-files-found: error
+
+  load-report:
+    name: load-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload Load report
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-report
+          path: selenium_model/LOAD_REPORT.xlsx
+          retention-days: 90
+          if-no-files-found: error
+
+  security-report:
+    name: security-assessment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload Security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: selenium_model/SECURITY_REPORT.xlsx
+          retention-days: 90
+          if-no-files-found: error
+
+  master-report:
+    name: master-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload master + flat audit reports
         uses: actions/upload-artifact@v4
         with:
           name: excel-reports-${{ github.run_number }}
@@ -30,3 +91,22 @@ jobs:
             selenium_model/ALL_TEST_CASES_FLAT_REPORT.xlsx
           retention-days: 90
           if-no-files-found: error
+
+  summary:
+    name: summary
+    runs-on: ubuntu-latest
+    needs: [selenium-report, appium-report, load-report, security-report, master-report]
+    steps:
+      - name: Write run summary
+        run: |
+          {
+            echo "### VoxiraApp Test Reports — Run #${{ github.run_number }}"
+            echo ""
+            echo "| Report | Artifact |"
+            echo "|---|---|"
+            echo "| Selenium | \`selenium-report\` |"
+            echo "| Appium | \`appium-report\` |"
+            echo "| Load | \`load-report\` |"
+            echo "| Security | \`security-report\` |"
+            echo "| Master audit + flat | \`excel-reports-${{ github.run_number }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

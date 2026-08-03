@@ -243,6 +243,13 @@ LOAD_RESULTS_JSON     = REPORTS_DIR / "load_results.json"
 VULN_RESULTS_JSON     = REPORTS_DIR / "vulnerability_results.json"
 EXCEL_REPORT_PATH     = ROOT_DIR / "MASTER_TEST_AUDIT_REPORT.xlsx"
 
+# Per-category split reports (one focused workbook per test type, mirrors the
+# separate CI artifacts: selenium-report / appium-report / load-report / security-report)
+SELENIUM_REPORT_PATH  = ROOT_DIR / "SELENIUM_REPORT.xlsx"
+APPIUM_REPORT_PATH    = ROOT_DIR / "APPIUM_REPORT.xlsx"
+LOAD_REPORT_PATH      = ROOT_DIR / "LOAD_REPORT.xlsx"
+SECURITY_REPORT_PATH  = ROOT_DIR / "SECURITY_REPORT.xlsx"
+
 # Create all report directories on import
 for _d in (
     SCREENSHOTS_PASSED, SCREENSHOTS_FAILED, SCREENSHOTS_EXCEPTIONS,

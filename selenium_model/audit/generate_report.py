@@ -486,6 +486,157 @@ def s20_exec_summary(results: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# ── Per-category summary sheets ──────────────────────────────────────────────
+
+def _category_summary(title: str, rows_by_sheet: dict[str, pd.DataFrame],
+                       extra: list[tuple[str, object]] | None = None) -> pd.DataFrame:
+    """Build a small Metric/Value summary for a single-category workbook by
+    counting Status values across that category's own result sheets."""
+    total = passed = failed = exc = skipped = 0
+    for df in rows_by_sheet.values():
+        if "Status" not in df.columns:
+            continue
+        for status in df["Status"]:
+            if status not in ("Passed", "Failed", "Exception", "Skipped"):
+                continue
+            total += 1
+            if status == "Passed":
+                passed += 1
+            elif status == "Failed":
+                failed += 1
+            elif status == "Exception":
+                exc += 1
+            elif status == "Skipped":
+                skipped += 1
+    rate = f"{round(100 * passed / total, 1)}%" if total else "0%"
+    rows = [
+        ("Report",            title),
+        ("Project",           ad.PROJECT_NAME),
+        ("Report Generated",  datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        ("Total Tests",       total),
+        ("Passed",            passed),
+        ("Failed",            failed),
+        ("Exceptions",        exc),
+        ("Skipped",           skipped),
+        ("Pass Rate",         rate),
+    ]
+    if extra:
+        rows += extra
+    return pd.DataFrame(rows, columns=["Metric", "Value"])
+
+
+# ── Workbook writer (shared by master + split reports) ──────────────────────
+
+def _write_workbook(path: Path, sheets: list[tuple[str, pd.DataFrame, str, str | None]]) -> None:
+    with pd.ExcelWriter(str(path), engine="xlsxwriter") as writer:
+        for tab, df, _, _ in sheets:
+            df.to_excel(writer, sheet_name=tab, index=False)
+
+    try:
+        from openpyxl import load_workbook
+
+        wb = load_workbook(str(path))
+        for ws in wb.worksheets:
+            ws.sheet_state = "visible"
+        for tab, df, hdr, col in sheets:
+            if tab in wb.sheetnames:
+                _style_ws(wb[tab], df, hdr_colour=hdr, row_colour_col=col)
+        wb.save(str(path))
+    except Exception as ex:
+        print(f"[report] Styling note ({path.name}): {ex}")
+
+    print(f"[report] Saved -> {path}")
+
+
+# ── Split reports: one focused workbook per test category ───────────────────
+
+def build_selenium_report(results: list[dict]) -> None:
+    ui         = s02_selenium(results)
+    unit       = s03_unit(results)
+    api        = s04_api(results)
+    validation = s05_validation(results)
+    perf       = s06_performance(results)
+    e2e        = s10_e2e(results)
+    access     = s14_accessibility(results)
+    summary = _category_summary("Selenium Test Report", {
+        "UI": ui, "Unit": unit, "API": api,
+        "Validation": validation, "Performance": perf, "E2E": e2e,
+    })
+    sheets = [
+        ("Summary",                summary,    "1F3864", None),
+        ("Selenium UI Tests",      ui,         "2E75B6", "Status"),
+        ("Unit Tests",             unit,       "375623", "Status"),
+        ("API Validation Tests",   api,        "2E75B6", "Status"),
+        ("Form Validation Tests",  validation, "2E75B6", "Status"),
+        ("Performance Tests",      perf,       "404040", "Status"),
+        ("E2E Flow Tests",         e2e,        "2E75B6", "Status"),
+        ("Accessibility Findings", access,     "404040", "Severity"),
+    ]
+    _write_workbook(config.SELENIUM_REPORT_PATH, sheets)
+
+
+def build_appium_report(results: list[dict]) -> None:
+    mobile = s09_appium(results)
+    summary = _category_summary("Appium Mobile Test Report", {"Appium": mobile})
+    sheets = [
+        ("Summary",              summary, "1F3864", None),
+        ("Appium Mobile Tests",  mobile,  "375623", "Status"),
+    ]
+    _write_workbook(config.APPIUM_REPORT_PATH, sheets)
+
+
+def build_load_report(load: list[dict]) -> None:
+    perf_sheet = s07_load(load)
+    load_req  = sum(e.get("num_requests", 0) for e in load)
+    load_fail = sum(e.get("num_failures", 0) for e in load)
+    load_p95  = max((e.get("p95_ms", 0) for e in load), default=0)
+    summary = pd.DataFrame([
+        ("Report",              "Load Test Report"),
+        ("Project",             ad.PROJECT_NAME),
+        ("Report Generated",    datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        ("Total HTTP Requests", load_req),
+        ("Failed Requests",     load_fail),
+        ("Failure Rate",        f"{round(100 * load_fail / max(load_req, 1), 2)}%"),
+        ("Peak p95 (ms)",       load_p95),
+    ], columns=["Metric", "Value"])
+    sheets = [
+        ("Summary",           summary,    "1F3864", None),
+        ("Load Test Results", perf_sheet, "1F3864", None),
+    ]
+    _write_workbook(config.LOAD_REPORT_PATH, sheets)
+
+
+def build_security_report(results: list[dict]) -> None:
+    vuln     = s08_vulnerability(results)
+    observ   = s13_security()
+    sec_defects = defects_for_security(results)
+    summary = _category_summary("Security Assessment Report", {"Vulnerability": vuln}, extra=[
+        ("Security Observations", len(observ)),
+        ("Open Security Defects", len(sec_defects)),
+    ])
+    sheets = [
+        ("Summary",                summary,     "1F3864", None),
+        ("Vulnerability Tests",    vuln,        "843C0C", "Status"),
+        ("Security Observations",  observ,      "843C0C", "Severity"),
+        ("Security Defects",       sec_defects, "843C0C", "Severity"),
+    ]
+    _write_workbook(config.SECURITY_REPORT_PATH, sheets)
+
+
+def defects_for_security(results: list[dict]) -> pd.DataFrame:
+    """Subset of the Defect Report relevant to security (vulnerability-module
+    failures + the static security findings), for the standalone security workbook."""
+    all_defects = s12_defects(results)
+    if all_defects.empty or "Module" not in all_defects.columns:
+        return all_defects
+    keep = all_defects[all_defects["Module"].astype(str).str.contains(
+        "Vulnerability|Security", case=False, na=False)]
+    if keep.empty:
+        keep = pd.DataFrame([{c: ("No security-tagged defects found" if c == "Summary" else "")
+                              for c in all_defects.columns}])
+    return keep
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -523,30 +674,7 @@ def main():
         ("20 Execution Summary",       s20_exec_summary(results),   "1F3864", None),
     ]
 
-    # Write data with xlsxwriter first
-    with pd.ExcelWriter(str(OUTPUT), engine="xlsxwriter") as writer:
-        for tab, df, _, _ in sheets:
-            df.to_excel(writer, sheet_name=tab, index=False)
-
-    # Re-open with openpyxl to apply styling
-    try:
-        import openpyxl
-        from openpyxl import load_workbook
-
-        wb = load_workbook(str(OUTPUT))
-        for ws in wb.worksheets:
-            ws.sheet_state = "visible"
-
-        for tab, df, hdr, col in sheets:
-            if tab in wb.sheetnames:
-                ws = wb[tab]
-                # Apply styling directly using openpyxl
-                _style_ws(ws, df, hdr_colour=hdr, row_colour_col=col)
-
-        wb.save(str(OUTPUT))
-        print("[report] Styling applied successfully")
-    except Exception as ex:
-        print(f"[report] Styling note: {ex}")
+    _write_workbook(OUTPUT, sheets)
 
     print(f"\n{'='*55}")
     print(f"  MASTER TEST AUDIT REPORT (20 sheets)")
@@ -554,6 +682,16 @@ def main():
     print(f"  {len(load)} load entries")
     print(f"  Saved -> {OUTPUT}")
     print(f"{'='*55}\n")
+
+    # ── Split reports: one focused workbook per test category ─────────────────
+    print("[report] Building per-category split reports...")
+    build_selenium_report(results)
+    build_appium_report(results)
+    build_load_report(load)
+    build_security_report(results)
+    print("[report] Split reports complete: "
+          f"{config.SELENIUM_REPORT_PATH.name}, {config.APPIUM_REPORT_PATH.name}, "
+          f"{config.LOAD_REPORT_PATH.name}, {config.SECURITY_REPORT_PATH.name}")
 
 
 if __name__ == "__main__":
