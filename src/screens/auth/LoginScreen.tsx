@@ -35,8 +35,9 @@ export default function LoginScreen({ navigation, route }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [formError, setFormError]         = useState<string | null>(null);
-  const notice: string | undefined        = route?.params?.notice;
+  const [formError, setFormError]           = useState<string | null>(null);
+  const [pendingVerifyEmail, setPendingVerifyEmail] = useState<string | null>(null);
+  const notice: string | undefined          = route?.params?.notice;
 
   const orb1x = useRef(new Animated.Value(0)).current;
   const orb1y = useRef(new Animated.Value(0)).current;
@@ -64,12 +65,21 @@ export default function LoginScreen({ navigation, route }: any) {
   const orb2X = orb2x.interpolate({ inputRange: [0, 1], outputRange: [-20, 20] });
   const orb2Y = orb2y.interpolate({ inputRange: [0, 1], outputRange: [-16, 16] });
 
-  const { control, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+  const { control, handleSubmit, trigger, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
+  // Trigger all field validations before submitting — ensures error text is
+  // shown even when the user taps Sign In without touching any field (BUG-002).
+  const onSubmitPress = async () => {
+    const valid = await trigger();
+    if (!valid) return;
+    handleSubmit(onLogin)();
+  };
+
   const onLogin = async (data: LoginForm) => {
     setFormError(null);
+    setPendingVerifyEmail(null);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -81,18 +91,10 @@ export default function LoginScreen({ navigation, route }: any) {
         if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials')) {
           setFormError('Incorrect email or password. Please try again.');
         } else if (msg.includes('not confirmed') || msg.includes('email not confirmed') || msg.includes('verified')) {
-          // Account exists but email_confirmed_at is null — created before
-          // email confirmation was disabled in Supabase.
-          // Fix: run in Supabase SQL Editor:
-          //   update auth.users set email_confirmed_at = now()
-          //   where email = 'your_email@example.com';
-          setFormError(
-            'Your account email is not verified. ' +
-            'To fix this, go to Supabase Dashboard → Authentication → Users → find your account → click "Send confirmation email", or ask the admin to run: ' +
-            "update auth.users set email_confirmed_at = now() where email = '" + data.email.trim().toLowerCase() + "';"
-          );
+          setFormError('Your email hasn\'t been verified yet.');
+          setPendingVerifyEmail(data.email.trim().toLowerCase());
         } else {
-          setFormError(error.message);
+          setFormError('Sign in failed. Please check your details and try again.');
         }
       }
     } catch (e: any) {
@@ -188,6 +190,12 @@ export default function LoginScreen({ navigation, route }: any) {
       borderRadius: 12, padding: 12, marginBottom: 12,
     },
     formErrorText: { flex: 1, color: C.error, fontSize: 13 },
+    verifyEmailBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: C.primary + '14', borderWidth: 1, borderColor: C.primary + '40',
+      borderRadius: 12, padding: 12, marginBottom: 12,
+    },
+    verifyEmailBtnText: { color: C.primary, fontSize: 13, fontWeight: '600' },
     signInOuter: {
       borderRadius: 18, overflow: 'hidden', marginTop: 4, marginBottom: 8,
     },
@@ -309,7 +317,7 @@ export default function LoginScreen({ navigation, route }: any) {
                       onBlur={onBlur}
                       onChangeText={onChange}
                       value={value}
-                      onSubmitEditing={handleSubmit(onLogin)}
+                      onSubmitEditing={onSubmitPress}
                       returnKeyType="go"
                     />
                     <TouchableOpacity onPress={() => setShowPassword(p => !p)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -328,7 +336,18 @@ export default function LoginScreen({ navigation, route }: any) {
               </View>
             )}
 
-            <TouchableOpacity onPress={handleSubmit(onLogin)} disabled={loading} activeOpacity={0.85} style={s.signInOuter}>
+            {pendingVerifyEmail && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('VerifyEmail', { email: pendingVerifyEmail })}
+                activeOpacity={0.85}
+                style={s.verifyEmailBtn}
+              >
+                <Ionicons name="mail-outline" size={15} color={C.primary} style={{ marginRight: 6 }} />
+                <Text style={s.verifyEmailBtnText}>Resend verification email</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity onPress={onSubmitPress} disabled={loading} activeOpacity={0.85} style={s.signInOuter}>
               <View style={s.signInBtn}>
                 {loading
                   ? <ActivityIndicator color="#fff" />

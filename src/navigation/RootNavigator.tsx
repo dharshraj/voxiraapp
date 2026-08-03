@@ -20,6 +20,7 @@ import PermissionsScreen      from '../screens/onboarding/PermissionsScreen';
 import LoginScreen            from '../screens/auth/LoginScreen';
 import RegisterScreen         from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen   from '../screens/auth/ForgotPasswordScreen';
+import VerifyEmailScreen      from '../screens/auth/VerifyEmailScreen';
 import DeleteAccountScreen    from '../screens/auth/DeleteAccountScreen';
 
 // ── Home ──────────────────────────────────────────────────────────────────────
@@ -127,6 +128,7 @@ function OnboardingStack() {
       <Stack.Screen name="Register"         component={RegisterScreen} />
       <Stack.Screen name="Login"            component={LoginScreen} />
       <Stack.Screen name="ForgotPassword"   component={ForgotPasswordScreen} />
+      <Stack.Screen name="VerifyEmail"      component={VerifyEmailScreen} />
     </Stack.Navigator>
   );
 }

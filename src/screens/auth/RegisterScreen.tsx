@@ -39,6 +39,13 @@ const registerSchema = z
         const atIdx = v.indexOf('@');
         return atIdx === -1 || atIdx <= 64;
       }, 'Email address is too long (local part must be 64 characters or less)')
+      // RFC 5321: local-part must not start or end with a dot.
+      .refine(v => {
+        const atIdx = v.indexOf('@');
+        if (atIdx <= 0) return true; // caught by .email() below
+        const local = v.slice(0, atIdx);
+        return !local.startsWith('.') && !local.endsWith('.');
+      }, 'Email address is not valid')
       .email('Enter a valid email address (e.g. you@example.com)'),
     password: z
       .string()
@@ -186,35 +193,29 @@ export default function RegisterScreen({ navigation }: any) {
     setFormError(null);
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email:    data.email,
         password: data.password,
         options:  { data: { full_name: data.fullName } },
       });
 
-      if (error) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes('already registered') || msg.includes('already in use')) {
+      if (signUpError) {
+        const msg = signUpError.message.toLowerCase();
+        if (msg.includes('already registered') || msg.includes('already in use') || msg.includes('user already registered')) {
           setFormError('An account with this email already exists. Try signing in.');
         } else if (msg.includes('email sending') || msg.includes('rate limit') || msg.includes('email limit')) {
-          // Supabase free plan email rate limit — guide user to the fix
-          setFormError(
-            'Email sending limit reached. ' +
-            'To fix this permanently: go to Supabase Dashboard → Authentication → Providers → Email → disable "Confirm email". ' +
-            'This allows immediate signups without confirmation emails.'
-          );
+          setFormError('Too many sign-up attempts. Please wait a few minutes and try again.');
         } else {
-          setFormError(error.message);
+          setFormError('Could not create account. Please try again.');
         }
-      } else {
-        // If email confirmation is disabled in Supabase, the user is signed in immediately.
-        // If it is still enabled, direct them to check their inbox.
-        navigation.navigate('Login', {
-          notice: 'Account created! Check your email to verify before signing in, or sign in directly if confirmation is disabled.',
-        });
+        return;
       }
+
+      // Account created — send the user to the dedicated verification screen.
+      // Email confirmation is kept ON so only real email owners can access the app.
+      navigation.navigate('VerifyEmail', { email: data.email.trim().toLowerCase() });
     } catch (e: any) {
-      setFormError(e?.message ?? 'Something went wrong. Please try again.');
+      setFormError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -260,8 +261,8 @@ export default function RegisterScreen({ navigation }: any) {
     formErrorText:{ flex: 1, color: C.error, fontSize: 13, lineHeight: 19 },
     termsText:    { color: C.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 20, textAlign: 'center' },
     termsLink:    { color: C.primary },
-    createBtnOuter: { borderRadius: 18, overflow: 'hidden', marginBottom: 28 },
-    createBtn:    { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: C.primary },
+    createBtnOuter: { marginBottom: 28 },
+    createBtn:    { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: C.primary, borderRadius: 18, overflow: 'hidden' },
     createBtnText:{ color: '#fff', fontSize: 16, fontWeight: '700' },
     dividerRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     dividerLine:  { flex: 1, height: 1, backgroundColor: C.border },
