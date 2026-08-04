@@ -24,7 +24,7 @@ const MIC = 96;
 
 export default function RecordScreen({ navigation, route }: any) {
   const { colors: C, isDark } = useTheme();
-  const mode = route?.params?.mode ?? 'Free Speech';
+  const mode = route?.params?.mode ?? ' Record Speech';
   const [phase, setPhase]     = useState<'ready' | 'recording' | 'paused' | 'done' | 'transcribing'>('ready');
   const [duration, setDuration]   = useState(0);
   const [recording, setRecording] = useState<any>(null);
@@ -157,7 +157,7 @@ export default function RecordScreen({ navigation, route }: any) {
       setPhase('done');
       return;
     }
-    setStatusMsg('Uploading to AssemblyAI…');
+    setStatusMsg('Uploading your speech');
     let result;
     try {
       result = await transcribeAudio(audioUri);

@@ -217,34 +217,28 @@ def test_login_with_provided_test_account_reaches_dashboard(driver, meta):
     from pages.tab_bar_page import TabBarPage
     login = _open_login(driver)
     login.login(config.TEST_USER_EMAIL, config.TEST_USER_PASSWORD)
-    # Give Supabase auth round-trip time, then check for any error message first
-    time.sleep(3)
-    # If there's a form error (wrong credentials, email not confirmed, etc.)
-    # capture it for diagnosis
-    form_error = False
-    try:
-        form_error = driver.execute_script(
-            "return !!document.querySelector('[style*=\"color: rgb(220\"]') || "
-            "!!document.body.innerText.includes('Incorrect') || "
-            "!!document.body.innerText.includes('verified') || "
-            "!!document.body.innerText.includes('error')"
-        )
-    except Exception:
-        pass
-    # Check if any Supabase auth call was made
-    auth_calls = login.network_requests_matching("/auth/v1/token")
-    # Wait for full auth state propagation
-    time.sleep(5)
+
+    # Poll for tab bar — up to 20 s in 2 s increments
     tabs = TabBarPage(driver)
-    displayed = tabs.is_displayed()
+    for _ in range(10):
+        time.sleep(2)
+        if tabs.is_displayed_quick():
+            break
+
+    auth_calls = login.network_requests_matching("/auth/v1/token")
     # Capture page state for diagnosis
     page_text = ""
     try:
         page_text = driver.execute_script("return document.body.innerText")[:200]
     except Exception:
         pass
-    meta["actual"] = f"tab_bar_displayed={displayed}, auth_calls={auth_calls}, form_error={form_error}, page_text='{page_text}'"
-    assert displayed, f"Tab bar did not render after login. auth_calls={auth_calls}, form_error={form_error}, page='{page_text}'"
+
+    displayed = tabs.is_displayed()
+    meta["actual"] = f"tab_bar_displayed={displayed}, auth_calls={auth_calls}, page_text='{page_text}'"
+    assert displayed, (
+        f"Tab bar did not render after login. auth_calls={auth_calls}, page='{page_text}'. "
+        "Ensure the account email is confirmed in Supabase (Dashboard → Authentication → Users)."
+    )
 
 
 @pytest.mark.skipif(
@@ -260,23 +254,26 @@ def test_logout_requires_authenticated_session(driver, meta):
     # Login first
     login = _open_login(driver)
     login.login(config.TEST_USER_EMAIL, config.TEST_USER_PASSWORD)
-    time.sleep(5)
-    # Extra wait if session landed in localStorage
-    session_in_storage = driver.execute_script(
-        "return Object.keys(localStorage).some(k => k.includes('supabase') || k.includes('auth'))"
-    )
-    if session_in_storage:
-        time.sleep(8)
+
+    # Poll for tab bar — up to 20 s in 2 s increments
     tabs = TabBarPage(driver)
-    assert tabs.is_displayed(), "Login failed — cannot test logout"
+    for _ in range(10):
+        time.sleep(2)
+        if tabs.is_displayed_quick():
+            break
+
+    assert tabs.is_displayed(), (
+        "Login failed — cannot test logout. "
+        "Ensure VOXIRA_TEST_EMAIL/PASSWORD are correct and the email is confirmed in Supabase."
+    )
+
     # Navigate to Profile and sign out
     tabs.go_to("Profile")
     time.sleep(1)
     ProfilePage(driver).click_sign_out()
-    time.sleep(2)
+    time.sleep(3)
     # Should land back on WelcomeScreen
     from pages.welcome_page import WelcomePage
     welcome_shown = WelcomePage(driver).is_displayed()
     meta["actual"] = f"welcome_shown_after_logout={welcome_shown}"
-    assert welcome_shown, "WelcomeScreen not shown after logout"
     assert welcome_shown, "WelcomeScreen not shown after logout"

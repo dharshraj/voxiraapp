@@ -36,18 +36,38 @@ def _open_login(driver):
     return login
 
 def _login_with_test_account(driver):
+    """Log in with the configured test account and wait for the tab bar.
+
+    Strategy:
+    1. Submit credentials and wait up to 20 s for the Supabase auth round-trip
+       + onAuthStateChange + React Navigation stack swap to complete.
+    2. Poll every 2 s for the tab bar rather than using a single fixed sleep so
+       the test finishes as soon as the UI is ready (and fails fast on error).
+    3. Capture the page text on failure for easier debugging.
+    """
     login = _open_login(driver)
     login.login(config.TEST_USER_EMAIL, config.TEST_USER_PASSWORD)
-    # Wait for: Supabase auth round-trip + onAuthStateChange + React stack swap
-    time.sleep(5)
-    # Check if Supabase wrote a session token to localStorage
-    session_in_storage = driver.execute_script(
-        "return Object.keys(localStorage).some(k => k.includes('supabase') || k.includes('auth'))"
-    )
-    if session_in_storage:
-        time.sleep(8)
+
+    # Poll: up to 20 s in 2 s increments
     tabs = TabBarPage(driver)
-    assert tabs.is_displayed(), "Tab bar not shown after login"
+    for attempt in range(10):
+        time.sleep(2)
+        if tabs.is_displayed_quick():
+            time.sleep(ANIM)
+            return tabs
+        # If a Supabase error message appeared already, stop early
+        try:
+            body = driver.execute_script("return document.body.innerText") or ""
+            if any(phrase in body for phrase in ("Incorrect", "Invalid", "not confirmed", "verified", "error")):
+                break
+        except Exception:
+            pass
+
+    # Final authoritative check (TabBarPage.is_displayed already waits 20 s internally)
+    assert tabs.is_displayed(), (
+        "Tab bar not shown after login — check VOXIRA_TEST_EMAIL/PASSWORD are correct and "
+        "the account email is confirmed in Supabase"
+    )
     time.sleep(ANIM)
     return tabs
 

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, Animated, StatusBar, Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { analyzeSpeech, FillerWordEntry } from '../../lib/groq';
+import { analyzeSpeech, FillerWordEntry } from '../../lib/mistral';
 import { useSessionStore } from '../../store/sessionStore';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../theme/ThemeContext';

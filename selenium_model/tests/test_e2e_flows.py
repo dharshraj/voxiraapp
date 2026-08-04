@@ -28,21 +28,34 @@ def _start(driver):
     time.sleep(ANIM)
 
 def _login_test_account(driver):
+    """Log in with the configured test account and wait for the tab bar.
+
+    Polls every 2 s for up to 20 s so the test completes as soon as React
+    renders the MainTabs stack, and fails fast if an error message appears.
+    """
     _start(driver)
     WelcomePage(driver).click_sign_in()
     LoginPage(driver).login(config.TEST_USER_EMAIL, config.TEST_USER_PASSWORD)
-    # Wait for: Supabase auth round-trip + onAuthStateChange + React stack swap
-    time.sleep(5)
-    # Check if Supabase wrote a session token to localStorage
-    # (this confirms the auth call succeeded even if React hasn't re-rendered yet)
-    session_in_storage = driver.execute_script(
-        "return Object.keys(localStorage).some(k => k.includes('supabase') || k.includes('auth'))"
-    )
-    if session_in_storage:
-        # Session exists — give React more time to pick it up
-        time.sleep(8)
+
     tabs = TabBarPage(driver)
-    assert tabs.is_displayed(), "Login failed — Dashboard not reached"
+    for attempt in range(10):
+        time.sleep(2)
+        if tabs.is_displayed_quick():
+            time.sleep(ANIM)
+            return tabs
+        # Bail early if Supabase returned an error
+        try:
+            body = driver.execute_script("return document.body.innerText") or ""
+            if any(phrase in body for phrase in ("Incorrect", "Invalid", "not confirmed", "verified")):
+                break
+        except Exception:
+            pass
+
+    assert tabs.is_displayed(), (
+        "Login failed — Dashboard not reached. "
+        "Ensure VOXIRA_TEST_EMAIL/PASSWORD are set correctly and the account email "
+        "is confirmed in Supabase (Dashboard → Authentication → Users)."
+    )
     time.sleep(ANIM)
     return tabs
 
