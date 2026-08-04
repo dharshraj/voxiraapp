@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeContext';
 
 const MODES = [
-  { id: 'Free Speech',  icon: 'mic-outline',        color: '#92400E' },
+  { id: 'Speech Session',  icon: 'mic-outline',        color: '#92400E' },
   { id: 'Presentation', icon: 'easel-outline',       color: '#15803D' },
   { id: 'Conversation', icon: 'chatbubbles-outline', color: '#B91C1C' },
   { id: 'Read Aloud',   icon: 'book-outline',        color: '#0F5132' },
@@ -136,7 +136,7 @@ export default function SpeechHomeScreen({ navigation }: any) {
 
         {/* Record CTA */}
         <Text style={s.sectionLabel}>Record</Text>
-        <TouchableOpacity style={s.recordCard} onPress={() => navigation.navigate('Record', { mode: 'Free Speech' })} activeOpacity={0.85}>
+        <TouchableOpacity style={s.recordCard} onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })} activeOpacity={0.85}>
           <View style={s.recordIconBox}>
             <Ionicons name="mic" size={20} color="#fff" />
           </View>

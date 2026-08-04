@@ -15,7 +15,7 @@ export default function SessionDetailScreen({ navigation, route }: any) {
   const {
     score       = 87,
     duration    = 245,
-    mode        = 'Free Speech',
+    mode        = 'Speech Session',
     date        = 'Today, 2:30 PM',
     fillerCount = 3,
     details     = { clarity:87, pace:82, pronunciation:85, confidence:79 },

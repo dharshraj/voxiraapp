@@ -112,7 +112,7 @@ export default function WeeklyReportScreen({ navigation }: any) {
           <View style={s.empty}>
             <Ionicons name="calendar-outline" size={48} color={C.textMuted} />
             <Text style={s.emptyTxt}>No sessions this week yet. Start recording to build your weekly report.</Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode:'Free Speech' })} activeOpacity={0.85}>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode:'Speech Session' })} activeOpacity={0.85}>
               <Text style={s.emptyBtnTxt}>Start Recording</Text>
             </TouchableOpacity>
           </View>

@@ -81,7 +81,7 @@ export default function ConfidenceScoreScreen({ navigation }: any) {
           <View style={s.empty}>
             <Ionicons name="trending-up-outline" size={48} color={C.textMuted} />
             <Text style={s.emptyTxt}>No sessions yet. Complete your first speech analysis to see your confidence score.</Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Free Speech' })} activeOpacity={0.85}>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })} activeOpacity={0.85}>
               <Text style={s.emptyBtnTxt}>Start Recording</Text>
             </TouchableOpacity>
           </View>

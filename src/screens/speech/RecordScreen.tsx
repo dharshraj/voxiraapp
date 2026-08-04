@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { transcribeAudio } from '../../services/speechService';
-import '../../testAssemblyAI';
 import { useTheme } from '../../theme/ThemeContext';
 
 let Audio: any = null;
@@ -24,7 +23,7 @@ const MIC = 96;
 
 export default function RecordScreen({ navigation, route }: any) {
   const { colors: C, isDark } = useTheme();
-  const mode = route?.params?.mode ?? ' Record Speech';
+  const mode = route?.params?.mode ?? 'Speech Session';
   const [phase, setPhase]     = useState<'ready' | 'recording' | 'paused' | 'done' | 'transcribing'>('ready');
   const [duration, setDuration]   = useState(0);
   const [recording, setRecording] = useState<any>(null);
@@ -157,13 +156,12 @@ export default function RecordScreen({ navigation, route }: any) {
       setPhase('done');
       return;
     }
-    setStatusMsg('Uploading your speech');
+    setStatusMsg('Uploading your speech…');
     let result;
     try {
       result = await transcribeAudio(audioUri);
     } catch (e: any) {
-      const msg = `Upload error: ${e?.message ?? 'Failed'}`;
-      console.error('[RecordScreen] transcribeAudio threw:', e);
+      const msg = 'Could not upload your recording. Please check your connection and try again.';
       setStatusMsg(msg);
       setErrorBanner(msg);
       setPhase('done');
@@ -173,13 +171,9 @@ export default function RecordScreen({ navigation, route }: any) {
       setStatusMsg('Transcription complete!');
       setTimeout(() => navigation.navigate('Analyzing', { duration, mode, transcript: result.text, fillerWords: result.filler_words }), 600);
     } else {
-      let msg: string;
-      if (result.status === 'no_key') {
-        msg = 'AssemblyAI API key not set.\n\nAdd EXPO_PUBLIC_ASSEMBLYAI_KEY to your .env file.';
-      } else {
-        msg = `Transcription failed: ${result.error ?? 'Unknown error'}`;
-      }
-      console.error('[RecordScreen] Transcription result:', result.status, result.error);
+      const msg = result.status === 'no_key'
+        ? 'Speech-to-text is not configured. Please contact support.'
+        : 'Could not transcribe your recording. Please try again.';
       setStatusMsg(msg);
       setErrorBanner(msg);
       setPhase('done');

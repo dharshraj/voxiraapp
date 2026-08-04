@@ -192,6 +192,7 @@ export default function SpeechDashboardScreen({ navigation }: any) {
             <ActivityIndicator color={C.primary} />
           </View>
         ) : count === 0 ? (
+
           <View style={s.emptyWrap}>
             <View style={s.emptyIconBox}>
               <Ionicons name="mic-outline" size={26} color={C.primary} />
@@ -199,8 +200,8 @@ export default function SpeechDashboardScreen({ navigation }: any) {
             <Text style={s.emptyTitle}>No sessions recorded yet</Text>
             <Text style={s.emptySub}>
               Complete your first speech session to see your composite score, sub-scores, and filler word analysis here.
-            </Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Free Speech' })} activeOpacity={0.85}>
+            </Text>onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })}
+            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: ' Speech session' })} activeOpacity={0.85}>
               <Text style={s.emptyBtnTxt}>Start First Session</Text>
             </TouchableOpacity>
           </View>

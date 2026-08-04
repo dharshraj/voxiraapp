@@ -48,7 +48,7 @@ async function chatGroq(system: string, user: string, maxTokens = 1000): Promise
     { role: 'user',   content: user   },
   ];
 
-  console.log('[Groq] Invoking groq-analysis edge function, model:', GROQ_MODEL);
+  console.log('[AI] Invoking speech analysis, model:', GROQ_MODEL);
 
   const controller = new AbortController();
   const timeout    = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -64,23 +64,23 @@ async function chatGroq(system: string, user: string, maxTokens = 1000): Promise
   }
 
   if (error) {
-    const msg = error?.message ?? 'groq-analysis edge function returned an error';
-    console.error('[Groq] Edge function error:', msg);
+    const msg = error?.message ?? 'Speech analysis service returned an error';
+    console.error('[AI] Edge function error:', msg);
     throw new Error(msg);
   }
 
   if (data?.error) {
-    console.error('[Groq] API error from edge function:', data.error);
-    throw new Error(data.error);
+    console.error('[AI] API error from edge function:', data.error);
+    throw new Error('Speech analysis failed. Please try again.');
   }
 
   const text = data?.choices?.[0]?.message?.content;
   if (!text) {
-    console.error('[Groq] Unexpected response shape:', JSON.stringify(data)?.slice(0, 300));
-    throw new Error('Groq returned an empty response — please try again.');
+    console.error('[AI] Unexpected response shape:', JSON.stringify(data)?.slice(0, 300));
+    throw new Error('Analysis returned an empty response — please try again.');
   }
 
-  console.log('[Groq] Success — tokens:', data.usage?.total_tokens, '| preview:', text.slice(0, 80));
+  console.log('[AI] Success — tokens:', data.usage?.total_tokens, '| preview:', text.slice(0, 80));
   return text as string;
 }
 
@@ -96,7 +96,7 @@ function parseJSON<T>(raw: string, fallback: T): T {
     if (match) {
       try { return JSON.parse(match) as T; } catch {}
     }
-    console.warn('[Groq] JSON parse failed — using fallback');
+    console.warn('[AI] JSON parse failed — using fallback');
     return fallback;
   }
 }
@@ -157,7 +157,7 @@ Rules — follow every one precisely:
   const parsed = parseJSON<SpeechAnalysis>(raw, SPEECH_FALLBACK);
 
   if (typeof parsed.clarityScore !== 'number') {
-    throw new Error('The AI returned an unexpected format — please try recording again.');
+    throw new Error('Something went wrong with your analysis. Please try recording again.');
   }
 
   if (!Array.isArray(parsed.fillerWordAnalysis)) parsed.fillerWordAnalysis = [];

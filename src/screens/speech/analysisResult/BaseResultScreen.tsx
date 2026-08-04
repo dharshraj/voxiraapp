@@ -65,7 +65,7 @@ export default function BaseResultScreen({ stepIndex, navigation, params, childr
         <ScoreSummaryBar
           score={score}
           displayScore={displayScore}
-          mode={params?.mode ?? 'Free Speech'}
+          mode={params?.mode ?? 'Speech Session'}
           duration={params?.duration ?? 0}
           wpm={params?.wpm ?? 0}
           fillerCount={params?.fillerCount ?? 0}
@@ -80,7 +80,7 @@ export default function BaseResultScreen({ stepIndex, navigation, params, childr
           stepIndex={stepIndex}
           navigation={navigation}
           params={params}
-          mode={params?.mode ?? 'Free Speech'}
+          mode={params?.mode ?? 'Speech Session'}
           s={s}
         />
         <View style={{ height: 60 }} />

@@ -95,7 +95,7 @@ export default function CompareSessionsScreen({ navigation }: any) {
       <View style={s.empty}>
         <Ionicons name="git-compare-outline" size={48} color={C.textMuted} />
         <Text style={s.emptyTxt}>You need at least 2 sessions to compare. Complete more recordings to unlock this feature.</Text>
-        <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode:'Free Speech' })} activeOpacity={0.85}>
+        <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })} activeOpacity={0.85}>
           <Text style={s.emptyBtnTxt}>Start Recording</Text>
         </TouchableOpacity>
       </View>

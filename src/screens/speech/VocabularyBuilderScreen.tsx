@@ -86,7 +86,7 @@ export default function VocabularyBuilderScreen({ navigation }: any) {
           <View style={s.empty}>
             <Ionicons name="book-outline" size={48} color={C.textMuted} />
             <Text style={s.emptyTxt}>Complete speech sessions to build your vocabulary profile from real transcripts.</Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Free Speech' })} activeOpacity={0.85}>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })} activeOpacity={0.85}>
               <Text style={s.emptyBtnTxt}>Start Recording</Text>
             </TouchableOpacity>
           </View>

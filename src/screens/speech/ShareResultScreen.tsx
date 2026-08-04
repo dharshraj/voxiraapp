@@ -34,7 +34,7 @@ function scoreLabel(s:number){ return s>=90?'Excellent':s>=80?'Great':s>=70?'Goo
 export default function ShareResultScreen({ navigation, route }:any){
   const {
     score       = 87,
-    mode        = 'Free Speech',
+    mode        = 'Speech Session',
     duration    = 252,
     fillerCount = 3,
     details     = { clarity:87, pace:82, pronunciation:85, confidence:79 },

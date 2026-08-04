@@ -131,7 +131,7 @@ export default function PronunciationScreen({ navigation, route }:any){
               })}
             </View>
 
-            <TouchableOpacity style={s.practiceBtn} onPress={()=>navigation.navigate('Record',{mode:'Free Speech'})} activeOpacity={0.85}>
+            <TouchableOpacity style={s.practiceBtn} onPress={()=>navigation.navigate('Record',{mode:'Speech Session'})} activeOpacity={0.85}>
               <LinearGradient colors={['#1565FF','#0D47A1']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.practiceBtnGrad}>
                 <Ionicons name="mic" size={20} color="#fff"/>
                 <Text style={s.practiceBtnTxt}>Practice These Words</Text>

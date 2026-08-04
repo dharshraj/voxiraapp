@@ -69,7 +69,7 @@ export default function ToneAnalysisScreen({ navigation }: any) {
           <View style={s.empty}>
             <Ionicons name="radio-outline" size={48} color={C.textMuted} />
             <Text style={s.emptyTxt}>Complete a speech session to see your tone analysis.</Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Free Speech' })} activeOpacity={0.85}>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })} activeOpacity={0.85}>
               <Text style={s.emptyBtnTxt}>Start Recording</Text>
             </TouchableOpacity>
           </View>

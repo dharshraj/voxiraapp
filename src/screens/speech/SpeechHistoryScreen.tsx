@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSpeechSessions, RawSpeechSession } from '../../hooks/useSupabase';
 import { useTheme } from '../../theme/ThemeContext';
 
-const FILTERS      = ['All', 'Free Speech', 'Presentation', 'Conversation', 'Read Aloud'];
+const FILTERS      = ['All', 'Speech Session', 'Presentation', 'Conversation', 'Read Aloud'];
 const SORT_OPTIONS = ['Newest', 'Highest Score', 'Lowest Score'];
 
 function scoreColor(s: number) { return s >= 85 ? '#22C55E' : s >= 70 ? '#06B6D4' : '#F59E0B'; }
@@ -231,7 +231,7 @@ export default function SpeechHistoryScreen({ navigation }: any) {
             <View style={s.emptyIcon}><Ionicons name="mic-off-outline" size={44} color={C.textMuted} /></View>
             <Text style={s.emptyTitle}>No sessions yet</Text>
             <Text style={s.emptySub}>Complete a speech session to see your history here</Text>
-            <TouchableOpacity style={s.retryBtn} onPress={() => navigation.navigate('Record', { mode: 'Free Speech' })}>
+            <TouchableOpacity style={s.retryBtn} onPress={() => navigation.navigate('Record', { mode: 'Speech Session' })}>
               <Text style={s.retryTxt}>Start Recording</Text>
             </TouchableOpacity>
           </View>
