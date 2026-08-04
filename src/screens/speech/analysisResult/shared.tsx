@@ -8,7 +8,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Dimensions, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FillerWordEntry } from '../../../lib/mistral';
+import { FillerWordEntry } from '../../../lib/groq';
 
 export const W = Dimensions.get('window').width;
 export const TOTAL_STEPS = 9;
