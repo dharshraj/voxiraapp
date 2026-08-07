@@ -4,7 +4,8 @@ import {
   StatusBar, Platform, Animated, Dimensions, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { transcribeAudio } from '../../services/speechService';
+// speechService (AssemblyAI) is no longer called from RecordScreen.
+// Transcription is now handled by the local Whisper server inside AnalyzingScreen.
 import { useTheme } from '../../theme/ThemeContext';
 
 let Audio: any = null;
@@ -24,7 +25,7 @@ const MIC = 96;
 export default function RecordScreen({ navigation, route }: any) {
   const { colors: C, isDark } = useTheme();
   const mode = route?.params?.mode ?? 'Speech Session';
-  const [phase, setPhase]     = useState<'ready' | 'recording' | 'paused' | 'done' | 'transcribing'>('ready');
+  const [phase, setPhase]     = useState<'ready' | 'recording' | 'paused' | 'done'>('ready');
   const [duration, setDuration]   = useState(0);
   const [recording, setRecording] = useState<any>(null);
   const [audioUri, setAudioUri]   = useState<string | null>(null);
@@ -38,9 +39,12 @@ export default function RecordScreen({ navigation, route }: any) {
   const pulseRef  = useRef<any>(null);
   const waveRef   = useRef<any>(null);
 
-  const webRecorderRef = useRef<MediaRecorder | null>(null);
-  const webChunksRef   = useRef<BlobPart[]>([]);
-  const webStreamRef   = useRef<MediaStream | null>(null);
+  const webRecorderRef  = useRef<MediaRecorder | null>(null);
+  const webChunksRef    = useRef<BlobPart[]>([]);
+  const webStreamRef    = useRef<MediaStream | null>(null);
+  // Ref so goToAnalysis can read the blob URL synchronously even before
+  // the setAudioUri re-render has fired (web onstop is async).
+  const audioUriRef     = useRef<string | null>(null);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
@@ -100,7 +104,9 @@ export default function RecordScreen({ navigation, route }: any) {
       recorder.ondataavailable = (e) => { if (e.data.size > 0) webChunksRef.current.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(webChunksRef.current, { type: mimeType || 'audio/webm' });
-        setAudioUri(URL.createObjectURL(blob));
+        const url  = URL.createObjectURL(blob);
+        audioUriRef.current = url;   // write ref first — synchronous
+        setAudioUri(url);            // then trigger re-render
         stream.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       };
       recorder.start(500);
@@ -109,7 +115,20 @@ export default function RecordScreen({ navigation, route }: any) {
       Alert.alert('Microphone Error', err?.message ?? 'Could not access microphone. Please allow mic permission in your browser.');
     }
   };
-  const stopWebRecording   = () => { if (webRecorderRef.current && webRecorderRef.current.state !== 'inactive') webRecorderRef.current.stop(); };
+  const stopWebRecording = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!webRecorderRef.current || webRecorderRef.current.state === 'inactive') {
+        resolve(); return;
+      }
+      // onstop fires async — resolve only after blob URL is ready
+      const originalOnStop = webRecorderRef.current.onstop;
+      webRecorderRef.current.onstop = (e) => {
+        if (originalOnStop) (originalOnStop as any)(e);
+        resolve();
+      };
+      webRecorderRef.current.stop();
+    });
+  };
   const pauseWebRecording  = () => { if (webRecorderRef.current && webRecorderRef.current.state === 'recording') webRecorderRef.current.pause(); };
   const resumeWebRecording = () => { if (webRecorderRef.current && webRecorderRef.current.state === 'paused') webRecorderRef.current.resume(); };
 
@@ -140,48 +159,36 @@ export default function RecordScreen({ navigation, route }: any) {
   };
   const stopRecording = async () => {
     stopTimer(); stopPulse(); stopWave();
-    if (isWeb) { stopWebRecording(); setPhase('done'); return; }
+    if (isWeb) {
+      await stopWebRecording();   // waits for blob URL to be ready
+      setPhase('done'); return;
+    }
     if (recording) {
-      try { await recording.stopAndUnloadAsync(); setAudioUri(recording.getURI()); } catch (e) { console.log('Stop error:', e); }
+      try {
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        audioUriRef.current = uri;
+        setAudioUri(uri);
+      } catch (e) { console.log('Stop error:', e); }
     }
     setPhase('done');
   };
-  const goToAnalysis = async () => {
-    setPhase('transcribing');
+  const goToAnalysis = () => {
     setErrorBanner(null);
-    if (!audioUri) {
+    // Read from ref — guaranteed to be set even if state re-render hasn't fired yet
+    const uri = audioUriRef.current ?? audioUri;
+    if (!uri) {
       const msg = 'No audio captured — please record first.';
       setStatusMsg(msg);
       setErrorBanner(msg);
-      setPhase('done');
       return;
     }
-    setStatusMsg('Uploading your speech…');
-    let result;
-    try {
-      result = await transcribeAudio(audioUri);
-    } catch (e: any) {
-      const msg = 'Could not upload your recording. Please check your connection and try again.';
-      setStatusMsg(msg);
-      setErrorBanner(msg);
-      setPhase('done');
-      return;
-    }
-    if (result.status === 'completed' && result.text) {
-      setStatusMsg('Transcription complete!');
-      setTimeout(() => navigation.navigate('Analyzing', { duration, mode, transcript: result.text, fillerWords: result.filler_words }), 600);
-    } else {
-      const msg = result.status === 'no_key'
-        ? 'Speech-to-text is not configured. Please contact support.'
-        : 'Could not transcribe your recording. Please try again.';
-      setStatusMsg(msg);
-      setErrorBanner(msg);
-      setPhase('done');
-    }
+    navigation.navigate('Analyzing', { audioUri: uri, duration, mode });
   };
   const reset = () => {
     if (webStreamRef.current) { webStreamRef.current.getTracks().forEach(t => t.stop()); webStreamRef.current = null; }
-    if (audioUri && audioUri.startsWith('blob:')) URL.revokeObjectURL(audioUri);
+    if (audioUriRef.current && audioUriRef.current.startsWith('blob:')) URL.revokeObjectURL(audioUriRef.current);
+    audioUriRef.current = null;
     setPhase('ready'); setDuration(0); setRecording(null); setAudioUri(null); setStatusMsg(''); setErrorBanner(null);
   };
 
@@ -245,7 +252,6 @@ export default function RecordScreen({ navigation, route }: any) {
                   {phase === 'ready'        ? 'Ready'
                   : phase === 'recording'  ? 'Recording'
                   : phase === 'paused'     ? 'Paused'
-                  : phase === 'transcribing' ? 'Processing…'
                   : 'Done'}
                 </Text>
               </View>
@@ -259,7 +265,6 @@ export default function RecordScreen({ navigation, route }: any) {
               {phase === 'ready'          ? 'Press mic to start'
               : phase === 'recording'    ? 'Listening…'
               : phase === 'paused'       ? 'Paused — tap to resume'
-              : phase === 'transcribing' ? (statusMsg || 'Analysing…')
               : 'Recording complete!'}
             </Text>
           </View>
@@ -340,8 +345,8 @@ export default function RecordScreen({ navigation, route }: any) {
           </View>
 
           <View style={s.bottomRow}>
-            <TouchableOpacity style={s.controlBtn} onPress={reset} disabled={phase === 'ready' || phase === 'transcribing'}>
-              <View style={[s.controlBtnInner, (phase === 'ready' || phase === 'transcribing') && { opacity: 0.35 }]}>
+            <TouchableOpacity style={s.controlBtn} onPress={reset} disabled={phase === 'ready'}>
+              <View style={[s.controlBtnInner, phase === 'ready' && { opacity: 0.35 }]}>
                 <Ionicons name="refresh" size={18} color={C.textSec} />
                 <Text style={s.controlBtnTxt}>Reset</Text>
               </View>

@@ -13,12 +13,14 @@ export default function TranscriptResultScreen({ navigation, route }: any) {
 
   return (
     <BaseResultScreen stepIndex={0} navigation={navigation} params={p}>
+
       {!!persistError && (
         <View style={s.warnBanner}>
           <Ionicons name="warning-outline" size={16} color={C.warning} />
           <Text style={s.warnTxt}>Result shown but not saved — {persistError}</Text>
         </View>
       )}
+
       {transcript && transcript.length > 10 ? (
         <View style={s.transcriptCard}>
           <View style={s.transcriptHeader}>
@@ -27,7 +29,8 @@ export default function TranscriptResultScreen({ navigation, route }: any) {
           </View>
           <Text style={s.transcriptText}>{transcript}</Text>
           <Text style={s.transcriptMeta}>
-            {transcript.trim().split(/\s+/).filter(Boolean).length} words · {formatTime(duration)}{wpm > 0 ? ` · ${wpm} WPM` : ''}
+            {transcript.trim().split(/\s+/).filter(Boolean).length} words
+            · {formatTime(duration)}{wpm > 0 ? ` · ${wpm} WPM` : ''}
           </Text>
         </View>
       ) : (
@@ -36,6 +39,7 @@ export default function TranscriptResultScreen({ navigation, route }: any) {
           <Text style={s.emptyStepTxt}>No transcript captured for this session.</Text>
         </View>
       )}
+
     </BaseResultScreen>
   );
 }

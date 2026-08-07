@@ -1,0 +1,13 @@
+openai-whisper>=20240930
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+librosa
+soundfile
+scikit-learn
+joblib
+pandas
+matplotlib
+seaborn
+scipy

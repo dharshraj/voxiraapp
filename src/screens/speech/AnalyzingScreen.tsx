@@ -1,150 +1,159 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Animated, StatusBar, Dimensions, Platform, TouchableOpacity,
+  View, Text, StyleSheet, Animated, StatusBar,
+  Dimensions, Platform, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+import { localTranscribe }               from '../../services/localSpeechService';
 import { analyzeSpeech, FillerWordEntry } from '../../lib/groq';
-import { useSessionStore } from '../../store/sessionStore';
-import { useAuthStore } from '../../store/authStore';
-import { useTheme } from '../../theme/ThemeContext';
+import { useSessionStore }               from '../../store/sessionStore';
+import { useAuthStore }                  from '../../store/authStore';
+import { useTheme }                      from '../../theme/ThemeContext';
 
 const { width: W } = Dimensions.get('window');
+const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+// Clean user-facing step labels — no technical details visible
+const STEPS = [
+  { label: 'Uploading your recording',   icon: 'cloud-upload-outline',   color: '#4F6EF7' },
+  { label: 'Transcribing your speech',   icon: 'mic-outline',            color: '#7C5CFC' },
+  { label: 'Measuring pace & clarity',   icon: 'analytics-outline',      color: '#06B6D4' },
+  { label: 'Scoring your delivery',      icon: 'star-outline',           color: '#F59E0B' },
+  { label: 'Generating your feedback',   icon: 'bulb-outline',           color: '#10B981' },
+] as const;
+
+type StepStatus = 'pending' | 'active' | 'done' | 'error';
 
 export default function AnalyzingScreen({ navigation, route }: any) {
   const { colors: C, isDark } = useTheme();
+
   const {
-    duration    = 0,
-    mode        = 'Speech Session',
-    transcript  = '',
-    fillerWords = [],
+    audioUri               = null,
+    duration               = 0,
+    mode                   = 'Speech Session',
+    transcript: fallbackTranscript = '',
   } = route?.params ?? {};
 
   const userId    = useAuthStore(s => s.user?.id);
   const addSpeech = useSessionStore(s => s.addSpeechSession);
   const savedRef  = useRef(false);
 
-  // Step labels — now 5 steps including the LLM filler analysis
-  const STEPS = [
-    { label: 'Uploading your speech',     icon: 'cloud-upload-outline', color: C.primary  },
-    { label: 'Reading transcript',        icon: 'mic-outline',          color: C.warning   },
-    { label: 'Detecting filler words',    icon: 'warning-outline',      color: C.error     },
-    { label: 'Running AI speech analysis',icon: 'sparkles-outline',     color: C.info      },
-    { label: 'Generating suggestions',    icon: 'bulb-outline',         color: C.success   },
-  ];
-
-  const [currentStep, setCurrentStep] = useState(0);
-  const [done,        setDone]        = useState(false);
-  const [statusMsg,   setStatusMsg]   = useState('');
-  const [hasError,    setHasError]    = useState<string | null>(null);
+  const [steps,    setSteps]    = useState<StepStatus[]>(['pending','pending','pending','pending','pending']);
+  const [headline, setHeadline] = useState('Analysing your speech…');
+  const [subline,  setSubline]  = useState('This usually takes 20–40 seconds');
+  const [done,     setDone]     = useState(false);
+  const [hasError, setHasError] = useState<string | null>(null);
 
   const fadeAnim     = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  const updateStep = (step: number) => {
-    setCurrentStep(step);
-    Animated.timing(progressAnim, {
-      toValue:  (step + 1) / STEPS.length,
-      duration: 600,
-      useNativeDriver: false,
-    }).start();
-  };
+  const setStep = (i: number, s: StepStatus) =>
+    setSteps(prev => { const n = [...prev]; n[i] = s; return n; });
+
+  const advanceProgress = (fraction: number) =>
+    Animated.timing(progressAnim, { toValue: fraction, duration: 500, useNativeDriver: false }).start();
 
   const runAnalysis = async () => {
-    // ── Step 0: Processing audio ─────────────────────────────────────────────
-    updateStep(0);
-    await delay(600);
+    await delay(300);
+    console.log('[AnalyzingScreen] audioUri:', audioUri ? audioUri.slice(0, 50) : 'NULL');
+    console.log('[AnalyzingScreen] duration:', duration, 'mode:', mode);
 
-    if (!transcript || transcript.length < 10) {
+    // ── Step 0: Uploading ─────────────────────────────────────────────────
+    setStep(0, 'active');
+    advanceProgress(0.1);
+
+    // ── LOCAL ML TASK — Whisper + RF (runs in background) ─────────────────
+    const mlTask = (async () => {
+      console.log('[AnalyzingScreen] ML: calling localTranscribe…');
+      const r = await localTranscribe(audioUri ?? '', duration);
+      console.log('[AnalyzingScreen] ML result: status=', r.status, 'err=', r.error ?? 'none');
+      return r;
+    })();
+
+    // ── Step 1: Transcribing ──────────────────────────────────────────────
+    setStep(0, 'done');
+    setStep(1, 'active');
+    advanceProgress(0.25);
+
+    const localResult = await mlTask;
+
+    if (localResult.status === 'server_down') {
+      setStep(1, 'error');
       setHasError(
-        'No transcript was captured. Please go back and try recording again — make sure your microphone is working.'
+        'Could not connect to the analysis server.\n\nPlease make sure the server is running:\n  cd whisper_server\n  python main.py\n\nThen try again.'
       );
       return;
     }
 
-    // ── Step 1: Reading transcript ───────────────────────────────────────────
-    updateStep(1);
-    const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
-    const wpm       = duration > 0 ? Math.round((wordCount / duration) * 60) : 0;
-    setStatusMsg(`${wordCount} words · ${wpm > 0 ? wpm + ' WPM' : 'calculating pace…'}`);
-    await delay(700);
+    const transcriptForApi = localResult.status === 'ok' && localResult.transcript
+      ? localResult.transcript
+      : fallbackTranscript;
 
-    // ── Step 2: Detecting filler words ───────────────────────────────────────
-    // Build a preliminary count from the AssemblyAI word list (fast, no network).
-    // The LLM pass in step 3 will produce the definitive count from the transcript text.
-    updateStep(2);
-    const seedBreakdown: Record<string, number> = {};
-    for (const w of fillerWords as Array<{ text: string }>) {
-      const word = w.text.toLowerCase().trim();
-      if (word) seedBreakdown[word] = (seedBreakdown[word] ?? 0) + 1;
-    }
-    setStatusMsg('');
-    await delay(500);
-
-    // ── Step 3: AI speech analysis ───────────────────────────────────────────
-    updateStep(3);
-    console.log('[AnalyzingScreen] Calling analyzeSpeech, transcript length:', transcript.length);
-
-    let aiAnalysis;
-    try {
-      aiAnalysis = await analyzeSpeech(transcript, duration, mode);
-      console.log('[AnalyzingScreen] analyzeSpeech done — clarity:', aiAnalysis.clarityScore,
-        '| fillerWordAnalysis entries:', aiAnalysis.fillerWordAnalysis?.length ?? 0);
-    } catch (e: any) {
-      const msg = e.message ?? '';
-      let uiMessage: string;
-      if (msg.includes('rate limit') || msg.includes('rate_limit') || msg.includes('429')) {
-        uiMessage = 'Our servers are busy right now. Please wait 30–60 seconds and try again.';
-      } else if (msg.includes('timed out') || msg.includes('timeout') || msg.includes('AbortError')) {
-        uiMessage = 'The analysis took too long. This can happen with longer recordings — please try again.';
-      } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
-        uiMessage = 'Network error. Please check your internet connection and try again.';
-      } else {
-        uiMessage = 'Speech analysis failed. Please go back and try recording again.';
-      }
-
-      setHasError(uiMessage);
+    if (!transcriptForApi || transcriptForApi.length < 5) {
+      setStep(1, 'error');
+      setHasError('Could not transcribe your recording. Please record again and speak clearly.');
       return;
     }
 
-    // ── Step 4: Generating suggestions ──────────────────────────────────────
-    updateStep(4);
-    setStatusMsg('Building your personalised report…');
+    // ── Step 2: Measuring pace & clarity ─────────────────────────────────
+    setStep(1, 'done');
+    setStep(2, 'active');
+    advanceProgress(0.45);
+    await delay(300);
 
-    // Resolve the definitive filler breakdown:
-    // Prefer the LLM's analysis (which scans the full transcript text) but
-    // merge it with the seed from AssemblyAI word tags as a safety net.
-    const llmFillerBreakdown: Record<string, number> = {};
-    for (const entry of (aiAnalysis.fillerWordAnalysis ?? []) as FillerWordEntry[]) {
-      if (entry.word && entry.count > 0) {
-        llmFillerBreakdown[entry.word.toLowerCase()] = entry.count;
+    // ── Step 3: AI scoring ────────────────────────────────────────────────
+    setStep(2, 'done');
+    setStep(3, 'active');
+    advanceProgress(0.65);
+
+    let aiAnalysis: any = null;
+    try {
+      aiAnalysis = await analyzeSpeech(transcriptForApi, duration, mode);
+      console.log('[AnalyzingScreen] AI done — clarity:', aiAnalysis?.clarityScore);
+    } catch (e: any) {
+      console.warn('[AnalyzingScreen] AI failed:', e?.message);
+      // Non-fatal — we continue with defaults
+    }
+
+    // ── Step 4: Generating feedback ───────────────────────────────────────
+    setStep(3, 'done');
+    setStep(4, 'active');
+    advanceProgress(0.85);
+    await delay(400);
+
+    // ── Merge results ─────────────────────────────────────────────────────
+    const mlOk = localResult.status === 'ok';
+    const aiOk = aiAnalysis !== null;
+
+    const wpm = mlOk
+      ? Math.round(localResult.wpm)
+      : (duration > 0
+          ? Math.round((transcriptForApi.trim().split(/\s+/).filter(Boolean).length / duration) * 60)
+          : 0);
+
+    const paceScore = mlOk ? localResult.paceScore
+      : (wpm > 0 ? Math.round(Math.max(40, Math.min(100, 100 - Math.abs(wpm - 130) / 1.5))) : 60);
+
+    const localFillers: Record<string, number> = mlOk ? localResult.fillerBreakdown : {};
+    const llmFillers:   Record<string, number> = {};
+    if (aiOk) {
+      for (const e of (aiAnalysis.fillerWordAnalysis ?? []) as FillerWordEntry[]) {
+        if (e.word && e.count > 0) llmFillers[e.word.toLowerCase()] = e.count;
       }
     }
-    // Merge seed counts for any fillers AssemblyAI tagged but the LLM missed
-    for (const [word, count] of Object.entries(seedBreakdown)) {
-      if (!llmFillerBreakdown[word]) {
-        llmFillerBreakdown[word] = count;
-      }
-    }
-    const fillerCount = Object.values(llmFillerBreakdown).reduce((a, b) => a + b, 0);
+    const fillerBreakdown: Record<string, number> = { ...llmFillers, ...localFillers };
+    const fillerCount = Object.values(fillerBreakdown).reduce((a, b) => a + b, 0);
 
-    console.log('[AnalyzingScreen] Final filler breakdown:', llmFillerBreakdown, '| total:', fillerCount);
-
-    // ── Derive numeric scores ────────────────────────────────────────────────
-    const paceScore = wpm > 0
-      ? Math.round(Math.max(40, 100 - Math.abs(wpm - 130) / 1.2))
-      : 65;
-
-    const clarity        = aiAnalysis.clarityScore;
-    const confidence     = aiAnalysis.confidenceScore;
-    const structureScore = aiAnalysis.structureScore;
+    const clarity        = aiOk && aiAnalysis.clarityScore     > 0 ? aiAnalysis.clarityScore     : 68;
+    const confidence     = aiOk && aiAnalysis.confidenceScore  > 0 ? aiAnalysis.confidenceScore  : 65;
+    const structureScore = aiOk && aiAnalysis.structureScore   > 0 ? aiAnalysis.structureScore   : 66;
     const pronunciation  = Math.min(96, Math.round(clarity * 0.93 + 5));
 
     const fillerPenalty = Math.min(25, fillerCount * 2);
     let score = Math.round(
-      (clarity * 0.3 + confidence * 0.2 + structureScore * 0.2 + paceScore * 0.15 + pronunciation * 0.15)
-      - fillerPenalty
+      clarity * 0.30 + confidence * 0.20 + structureScore * 0.20 +
+      paceScore * 0.15 + pronunciation * 0.15 - fillerPenalty
     );
     if (duration < 10) score = Math.max(40, score - 15);
     score = Math.max(35, Math.min(98, score));
@@ -156,45 +165,42 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       confidence:    Math.round(confidence),
     };
 
-    // ── Save session ─────────────────────────────────────────────────────────
-    let persistError: string | undefined;
+    // ── Save ──────────────────────────────────────────────────────────────
     if (!savedRef.current && userId) {
       savedRef.current = true;
       try {
         await addSpeech({
-          mode, score, duration, wpm,
+          mode, score, duration,
+          wpm:              Math.round(wpm),   // always integer — fixes DB type error
           filler_count:     fillerCount,
-          filler_breakdown: llmFillerBreakdown,
-          transcript,
-          clarity:       details.clarity,
-          pace:          details.pace,
-          pronunciation: details.pronunciation,
-          confidence:    details.confidence,
+          filler_breakdown: fillerBreakdown,
+          transcript:       transcriptForApi,
+          clarity:          details.clarity,
+          pace:             details.pace,
+          pronunciation:    details.pronunciation,
+          confidence:       details.confidence,
         }, userId);
-
-        persistError = useSessionStore.getState().saveError ?? undefined;
-        if (persistError) {
-          console.error('[AnalyzingScreen] Session save failed:', persistError);
-          // Don't surface the raw error to the user — results still navigate normally
-          persistError = undefined;
-        }
-      } catch (saveEx: any) {
-        console.error('[AnalyzingScreen] Unexpected save error:', saveEx?.message);
-        // Session results still navigate — saving failure is silent to the user
+      } catch (e: any) {
+        console.error('[AnalyzingScreen] Save error:', e?.message);
       }
     }
 
-    await delay(400);
+    setStep(4, 'done');
+    advanceProgress(1.0);
+    await delay(300);
     setDone(true);
+    setHeadline('Analysis Complete');
+    setSubline('Your results are ready');
 
-    setTimeout(() => {
-      navigation.replace('TranscriptResult', {
-        score, duration, fillerCount,
-        fillerBreakdown: llmFillerBreakdown,
-        transcript, mode, wpm, details, aiAnalysis,
-        persistError,
-      });
-    }, 600);
+    await delay(500);
+    navigation.replace('TranscriptResult', {
+      score, duration, fillerCount, fillerBreakdown,
+      transcript: transcriptForApi, mode,
+      wpm:        Math.round(wpm),
+      details,
+      aiAnalysis: aiOk ? aiAnalysis : null,
+      mlPrediction: mlOk ? localResult.mlPrediction : null,
+    });
   };
 
   useEffect(() => {
@@ -206,18 +212,18 @@ export default function AnalyzingScreen({ navigation, route }: any) {
 
   const s = StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
-    content:      { flex: 1, paddingHorizontal: 24, paddingTop: Platform.OS === 'ios' ? 100 : 80, alignItems: 'center' },
-    iconArea:     { height: 120, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-    spinnerOuter: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    title:        { fontSize: 22, fontWeight: '700', color: C.text, marginBottom: 6, textAlign: 'center' },
-    sub:          { fontSize: 14, color: C.textSec, marginBottom: 24, textAlign: 'center', paddingHorizontal: 16 },
-    progressTrack:{ width: '100%', height: 6, backgroundColor: C.surface, borderRadius: 3, overflow: 'hidden', marginBottom: 28 },
+    content:      { flex: 1, paddingHorizontal: 24, paddingTop: Platform.OS === 'ios' ? 90 : 70, alignItems: 'center' },
+    iconArea:     { height: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    spinner:      { width: 90, height: 90, borderRadius: 45, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    title:        { fontSize: 20, fontWeight: '700', color: C.text, marginBottom: 4, textAlign: 'center' },
+    sub:          { fontSize: 13, color: C.textSec, marginBottom: 24, textAlign: 'center' },
+    progressTrack:{ width: '100%', height: 5, backgroundColor: C.surface, borderRadius: 3, overflow: 'hidden', marginBottom: 28 },
     progressFill: { height: '100%', borderRadius: 3, backgroundColor: C.primary },
     stepList:     { width: '100%', gap: 14 },
     stepRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    stepDot:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    stepLabel:    { flex: 1, fontSize: 14, color: C.textMuted },
-    errorWrap:    { alignItems: 'center', gap: 16, paddingHorizontal: 8, marginTop: 20 },
+    stepDot:      { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
+    stepLabel:    { flex: 1, fontSize: 13, color: C.textMuted },
+    errorWrap:    { alignItems: 'center', gap: 14, paddingHorizontal: 8, marginTop: 16 },
     errorTitle:   { fontSize: 20, fontWeight: '700', color: C.error, textAlign: 'center' },
     errorMsg:     { fontSize: 13, color: C.textSec, lineHeight: 20, textAlign: 'center' },
     retryBtn:     { marginTop: 8, backgroundColor: C.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 },
@@ -231,7 +237,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
 
         {hasError ? (
           <View style={s.errorWrap}>
-            <Ionicons name="alert-circle" size={60} color={C.error} />
+            <Ionicons name="alert-circle" size={56} color={C.error} />
             <Text style={s.errorTitle}>Analysis Failed</Text>
             <Text style={s.errorMsg}>{hasError}</Text>
             <TouchableOpacity style={s.retryBtn} onPress={() => navigation.goBack()}>
@@ -241,44 +247,43 @@ export default function AnalyzingScreen({ navigation, route }: any) {
         ) : (
           <>
             <View style={s.iconArea}>
-              {!done ? (
-                <View style={s.spinnerOuter}>
-                  <Ionicons
-                    name={(STEPS[currentStep]?.icon ?? 'mic') as any}
-                    size={32}
-                    color={STEPS[currentStep]?.color ?? C.primary}
-                  />
-                </View>
-              ) : (
-                <Ionicons name="checkmark-circle" size={64} color={C.success} />
-              )}
+              {done
+                ? <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+                : <View style={s.spinner}>
+                    <Ionicons name="pulse-outline" size={36} color={C.primary} />
+                  </View>
+              }
             </View>
-            <Text style={s.title}>{done ? 'Analysis Complete' : 'Analysing Your Speech'}</Text>
-            <Text style={s.sub}>{done ? 'Your results are ready' : (statusMsg || 'Please wait…')}</Text>
+
+            <Text style={s.title}>{headline}</Text>
+            <Text style={s.sub}>{subline}</Text>
+
             <View style={s.progressTrack}>
               <Animated.View style={[s.progressFill, { width: progressWidth }]} />
             </View>
+
             <View style={s.stepList}>
               {STEPS.map((step, i) => {
-                const isDone    = i < currentStep || done;
-                const isCurrent = i === currentStep && !done;
+                const status   = steps[i];
+                const isDoneS  = status === 'done' || done;
+                const isActive = status === 'active' && !done;
+                const isErr    = status === 'error';
+
+                const dotBg = isDoneS ? '#10B981' : isErr ? C.error : isActive ? step.color : C.surface;
+                const dotBr = isDoneS ? '#10B981' : isErr ? C.error : isActive ? step.color : C.border;
+
                 return (
                   <View key={i} style={s.stepRow}>
-                    <View style={[
-                      s.stepDot,
-                      isDone    && { backgroundColor: C.success },
-                      isCurrent && { backgroundColor: step.color },
-                    ]}>
-                      {isDone
-                        ? <Ionicons name="checkmark" size={12} color="#fff" />
-                        : isCurrent
-                          ? <Ionicons name={step.icon as any} size={14} color="#fff" />
-                          : null}
+                    <View style={[s.stepDot, { backgroundColor: dotBg, borderColor: dotBr }]}>
+                      {isDoneS  && <Ionicons name="checkmark"     size={13} color="#fff" />}
+                      {isErr    && <Ionicons name="close"         size={13} color="#fff" />}
+                      {isActive && <Ionicons name={step.icon as any} size={13} color="#fff" />}
                     </View>
                     <Text style={[
                       s.stepLabel,
-                      isDone    && { color: C.textSec },
-                      isCurrent && { color: C.text, fontWeight: '600' },
+                      isDoneS  && { color: C.textSec },
+                      isActive && { color: C.text, fontWeight: '600' },
+                      isErr    && { color: C.error },
                     ]}>
                       {step.label}
                     </Text>

@@ -69,3 +69,8 @@ dist-web/
 
 # Selenium debug screenshots archive
 selenium_model/debug_screenshots/
+
+__pycache__/
+*.pyc
+ml_model/model.pkl
+whisper_server/venv/
