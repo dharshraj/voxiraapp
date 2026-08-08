@@ -64,22 +64,40 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     setStep(0, 'active');
     advanceProgress(0.1);
 
-    // ── Step 1: Transcribing via AssemblyAI ──────────────────────────────
+    // ── Step 1: Transcribing ──────────────────────────────────────────────
     setStep(0, 'done');
     setStep(1, 'active');
     advanceProgress(0.25);
 
     let transcriptForApi = '';
-    const localResult = { status: 'server_down' as const, transcript: '', wpm: 0, paceScore: 60, fillerBreakdown: {} as Record<string,number>, fillerCount: 0, words: [], audioDuration: duration, language: null, features: {}, mlPrediction: null, mlAvailable: false, error: 'skipped' };
 
-    console.log('[AnalyzingScreen] Using AssemblyAI for transcription');
-    try {
-      const aaiResult = await transcribeAudio(audioUri ?? '');
-      if (aaiResult.status === 'completed' && aaiResult.text) {
-        transcriptForApi = aaiResult.text;
+    // Web: try local ML server first (whisper + RF running on your PC)
+    // Mobile: skip local server entirely — use AssemblyAI directly
+    let localResult: Awaited<ReturnType<typeof localTranscribe>> = {
+      status: 'server_down', transcript: '', wpm: 0, paceScore: 60,
+      fillerBreakdown: {}, fillerCount: 0, words: [], audioDuration: duration,
+      language: null, features: {}, mlPrediction: null, mlAvailable: false, error: 'skipped',
+    };
+
+    if (Platform.OS === 'web') {
+      console.log('[AnalyzingScreen] Web: trying local ML server…');
+      localResult = await localTranscribe(audioUri ?? '', duration);
+      console.log('[AnalyzingScreen] ML result: status=', localResult.status, 'err=', localResult.error ?? 'none');
+    }
+
+    if (localResult.status === 'ok' && localResult.transcript) {
+      transcriptForApi = localResult.transcript;
+    } else {
+      // Mobile or server down — fall back to AssemblyAI
+      console.log('[AnalyzingScreen] Using AssemblyAI for transcription');
+      try {
+        const aaiResult = await transcribeAudio(audioUri ?? '');
+        if (aaiResult.status === 'completed' && aaiResult.text) {
+          transcriptForApi = aaiResult.text;
+        }
+      } catch (e: any) {
+        console.warn('[AnalyzingScreen] AssemblyAI failed:', e?.message);
       }
-    } catch (e: any) {
-      console.warn('[AnalyzingScreen] AssemblyAI failed:', e?.message);
     }
 
     if (!transcriptForApi || transcriptForApi.length < 5) {
@@ -115,7 +133,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     await delay(400);
 
     // ── Merge results ─────────────────────────────────────────────────────
-    const mlOk = false; // AssemblyAI-only mode — no local ML
+    const mlOk = localResult.status === 'ok';
     const aiOk = aiAnalysis !== null;
 
     const wpm = mlOk
