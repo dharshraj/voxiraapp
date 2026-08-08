@@ -79,8 +79,8 @@ export default function AnalyzingScreen({ navigation, route }: any) {
       language: null, features: {}, mlPrediction: null, mlAvailable: false, error: 'skipped',
     };
 
-    if (Platform.OS === 'web') {
-      console.log('[AnalyzingScreen] Web: trying local ML server…');
+    if (Platform.OS === 'web' || __DEV__) {
+      console.log('[AnalyzingScreen] Trying local ML server…');
       localResult = await localTranscribe(audioUri ?? '', duration);
       console.log('[AnalyzingScreen] ML result: status=', localResult.status, 'err=', localResult.error ?? 'none');
     }

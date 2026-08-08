@@ -77,12 +77,13 @@ export async function localTranscribe(
     return emptyResult('error', 'No audio URI provided');
   }
 
-  // ── Native mobile: local server is never reachable in production ──────────
-  // Skip the network attempt entirely so we fail fast and let AnalyzingScreen
-  // immediately fall back to AssemblyAI instead of waiting for a timeout.
-  if (Platform.OS !== 'web' && IS_LOCALHOST_URL) {
-    log('Skipping local server on native — LAN/localhost URL not reachable on mobile');
-    return emptyResult('server_down', 'Local server not reachable on mobile');
+  // ── Native mobile: skip local server only in production (Vercel deploy) ──
+  // When running via Expo Go on the same LAN as the server, it IS reachable.
+  // We only skip if it's a localhost/LAN URL AND we're in a production build
+  // (no __DEV__ means bundled for production, not Expo Go dev server).
+  if (Platform.OS !== 'web' && IS_LOCALHOST_URL && !__DEV__) {
+    log('Skipping local server on native production build — LAN URL not reachable');
+    return emptyResult('server_down', 'Local server not reachable in production');
   }
 
   // ── Web: quick health-check before uploading audio ────────────────────────
