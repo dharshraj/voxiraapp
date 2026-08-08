@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { localTranscribe }               from '../../services/localSpeechService';
+import { transcribeAudio }               from '../../services/speechService';
 import { analyzeSpeech, FillerWordEntry } from '../../lib/groq';
 import { useSessionStore }               from '../../store/sessionStore';
 import { useAuthStore }                  from '../../store/authStore';
@@ -41,7 +42,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
 
   const [steps,    setSteps]    = useState<StepStatus[]>(['pending','pending','pending','pending','pending']);
   const [headline, setHeadline] = useState('Analysing your speech…');
-  const [subline,  setSubline]  = useState('This usually takes 20–40 seconds');
+  const [subline,  setSubline]  = useState('This usually takes 5–15 seconds');
   const [done,     setDone]     = useState(false);
   const [hasError, setHasError] = useState<string | null>(null);
 
@@ -63,32 +64,23 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     setStep(0, 'active');
     advanceProgress(0.1);
 
-    // ── LOCAL ML TASK — Whisper + RF (runs in background) ─────────────────
-    const mlTask = (async () => {
-      console.log('[AnalyzingScreen] ML: calling localTranscribe…');
-      const r = await localTranscribe(audioUri ?? '', duration);
-      console.log('[AnalyzingScreen] ML result: status=', r.status, 'err=', r.error ?? 'none');
-      return r;
-    })();
-
-    // ── Step 1: Transcribing ──────────────────────────────────────────────
+    // ── Step 1: Transcribing via AssemblyAI ──────────────────────────────
     setStep(0, 'done');
     setStep(1, 'active');
     advanceProgress(0.25);
 
-    const localResult = await mlTask;
+    let transcriptForApi = '';
+    const localResult = { status: 'server_down' as const, transcript: '', wpm: 0, paceScore: 60, fillerBreakdown: {} as Record<string,number>, fillerCount: 0, words: [], audioDuration: duration, language: null, features: {}, mlPrediction: null, mlAvailable: false, error: 'skipped' };
 
-    if (localResult.status === 'server_down') {
-      setStep(1, 'error');
-      setHasError(
-        'Could not connect to the analysis server.\n\nPlease make sure the server is running:\n  cd whisper_server\n  python main.py\n\nThen try again.'
-      );
-      return;
+    console.log('[AnalyzingScreen] Using AssemblyAI for transcription');
+    try {
+      const aaiResult = await transcribeAudio(audioUri ?? '');
+      if (aaiResult.status === 'completed' && aaiResult.text) {
+        transcriptForApi = aaiResult.text;
+      }
+    } catch (e: any) {
+      console.warn('[AnalyzingScreen] AssemblyAI failed:', e?.message);
     }
-
-    const transcriptForApi = localResult.status === 'ok' && localResult.transcript
-      ? localResult.transcript
-      : fallbackTranscript;
 
     if (!transcriptForApi || transcriptForApi.length < 5) {
       setStep(1, 'error');
@@ -123,7 +115,7 @@ export default function AnalyzingScreen({ navigation, route }: any) {
     await delay(400);
 
     // ── Merge results ─────────────────────────────────────────────────────
-    const mlOk = localResult.status === 'ok';
+    const mlOk = false; // AssemblyAI-only mode — no local ML
     const aiOk = aiAnalysis !== null;
 
     const wpm = mlOk
